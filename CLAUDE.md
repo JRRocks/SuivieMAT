@@ -1,4 +1,6 @@
-# claude.md — Guide de travail sur ScanList
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Application Android native de **scan à la chaîne** (QR, code-barres, OCR, NFC/RFID) pour
 l'inventaire et le contrôle de matériel. Kotlin + Jetpack Compose, 100 % hors-ligne,
@@ -30,7 +32,19 @@ l'utilisateur.** Ces décisions viennent de lui ; certaines ont déjà été ré
 
 ---
 
-## Commandes
+## Environnement de build
+
+Le développement principal se fait **localement sur Windows** (Android Studio, JDK fourni
+par l'IDE). Voir `consignes/outils.md` § 1 pour le détail vérifié sur ce poste.
+
+Dans une **session cloud (claude.ai/code, web ou mobile)**, il n'y a ni SDK Android ni
+`ANDROID_HOME`, et `gradlew` n'a pas le bit exécutable après un clone frais
+(`chmod +x gradlew` avant tout `./gradlew`). Un build complet (`assembleDebug`,
+`testDebugUnitTest`) n'y est donc généralement **pas exécutable** — vérifier l'environnement
+avant de promettre un résultat de build, et le dire explicitement si ce n'est pas possible
+plutôt que de simuler un résultat.
+
+### Commandes (poste local Windows avec Android Studio)
 
 Compiler l'APK de debug :
 
@@ -38,10 +52,16 @@ Compiler l'APK de debug :
 cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
 ```
 
-Lancer les tests unitaires :
+Lancer tous les tests unitaires :
 
 ```bash
 cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
+```
+
+Lancer une seule classe de test (ex. `ScanConsensusTest`) :
+
+```bash
+cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest --tests "com.scanlist.app.ScanConsensusTest"
 ```
 
 Installer sur un appareil branché :
@@ -61,9 +81,9 @@ Installer sur un appareil branché :
 ```
 ui/          Compose : un écran = un composable + un ViewModel Hilt
 domain/      logique pure, testable sans Android (CompareEngine, RegexRuleEngine,
-             ScanValue, FolderSearch) — c'est là que vivent les tests
+             ScanValue, FolderSearch, NfcValue) — c'est là que vivent les tests
 data/        Room (entités = modèles métier), DataStore, CsvCodec, repositories
-scanner/     CameraX + ML Kit, aucune dépendance à l'UI
+scanner/     CameraX + ML Kit + NFC, aucune dépendance à l'UI
 export/      écriture du .csv en cache + Intent de partage
 ```
 
@@ -81,8 +101,8 @@ reposer la main sur l'écran. Concrètement :
 
 - le filtrage par mode est fait dans les `BarcodeScannerOptions`, **pas** en
   post-traitement : un code du mauvais type n'est même pas décodé ;
-- `ScanDebouncer` tourne **en synchrone sur le thread d'analyse** — une coroutine par
-  frame coûterait plus cher que le décodage ;
+- `ScanConsensus` puis `ScanDebouncer` tournent **en synchrone sur le thread d'analyse** —
+  une coroutine par frame coûterait plus cher que le décodage ;
 - l'écriture en base part sur `viewModelScope`, jamais depuis l'analyseur ;
 - `CompareEngine` tranche **en mémoire**, sans requête SQL, pour la même raison.
 
@@ -111,6 +131,14 @@ grave + bandeau gris fugace).
 
 Le gris n'est donc **pas un état** : il n'habille que des bandeaux neutres et transitoires.
 
+### La vérification par consensus protège du bruit optique, pas la fonction Comparer
+
+En scan de dossier (OCR, QR Code, code-barres), une valeur n'est enregistrée qu'après avoir
+été lue identique **3 fois** (QR/code-barres) ou **5 fois** (OCR) — `ScanConsensus`. Cette
+portée est **volontairement limitée** : la fonction Comparer garde son verdict sur une seule
+lecture, et le mode NFC n'est pas concerné (pas de bruit optique). Ne pas étendre ce
+comportement sans validation explicite de l'utilisateur (décision 19 de `contexte.md`).
+
 ### Les cas d'erreur : ne rien faire
 
 Décodage échoué, valeur vide, texte illisible → aucun message, aucun enregistrement, le
@@ -133,8 +161,9 @@ scan continue. Cette règle vient de l'utilisateur et remonte jusque dans le mot
 - **Les tests sont nommés en français**, en phrase, entre backticks — ils se lisent comme
   une spécification : ``fun `un element jamais lu reste rouge`()``.
 - La logique testable est **extraite dans `domain/`**. C'est ce qui a motivé l'existence de
-  `FolderSearch` : l'IME de l'émulateur ne permettant pas de tester la saisie, la logique
-  de filtrage a été sortie du ViewModel.
+  `FolderSearch` et `NfcValue` : l'IME de l'émulateur ne permettant pas de tester la saisie,
+  et l'émulateur n'ayant pas de puce NFC, cette logique est sortie du ViewModel / du SDK
+  Android pour rester testable en JVM pur.
 
 ---
 
@@ -157,16 +186,18 @@ données en base par `run-as` + `sqlite3`). Trois pièges à connaître :
 **Le décodage réel d'un code, d'une étiquette ou d'un tag NFC n'a jamais pu être exercé** :
 la scène virtuelle de l'émulateur ne contient ni code ni texte lisible, et les AVD
 standards n'émulent pas de puce NFC — `NfcAdapter.getDefaultAdapter` y renvoie `null`, ce
-qui n'exerce que le chemin de repli (`NfcScanSurface`), pas la lecture elle-même. Cette
-validation ne peut se faire que sur le Galaxy S25.
+qui n'exerce que le chemin de repli (`NfcScanSurface`), pas la lecture elle-même. De même,
+les seuils du consensus (3/5, TTL 800 ms) ne sont couverts qu'en test unitaire (temps
+simulés). Cette validation ne peut se faire que sur le Galaxy S25.
 
 ---
 
 ## État d'avancement
 
 Phases 0 à 8 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC/RFID
-ajouté après la phase 8), formules regex OCR à la volée, dossiers, export `.csv` par
-mail, fonction Comparer complète. **123 tests, 0 échec, aucun avertissement de
+ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre de conformité
+QR/code-barres), vérification par consensus contre les erreurs optiques, dossiers, export
+`.csv` par mail, fonction Comparer complète. **141 tests, 0 échec, aucun avertissement de
 compilation.** Aucune coquille ne subsiste dans l'application.
 
 Restent les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
