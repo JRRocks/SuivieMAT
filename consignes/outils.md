@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-08-24 — *Vérification par consensus contre les erreurs
-> optiques* — aucune dépendance ajoutée (classe Kotlin pure)
+> Dernière mise à jour : 2026-09-03 — *Dépôt Git poussé sur GitHub* — aucune dépendance
+> ajoutée, voir § 6
 
 ---
 
@@ -117,7 +117,27 @@
 > **Aucune permission réseau** n'est déclarée : l'application est intégralement hors-ligne.
 > L'envoi mail est délégué à une application tierce via Intent.
 
-## 6. Commandes utiles
+## 6. Dépôt et contrôle de version
+
+Le projet est versionné avec Git et hébergé sur GitHub depuis le 2026-09-03 :
+**https://github.com/JRRocks/ScanList** (branche `main`).
+
+- Identité git configurée **localement au dépôt** (pas globalement) : `JRRocks` /
+  `jean.rox.unio@gmail.com`.
+- `.gitignore` corrigé au passage : le motif `/build` hérité n'était ancré qu'à la racine
+  et ne couvrait pas `app/build` (sorties de compilation, caches Kotlin, APK) — remplacé
+  par `build/` pour couvrir tous les modules.
+- Aucun secret dans le dépôt : `local.properties` (chemin du SDK) reste ignoré, aucun
+  keystore ni fichier `google-services.json` dans le projet.
+- Poussée initiale : 87 fichiers, commit unique reprenant l'état des phases 0 à 8.
+
+Pour continuer le travail depuis une session Claude Code cloud (claude.ai/code, web ou
+mobile) plutôt qu'en local : connecter le compte GitHub `JRRocks` dans l'interface
+claude.ai/code, puis sélectionner le dépôt `ScanList`. Les changements faits en local
+doivent être poussés (`git push`) pour rester synchronisés avec le cloud, et
+inversement.
+
+## 7. Commandes utiles
 
 Compiler l'APK de debug :
 
@@ -137,7 +157,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 "$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/ScanList/app/build/outputs/apk/debug/app-debug.apk"
 ```
 
-## 7. État de la chaîne de build
+## 8. État de la chaîne de build
 
 | Vérification | Résultat | Date |
 |---|---|---|
