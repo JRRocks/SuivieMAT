@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ScanList</string>
+
+    <!-- Menu principal -->
+    <string name="menu_title">Menu principal</string>
+    <string name="menu_folders">Dossiers</string>
+    <string name="menu_folders_subtitle">Consulter, exporter ou reprendre un scan</string>
+    <string name="menu_compare">Comparer</string>
+    <string name="menu_compare_subtitle">Contrôler le matériel face à une liste de référence</string>
+    <string name="menu_new_scan">Nouveau scan</string>
+    <string name="menu_new_scan_subtitle">Démarrer une nouvelle liste</string>
+
+    <!-- Modes de scan -->
+    <string name="mode_ocr">OCR</string>
+    <string name="mode_qr">QR Code</string>
+    <string name="mode_barcode">Code-barres</string>
+    <string name="mode_ocr_desc">Lecture de texte imprimé, filtrée par formule regex</string>
+    <string name="mode_qr_desc">Codes 2D uniquement</string>
+    <string name="mode_barcode_desc">Codes 1D uniquement (EAN, UPC, Code 128…)</string>
+    <string name="mode_nfc">NFC/RFID</string>
+    <string name="mode_nfc_desc">Puce ou étiquette sans contact</string>
+    <string name="choose_scan_mode">Choisir le mode de scan</string>
+
+    <!-- Scan NFC -->
+    <string name="nfc_instruction">Approche le tag NFC/RFID du dos du téléphone</string>
+    <string name="nfc_unavailable">Cet appareil ne dispose pas de puce NFC.</string>
+    <string name="nfc_disabled">Le NFC est désactivé.</string>
+    <string name="nfc_enable_settings">Activer le NFC</string>
+
+    <!-- Dossiers -->
+    <string name="folders_title">Dossiers</string>
+    <string name="folders_empty">Aucun dossier pour le moment.</string>
+    <string name="folders_empty_hint">Lance un nouveau scan pour créer ta première liste.</string>
+    <string name="folder_action_consult">Consulter</string>
+    <string name="folder_action_consult_desc">Voir le détail de la liste</string>
+    <string name="folder_action_export">Exporter en .csv</string>
+    <string name="folder_action_export_desc">Nom du fichier et préférences d\'envoi</string>
+    <string name="folder_action_resume">Reprendre le scan</string>
+    <string name="folder_action_resume_desc">Incrémenter cette liste existante</string>
+    <string name="folder_launch_compare">Lancer la fonction Comparer</string>
+    <string name="folder_item_count">%1$d élément(s)</string>
+    <string name="folder_kind_comparison">comparaison</string>
+    <string name="folders_search">Rechercher un dossier</string>
+    <string name="folders_no_match">Aucun dossier ne correspond à cette recherche.</string>
+    <string name="folder_rename">Renommer le dossier</string>
+    <string name="folder_new_name">Nouveau nom</string>
+    <string name="folder_delete">Supprimer le dossier</string>
+    <string name="folder_delete_confirm">Supprimer « %1$s » et ses %2$d élément(s) ? Cette action est définitive.</string>
+    <string name="folder_detail_empty">Ce dossier est vide.</string>
+    <string name="folder_detail_empty_hint">Reprends le scan pour l\'alimenter.</string>
+    <string name="folder_created_at">Créé le %1$s</string>
+    <string name="folder_last_mode">Dernier mode : %1$s</string>
+    <string name="item_deleted">Ligne supprimée</string>
+    <string name="item_copy">Copier la valeur</string>
+    <string name="item_copied">Valeur copiée</string>
+    <string name="action_more">Plus d\'options</string>
+    <string name="action_undo">Annuler</string>
+
+    <!-- Comparer -->
+    <string name="compare_title">Comparer</string>
+    <string name="compare_source">Source de la liste de référence</string>
+    <string name="compare_source_folder">Depuis un dossier local</string>
+    <string name="compare_source_folder_desc">Utiliser une liste déjà scannée</string>
+    <string name="compare_source_csv">Depuis un import .csv</string>
+    <string name="compare_source_csv_desc">Charger un fichier depuis le téléphone</string>
+    <string name="compare_launch_scan">Lancer le scan</string>
+    <string name="compare_launch_scan_desc">OCR, QR Code, Code-barres ou NFC/RFID</string>
+    <!-- Code couleur imposé : rouge = à valider, vert = présence confirmée.
+         Une valeur lue hors de la liste de référence n\'est pas prise en compte. -->
+    <string name="compare_count_missing">%1$d à valider</string>
+    <string name="compare_count_found">%1$d / %2$d validés</string>
+    <string name="compare_section_missing">À valider (%1$d)</string>
+    <string name="compare_section_found">Validés (%1$d)</string>
+    <string name="compare_remaining">%1$d élément(s) restent à valider</string>
+    <string name="compare_matched">Validé : %1$s</string>
+    <string name="compare_already_matched">Déjà validé : %1$s</string>
+    <string name="compare_out_of_list">Hors liste, non pris en compte : %1$s</string>
+    <string name="compare_save_session">Enregistrer</string>
+    <string name="compare_saved">Session enregistrée dans un dossier</string>
+    <string name="compare_saved_in">Enregistrée dans « %1$s »</string>
+    <string name="compare_save_failed">Impossible d\'enregistrer cette session.</string>
+    <string name="compare_export">Exporter</string>
+    <string name="compare_export_empty">Cette session n\'a aucune référence à exporter.</string>
+    <string name="compare_reference_empty">Cette liste de référence est vide.</string>
+    <string name="compare_reference_empty_hint">Choisis un dossier ou un fichier .csv contenant les éléments à contrôler.</string>
+    <string name="compare_folder_missing">Ce dossier est introuvable.</string>
+    <string name="compare_csv_unreadable">Fichier illisible ou vide.</string>
+    <string name="compare_csv_no_reference">Aucune référence exploitable dans ce fichier.</string>
+
+    <!-- Export -->
+    <string name="export_title">Exporter en .csv</string>
+    <string name="export_file_name">Nom du fichier d\'export</string>
+    <string name="export_prefs">Configurer les préférences d\'envoi</string>
+    <string name="export_send">Envoyer par email</string>
+    <string name="export_ready">%1$d ligne(s) à exporter</string>
+    <string name="export_empty">Ce dossier est vide : il n\'y a rien à exporter.</string>
+    <string name="export_recipient">Destinataire : %1$s</string>
+    <string name="export_recipient_none">Aucun destinataire par défaut — tu le choisiras dans ton client mail.</string>
+    <string name="export_subject">Objet : %1$s</string>
+    <string name="export_final_name">Fichier : %1$s</string>
+    <string name="export_no_app">Aucune application capable d\'envoyer le fichier n\'a été trouvée.</string>
+    <string name="export_failed">Impossible de créer le fichier d\'export.</string>
+    <string name="export_columns">Colonnes : valeur, mode, symbologie, date_scan</string>
+
+    <!-- Préférences d'envoi -->
+    <string name="settings_email_title">Préférences d\'envoi</string>
+    <string name="settings_email_recipient">Destinataire par défaut</string>
+    <string name="settings_email_subject">Objet par défaut</string>
+    <string name="settings_email_body">Message par défaut</string>
+    <string name="settings_save">Enregistrer</string>
+
+    <!-- Scan -->
+    <string name="scan_title">Scan</string>
+    <string name="scan_permission_required">L\'accès à la caméra est nécessaire pour scanner.</string>
+    <string name="scan_permission_grant">Autoriser la caméra</string>
+    <string name="scan_duplicate">Déjà présent dans ce dossier</string>
+    <string name="scan_torch_on">Allumer la lampe</string>
+    <string name="scan_torch_off">Éteindre la lampe</string>
+    <string name="scan_captured">%1$d capture(s)</string>
+    <string name="scan_saved">Enregistré : %1$s</string>
+    <string name="scan_delete_item">Supprimer cette ligne</string>
+    <string name="scan_new_folder">Nouveau dossier à la première capture</string>
+
+    <!-- QR Code / Code-barres : filtre de conformité optionnel -->
+    <string name="barcode_filter_label">Filtre regex (optionnel)</string>
+    <string name="barcode_filter_hint">ex. \\d{13}</string>
+    <string name="barcode_filter_empty">Formule vide : tous les codes sont acceptés</string>
+
+    <!-- OCR : éditeur de formule regex -->
+    <string name="ocr_pattern_label">Formule regex</string>
+    <string name="ocr_pattern_hint">ex. BAT-\\d{4}</string>
+    <string name="ocr_preview">Aperçu en direct</string>
+    <string name="ocr_no_match">Aucune correspondance</string>
+    <string name="ocr_no_pattern">Saisis une formule pour filtrer le texte lu</string>
+    <string name="ocr_raw_text_show">Voir le texte lu</string>
+    <string name="ocr_raw_text_hide">Masquer le texte lu</string>
+    <string name="ocr_raw_text_empty">Rien de lisible pour l\'instant.</string>
+    <string name="ocr_start">Démarrer la capture</string>
+    <string name="ocr_stop">Arrêter la capture</string>
+    <string name="ocr_group">Groupe capturé</string>
+    <string name="ocr_group_full">Tout</string>
+    <string name="ocr_library">Formules enregistrées</string>
+    <string name="ocr_library_empty">Aucune formule enregistrée.</string>
+    <string name="ocr_library_hint">Enregistre ta formule pour la retrouver au prochain inventaire.</string>
+    <string name="ocr_save">Enregistrer cette formule</string>
+    <string name="ocr_save_name">Nom de la formule</string>
+    <string name="ocr_delete_rule">Supprimer la formule</string>
+    <string name="ocr_active">Active</string>
+    <string name="ocr_saved_notice">Formule enregistrée</string>
+    <string name="ocr_name_taken">Ce nom est déjà utilisé</string>
+    <string name="ocr_need_valid">Saisis une formule valide pour démarrer</string>
+
+    <!-- Communs -->
+    <string name="action_back">Retour</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_confirm">Valider</string>
+    <string name="action_delete">Supprimer</string>
+    <string name="action_close">Fermer</string>
+    <string name="wip_notice">Écran en place — fonctionnalité implémentée dans une phase ultérieure.</string>
+</resources>

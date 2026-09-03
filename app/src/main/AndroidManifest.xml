@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Scan QR / code-barres / OCR : demandee a l'execution. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Retour haptique du scan a la chaine : permission normale, pas de prompt. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Scan NFC/RFID : permission normale, pas de prompt. -->
+    <uses-permission android:name="android.permission.NFC" />
+
+    <!--
+      Aucune permission INTERNET : l'application est integralement hors-ligne.
+      L'envoi de l'export CSV est delegue a une application tierce via Intent.
+    -->
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+    <!--
+      required="false" : les trois autres modes de scan fonctionnent sans puce NFC.
+      Un appareil sans NFC affiche simplement un message dans ce mode (NfcScanSurface),
+      conformement a la regle "cas d'erreur : ne rien faire" plutot que de bloquer
+      l'installation.
+    -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+
+    <!-- Visibilite des clients mail pour l'Intent d'export (Android 11+). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/csv" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".ScanListApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="false"
+        android:theme="@style/Theme.ScanList"
+        tools:targetApi="31">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.ScanList"
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="LockedOrientationActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Partage des fichiers .csv exportes vers le client mail. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!--
+          Pas de meta-data com.google.mlkit.vision.DEPENDENCIES : elle ne concerne que
+          les variantes ML Kit "unbundled" (Play Services). Ici les modeles barcode et
+          text-recognition sont embarques dans l'APK, donc disponibles des l'installation.
+        -->
+    </application>
+
+</manifest>
