@@ -5,26 +5,34 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -39,8 +47,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -71,6 +81,7 @@ fun OcrControlPanel(
     modifier: Modifier = Modifier,
 ) {
     var showRawText by remember { mutableStateOf(false) }
+    var showHelp by remember { mutableStateOf(false) }
     val colors = compareColors
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
 
@@ -106,12 +117,20 @@ fun OcrControlPanel(
                 ),
                 modifier = Modifier.weight(1f),
             )
+            RegexHelpButton(
+                onClick = { showHelp = true },
+                modifier = Modifier.padding(start = 4.dp),
+            )
             IconButton(onClick = onOpenLibrary) {
                 Icon(
                     Icons.Default.Bookmarks,
                     contentDescription = stringResource(R.string.ocr_library),
                 )
             }
+        }
+
+        if (showHelp) {
+            RegexHelpSheet(onDismiss = { showHelp = false })
         }
 
         // Le choix du groupe n'a de sens que si la formule en contient.
@@ -307,6 +326,7 @@ fun RegexLibrarySheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var name by remember { mutableStateOf("") }
+    var showHelp by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -316,10 +336,18 @@ fun RegexLibrarySheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                stringResource(R.string.ocr_library),
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.ocr_library),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                RegexHelpButton(onClick = { showHelp = true })
+            }
+
+            if (showHelp) {
+                RegexHelpSheet(onDismiss = { showHelp = false })
+            }
 
             if (rules.isEmpty()) {
                 Text(
@@ -403,6 +431,174 @@ fun RegexLibrarySheet(
 
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.action_close))
+            }
+        }
+    }
+}
+
+/**
+ * Petit bouton rond "?" ouvrant l'aide-memoire regex (RegexHelpSheet).
+ *
+ * Partage entre le champ "Formule regex" et la bibliotheque "Formules enregistrees" :
+ * un seul contenu d'aide, deux points d'entree la ou l'utilisateur ecrit ou relit
+ * une formule.
+ */
+@Composable
+private fun RegexHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FilledIconButton(
+        onClick = onClick,
+        shape = CircleShape,
+        modifier = modifier.size(30.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        ),
+    ) {
+        Icon(
+            Icons.Default.QuestionMark,
+            contentDescription = stringResource(R.string.regex_help_button),
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+/**
+ * Aide-memoire regex : exemples concrets puis references (symboles, quantificateurs,
+ * groupes). Contenu statique entierement porte par strings.xml (tableaux inclus),
+ * mis en forme ici pour rester lisible sans jouer un bloc de texte preformate.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RegexHelpSheet(onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 520.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(
+                stringResource(R.string.regex_help_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+
+            RegexHelpSection(stringResource(R.string.regex_help_section_examples)) {
+                RegexHelpExample(
+                    title = stringResource(R.string.regex_help_example1_title),
+                    description = stringResource(R.string.regex_help_example1_desc),
+                    pattern = stringResource(R.string.regex_help_example1_pattern),
+                    detail = stringResource(R.string.regex_help_example1_detail),
+                )
+                RegexHelpExample(
+                    title = stringResource(R.string.regex_help_example2_title),
+                    description = stringResource(R.string.regex_help_example2_desc),
+                    pattern = stringResource(R.string.regex_help_example2_pattern),
+                    detail = stringResource(R.string.regex_help_example2_detail),
+                )
+                RegexHelpExample(
+                    title = stringResource(R.string.regex_help_example3_title),
+                    description = stringResource(R.string.regex_help_example3_desc),
+                    pattern = stringResource(R.string.regex_help_example3_pattern),
+                    detail = stringResource(R.string.regex_help_example3_detail),
+                )
+            }
+
+            RegexHelpSection(stringResource(R.string.regex_help_section_symbols)) {
+                RegexHelpTable(
+                    codes = stringArrayResource(R.array.regex_help_symbols_codes),
+                    labels = stringArrayResource(R.array.regex_help_symbols_labels),
+                )
+            }
+
+            RegexHelpSection(stringResource(R.string.regex_help_section_quantifiers)) {
+                RegexHelpTable(
+                    codes = stringArrayResource(R.array.regex_help_quantifiers_codes),
+                    labels = stringArrayResource(R.array.regex_help_quantifiers_labels),
+                )
+            }
+
+            RegexHelpSection(stringResource(R.string.regex_help_section_groups)) {
+                RegexHelpTable(
+                    codes = stringArrayResource(R.array.regex_help_groups_codes),
+                    labels = stringArrayResource(R.array.regex_help_groups_labels),
+                )
+            }
+
+            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.action_close))
+            }
+        }
+    }
+}
+
+@Composable
+private fun RegexHelpSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        content()
+    }
+}
+
+@Composable
+private fun RegexHelpExample(title: String, description: String, pattern: String, detail: String) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                pattern,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Table code / description : deux colonnes, la premiere en chasse fixe pour aligner les symboles. */
+@Composable
+private fun RegexHelpTable(codes: Array<String>, labels: Array<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        codes.forEachIndexed { index, code ->
+            Row(verticalAlignment = Alignment.Top) {
+                Text(
+                    code,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.width(72.dp),
+                )
+                Text(
+                    labels.getOrElse(index) { "" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }
