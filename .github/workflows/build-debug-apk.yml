@@ -1,9 +1,14 @@
 name: Build debug APK
 
-# Declenchement manuel : sert a produire un APK de debug telechargeable
-# depuis une session cloud, qui n'a pas de SDK Android local (voir CLAUDE.md).
+# Sert a produire un APK de debug telechargeable depuis une session cloud,
+# qui n'a pas de SDK Android local (voir CLAUDE.md). workflow_dispatch ne
+# devient utilisable qu'une fois ce fichier present sur la branche par
+# defaut ; le declenchement sur push fonctionne des la premiere branche.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - claude/init-xyw7gc
 
 permissions:
   contents: read
