@@ -1,0 +1,40 @@
+name: Build debug APK
+
+# Declenchement manuel : sert a produire un APK de debug telechargeable
+# depuis une session cloud, qui n'a pas de SDK Android local (voir CLAUDE.md).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurer le JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Autoriser l'execution de gradlew
+        run: chmod +x gradlew
+
+      - name: Accepter les licences du SDK Android
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Installer les paquets SDK necessaires
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.1.0"
+
+      - name: Compiler l'APK de debug
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
