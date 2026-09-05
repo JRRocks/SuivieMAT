@@ -28,8 +28,8 @@ jobs:
       - name: Autoriser l'execution de gradlew
         run: chmod +x gradlew
 
-      - name: Accepter les licences du SDK Android
-        run: yes | sdkmanager --licenses > /dev/null || true
+      - name: Configurer le SDK Android
+        uses: android-actions/setup-android@v3
 
       - name: Installer les paquets SDK necessaires
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.1.0"
