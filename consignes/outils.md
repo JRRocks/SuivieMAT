@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-09-03 — *Dépôt Git poussé sur GitHub* — aucune dépendance
-> ajoutée, voir § 6
+> Dernière mise à jour : 2026-09-15 — *Intégration continue GitHub Actions : tests +
+> APK* — aucune dépendance ajoutée, voir § 6 bis
 
 ---
 
@@ -137,6 +137,29 @@ claude.ai/code, puis sélectionner le dépôt `ScanList`. Les changements faits 
 doivent être poussés (`git push`) pour rester synchronisés avec le cloud, et
 inversement.
 
+## 6 bis. Intégration continue — compiler sans poste Windows
+
+Workflow **`.github/workflows/build-debug-apk.yml`**, ajouté le 2026-09-05 et complété
+le 2026-09-15. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
+`ubuntu-latest`, et publie l'APK en artefact (téléchargeable 7 jours depuis la page du
+run). Déclenchement : à chaque push sur la branche de travail, ou manuellement
+(`workflow_dispatch`, utilisable une fois le fichier présent sur la branche par défaut).
+
+C'est le seul moyen de produire un APK depuis une session cloud claude.ai/code, qui n'a
+ni SDK Android ni `ANDROID_HOME` (voir `CLAUDE.md`).
+
+Deux pièges déjà rencontrés, à ne pas redécouvrir :
+
+| Piège | Symptôme | Remède retenu |
+|---|---|---|
+| `sdkmanager` absent du PATH | `sdkmanager: command not found` | Le SDK **est** présent sur le runner : le localiser via `$ANDROID_SDK_ROOT/cmdline-tools/*/bin/sdkmanager` |
+| `android-actions/setup-android` | `Failed to find package 'tools'` puis exit 1 (depuis le 2026-09) | Action retirée : elle installe le paquet `tools`, supprimé du dépôt SDK. Remplacée par la localisation manuelle ci-dessus |
+
+> **Les tests ne tournaient nulle part avant le 2026-09-15** : le workflow ne lançait
+> qu'`assembleDebug`, et l'émulateur ne les exécute pas davantage. Le premier passage de
+> `testDebugUnitTest` en CI a immédiatement attrapé une régression réelle
+> (`ScanCsvBuilderTest`, colonne `mode` du `.csv`). Ne pas retirer cette étape.
+
 ## 7. Commandes utiles
 
 Compiler l'APK de debug :
@@ -161,6 +184,10 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` | ✅ **149 tests, 0 échec** (`BarcodeFormatsTest` : 8 tests sur les masques de symbologies et leur disjonction) | 2026-09-15 |
+| `assembleDebug` | ✅ BUILD SUCCESSFUL | 2026-09-15 |
+| APK debug produit | `app-debug.apk` — 55 Mo (arm64 + x86_64) ; contrôlé après téléchargement : libellé « Code 2D » présent dans `resources.arsc`, `libbarhopper_v3.so` et `libmlkit_google_ocr_pipeline.so` embarqués pour les deux ABI | 2026-09-15 |
+| Mode Code 2D (PDF417, Data Matrix, Aztec) | ⬜ **Non vérifiable en CI ni sur émulateur** — aucune étiquette réelle à présenter à la caméra. Les masques de formats sont couverts par 8 tests unitaires, mais **le décodage réel d'un PDF417 et d'un Data Matrix, ainsi que la résolution d'analyse 1080p, restent à valider sur le Galaxy S25** (phase 10) | 2026-09-15 |
 | `assembleDebug` | ✅ BUILD SUCCESSFUL, aucun avertissement | 2026-08-24 |
 | `testDebugUnitTest` | ✅ **141 tests, 0 échec** (`ScanConsensusTest` + extension de `RegexRuleEngineTest`) | 2026-08-24 |
 | APK debug produit | `app/build/outputs/apk/debug/app-debug.apk` — 55 Mo (arm64 + x86_64), variation négligeable, aucune dépendance ajoutée | 2026-08-24 |
