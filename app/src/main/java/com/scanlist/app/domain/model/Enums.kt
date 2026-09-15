@@ -6,10 +6,17 @@ package com.scanlist.app.domain.model
  * Les modes sont mutuellement exclusifs et appliques au decodeur lui-meme
  * (BarcodeScannerOptions), pas au resultat : en mode [QR_CODE] un code-barres
  * present dans le champ n'est meme pas decode. C'est la garantie anti-erreur.
+ *
+ * [QR_CODE] couvre toute la famille 2D — QR Code, PDF417 (empile), Data Matrix,
+ * Aztec — et [BARCODE] reste strictement lineaire : la frontiere 1D / 2D est ce qui
+ * empeche une etiquette portant les deux de produire deux lignes pour un seul objet.
+ * La constante garde son nom d'origine parce qu'elle est persistee telle quelle en
+ * base (`Converters.scanModeToString`) : la renommer imposerait une migration aux
+ * dossiers deja scannes. Seul son libelle d'affichage a suivi l'elargissement.
  */
 enum class ScanMode(val label: String) {
     OCR("OCR"),
-    QR_CODE("QR Code"),
+    QR_CODE("Code 2D"),
     BARCODE("Code-barres"),
     NFC("NFC/RFID"),
     ;

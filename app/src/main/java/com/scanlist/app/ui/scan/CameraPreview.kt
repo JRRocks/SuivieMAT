@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.common.util.concurrent.ListenableFuture
+import com.scanlist.app.domain.model.ScanMode
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -37,17 +38,42 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 
 /**
+ * Resolution d'analyse courante : assez fine pour un code-barres imprime petit, assez
+ * legere pour que ML Kit tienne la cadence sans faire chauffer l'appareil.
+ */
+val STANDARD_ANALYSIS_RESOLUTION: Size = Size(1280, 720)
+
+/**
+ * Resolution d'analyse des codes 2D.
+ *
+ * Un PDF417 ou un Data Matrix concentre ses donnees dans des modules bien plus fins
+ * qu'un QR Code de meme encombrement : sous environ deux pixels par module, le
+ * decodeur ne voit plus la difference entre deux barres voisines et ne rend rien. En
+ * 720p, un PDF417 d'etiquette industrielle tombe sous ce seuil des qu'on ne colle pas
+ * l'objectif dessus. Le surcout de calcul est reserve a ce mode : le scan 1D, qui est
+ * le cas courant, garde sa cadence.
+ */
+val DENSE_ANALYSIS_RESOLUTION: Size = Size(1920, 1080)
+
+/** Resolution a demander pour [mode]. */
+fun analysisResolutionFor(mode: ScanMode): Size =
+    if (mode == ScanMode.QR_CODE) DENSE_ANALYSIS_RESOLUTION else STANDARD_ANALYSIS_RESOLUTION
+
+/**
  * Apercu camera avec analyse d'images en continu.
  *
  * [analyzer] tourne sur un thread dedie ; la strategie KEEP_ONLY_LATEST fait que les
  * images arrivees pendant une analyse sont abandonnees plutot que mises en file. Le
- * pipeline ne prend donc jamais de retard, meme si une frame demande plus de temps.
+ * pipeline ne prend donc jamais de retard, meme si une frame demande plus de temps —
+ * c'est ce qui permet de monter la resolution en [DENSE_ANALYSIS_RESOLUTION] sans
+ * risquer d'accumuler du retard sur le chemin critique.
  */
 @Composable
 fun CameraPreview(
     analyzer: ImageAnalysis.Analyzer,
     torchEnabled: Boolean,
     modifier: Modifier = Modifier,
+    analysisResolution: Size = STANDARD_ANALYSIS_RESOLUTION,
     consensusProgress: Float = 0f,
     onError: (String) -> Unit = {},
 ) {
@@ -66,7 +92,7 @@ fun CameraPreview(
     // bloquerait le thread principal si l'ecran est quitte avant l'ouverture.
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
-    LaunchedEffect(analyzer) {
+    LaunchedEffect(analyzer, analysisResolution) {
         val provider = try {
             ProcessCameraProvider.getInstance(context).await()
         } catch (e: Exception) {
@@ -75,13 +101,11 @@ fun CameraPreview(
         }
         cameraProvider = provider
 
-        // 1280x720 : assez fin pour lire un code-barres imprime petit, assez leger
-        // pour que ML Kit tienne la cadence sans faire chauffer l'appareil.
         val resolution = ResolutionSelector.Builder()
             .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
             .setResolutionStrategy(
                 ResolutionStrategy(
-                    Size(1280, 720),
+                    analysisResolution,
                     ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
                 ),
             )

@@ -216,8 +216,9 @@ class ScanViewModel @Inject constructor(
      *
      * Seuil plus haut en OCR : le bruit par frame y est plus eleve qu'en decodage
      * optique pur, et le cout d'une lecture supplementaire reste faible. La garde
-     * d'ambiguite est activee partout sauf en QR Code, dont la correction d'erreur
-     * Reed-Solomon rend une mauvaise lecture pratiquement impossible — l'activer
+     * d'ambiguite est activee partout sauf en mode Code 2D, dont les quatre formats
+     * (QR Code, PDF417, Data Matrix, Aztec) portent tous une correction d'erreur
+     * Reed-Solomon qui rend une mauvaise lecture pratiquement impossible — l'activer
      * quand meme sur les codes-barres a checksum (EAN, UPC, Code 128) ne coute rien,
      * elle ne s'y declenche simplement jamais.
      *

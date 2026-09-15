@@ -187,6 +187,9 @@ fun ScanScreen(
                             analyzer = analyzer,
                             torchEnabled = torch,
                             modifier = Modifier.fillMaxSize(),
+                            // Les codes 2D (PDF417, Data Matrix) ont des modules bien
+                            // plus fins : ils demandent plus de pixels que le 1D.
+                            analysisResolution = analysisResolutionFor(mode),
                             // Comparaison : le consensus ne s'y applique pas (portee
                             // validee), le reticule reste dans son etat d'origine.
                             consensusProgress = if (isCompare) 0f else consensusProgress,

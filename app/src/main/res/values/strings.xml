@@ -13,11 +13,11 @@
 
     <!-- Modes de scan -->
     <string name="mode_ocr">OCR</string>
-    <string name="mode_qr">QR Code</string>
+    <string name="mode_qr">Code 2D</string>
     <string name="mode_barcode">Code-barres</string>
     <string name="mode_ocr_desc">Lecture de texte imprimé, filtrée par formule regex</string>
-    <string name="mode_qr_desc">Codes 2D uniquement</string>
-    <string name="mode_barcode_desc">Codes 1D uniquement (EAN, UPC, Code 128…)</string>
+    <string name="mode_qr_desc">QR Code, PDF417 (empilé), Data Matrix, Aztec</string>
+    <string name="mode_barcode_desc">Codes 1D uniquement, une seule rangée (EAN, UPC, Code 128…)</string>
     <string name="mode_nfc">NFC/RFID</string>
     <string name="mode_nfc_desc">Puce ou étiquette sans contact</string>
     <string name="choose_scan_mode">Choisir le mode de scan</string>
