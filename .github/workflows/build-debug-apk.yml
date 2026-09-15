@@ -28,14 +28,35 @@ jobs:
       - name: Autoriser l'execution de gradlew
         run: chmod +x gradlew
 
-      - name: Configurer le SDK Android
-        uses: android-actions/setup-android@v3
-
+      # Le SDK est deja present sur le runner, mais sdkmanager n'est pas dans le PATH.
+      # On le localise plutot que de passer par android-actions/setup-android, qui
+      # tentait d'installer le paquet obsolete "tools" et echouait depuis son retrait
+      # du depot SDK (2026-09).
       - name: Installer les paquets SDK necessaires
-        run: sdkmanager "platforms;android-36" "build-tools;35.0.0" "build-tools;36.1.0"
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          SDKMANAGER="$(ls -d "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | sort -V | tail -1)"
+          if [ ! -x "$SDKMANAGER" ]; then
+            echo "sdkmanager introuvable sous $SDK" >&2
+            exit 1
+          fi
+          echo "sdkmanager : $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;35.0.0" "build-tools;36.1.0"
+
+      - name: Lancer les tests unitaires
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Compiler l'APK de debug
         run: ./gradlew assembleDebug --stacktrace
+
+      - name: Publier le rapport de tests en cas d'echec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-tests
+          path: app/build/reports/tests/
+          retention-days: 7
 
       - name: Publier l'APK
         uses: actions/upload-artifact@v4

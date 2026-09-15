@@ -4,8 +4,8 @@
 > **Règle absolue :** mettre à jour le tableau d'avancement (§ 6) et le journal (§ 7)
 > à chaque évolution majeure, et systématiquement avant/après un `/clear`.
 >
-> Dernière mise à jour : 2026-08-24 — *Vérification par consensus (buffer + regex +
-> consensus + verrou), scan de dossier uniquement*
+> Dernière mise à jour : 2026-09-15 — *Mode Code 2D : PDF417, Data Matrix et Aztec
+> rejoignent le QR Code (décision 21)*
 
 ---
 
@@ -166,7 +166,8 @@ CameraX Preview ──┬──► PreviewView (affichage)
        ▼                                     ▼
   BarcodeAnalyzer                       OcrAnalyzer
   BarcodeScannerOptions                 TextRecognition (latin)
-  filtré : QR seul OU 1D seul                │
+  filtré : 2D seul OU 1D seul                │
+  (masques de BarcodeFormats)                │
        │                                     ▼
        │                            Regex active appliquée
        │                            sur le texte reconnu (extraction)
@@ -339,6 +340,7 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
+| 2026-09-15 | **Mode Code 2D : le scan des codes empilés (décision 21).** Déclencheur : une étiquette de terrain portant un code-barres « en plusieurs étages » que l'application ignorait. Analyse préalable : le symbole photographié a **4 rangées séparées par des barres horizontales dans un cadre complet**, signature de Codablock F / Code 16K / Code 49 — et **non** de PDF417 dont les rangées sont contiguës ; tentative de décodage avec ZXing (PDF417, Data Matrix, Aztec, tout le 1D) restée sans résultat. **Ce code précis restera donc illisible** (voir la limite technique du § 8), l'OCR étant le contournement immédiat puisque l'étiquette porte son numéro en clair. Ce qui a été implémenté, choisi par l'utilisateur entre trois options : **élargir le mode « QR Code » en « Code 2D »** (QR + PDF417 + Data Matrix + Aztec) plutôt que créer un cinquième mode, **« Code-barres » restant strictement 1D** — la frontière 1D/2D est ce qui empêche une étiquette portant les deux d'ouvrir deux lignes pour un objet. `ScanMode.QR_CODE` **garde son nom de constante** (persisté en base par `Converters` : le renommer imposerait une migration aux dossiers existants), seul son libellé change. La table des formats quitte `BarcodeAnalyzer` pour `scanner/BarcodeFormats.kt`, pur et testable en JVM — **8 tests** y verrouillent les masques et surtout leur **disjonction**, seul filet possible puisque le décodage réel n'est exerçable ni sur émulateur ni en CI. Résolution d'analyse portée à **1080p pour ce seul mode** (un PDF417 tombe sous ~2 px/module en 720p) ; le 1D garde 720p et sa cadence. Garde d'ambiguïté toujours désactivée sur ce mode : les quatre formats portent une correction Reed-Solomon. Le workflow CI lance désormais `testDebugUnitTest` avant `assembleDebug`. **Non vérifié sur matériel réel** : à confirmer sur le Galaxy S25 avec un vrai PDF417 et un vrai Data Matrix (phase 10). | `contexte.md`, `outils.md`, `workflow.md` |
 | 2026-08-24 | **Correctif visuel — champ `BarcodeFilterPanel` illisible.** Signalé par l'utilisateur : contrairement au champ de formule OCR, le texte saisi dans le filtre regex de QR Code / code-barres ne s'affichait pas correctement. Cause : `ScanScreen` (`ScanScreens.kt`) donnait au panneau un `Modifier.weight(0.12f)` dans la `Column` de l'écran, ce qui impose une hauteur exacte trop faible pour que l'`OutlinedTextField` (label + texte + texte d'aide, ~80-90dp) se rende sans être comprimé. Le panneau OCR ne subit pas ce défaut car son `weight(0.40f)` est généreux et sa `Column` interne est scrollable. Correctif : suppression du `weight` forcé, le panneau se dimensionne désormais à sa hauteur naturelle, comme `CaptureHeader` le fait déjà dans le même `Column` — Compose redistribue l'espace restant entre caméra et liste sans effet de bord. `assembleDebug` sans avertissement. **Non vérifié sur émulateur** à la demande de l'utilisateur — à confirmer visuellement à la prochaine session sur cet écran. | `workflow.md` |
 | 2026-08-24 | **Vérification par consensus contre les erreurs optiques (OCR et code-barres).** Demandé par l'utilisateur : angle, reflet et étiquette abîmée font se tromper l'optique. Nouvelle classe pure `scanner/ScanConsensus.kt`, synchrone sur le thread d'analyse comme `ScanDebouncer` : une valeur n'est retenue qu'apres avoir ete lue identique **3 fois** (QR/code-barres) ou **5 fois** (OCR), avec verrouillage + purge du compteur des validation. Une frame sans decodage ne casse pas un compteur en cours (une main qui tremble ne doit pas repousser indefiniment la validation) ; un compteur abandonne expire au bout de 800 ms. **Garde d'ambiguite** (discutee et validee avec l'utilisateur, qui a d'abord questionne sa necessite face au filtre regex) : deux valeurs a un caractere pres qui n'ont **jamais coexiste dans la meme image** repartent toutes les deux a zero — protege contre les confusions *intra-classe* (`8`↔`6`, `C`↔`G`…) qu'aucun format regex ne peut detecter, sans jamais annuler deux numeros de serie sequentiels lus ensemble. Desactivee en QR Code (correction Reed-Solomon). `ScanDebouncer` (1,5 s) change de role : il n'est plus le pre-filtre anti-rafale mais un verrou anti-rebond pose **apres** la validation par consensus, sans quoi il aurait ecarte les lectures 2 et 3 avant que le consensus ne les compte. **Portee limitee au scan de dossier** (OCR, QR Code, code-barres) sur decision explicite de l'utilisateur : la fonction Comparer garde son verdict sur une seule lecture, le mode NFC n'est pas concerne. Le filtre regex, jusque-la reserve a l'OCR, est etendu au QR Code et au code-barres comme filtre de conformite optionnel (`RegexRuleEngine.conforms`, correspondance totale — pas d'extraction, pas de groupe capturant) via un nouveau panneau compact `BarcodeFilterPanel`, necessaire car `CODE_39` sans cle et `ITF` n'ont aucun checksum ML Kit contrairement a EAN/UPC/Code 128. Le reticule de `CameraPreview` se remplit progressivement avec l'avancement du consensus (`Viewfinder(progress)`), sans aucun son avant le seuil atteint — a 0 (Comparer, NFC, rien en cours), l'apparence est identique a avant cet ajout. 18 tests ajoutes (141 au total, 0 echec), `assembleDebug` sans avertissement. **Non verifiable sur emulateur** (memes limites materielles que le decodage lui-meme) : seuils et TTL a confirmer sur le Galaxy S25 en phase 10. | `contexte.md`, `outils.md`, `workflow.md` |
 | 2026-08-21 | **Ajout hors-plan : quatrième mode de scan NFC/RFID.** Demandé par l'utilisateur apres la phase 8. `ScanMode.NFC` rejoint OCR/QR/Code-barres dans les trois sous-menus qui les proposaient deja (`ScanModePicker` etant partage, un seul ajout suffit). Lecture pilotee par `NfcAdapter.enableReaderMode`, armee/desarmee sur le cycle de vie de l'ecran (`NfcScanSurface`) ; valeur retenue = contenu NDEF texte si present, sinon UID materiel en hexadecimal (`NfcValue`, pur Kotlin, teste independamment d'Android). `ScanViewModel.analyzer` devient nullable — null en NFC, ou l'ecran affiche `NfcScanSurface` a la place de la camera. Meme chemin de capture ensuite : debounce, dossier ou moteur de comparaison, feedback partage. 10 tests ajoutes (123 au total, 0 echec). **Verifie sur emulateur** : la carte NFC/RFID apparait dans le selecteur, l'ecran affiche correctement "Cet appareil ne dispose pas de puce NFC" (l'AVD n'a pas de materiel NFC — c'est le chemin de repli qui etait a verifier), aucun crash, aucune trace en logcat, torche masquee en mode NFC. Le decodage reel d'un tag reste a valider sur le Galaxy S25. | `contexte.md`, `outils.md`, `workflow.md` |
@@ -400,6 +402,41 @@ Ce qui est **réellement fonctionnel** dès maintenant :
 
 > **Plus aucune coquille dans l'application.** Tous les écrans de la hiérarchie imposée
 > sont fonctionnels.
+
+### Limite technique connue — les codes empilés que ML Kit ne sait pas lire
+
+Le mode **Code 2D** (décision 21) couvre QR Code, **PDF417**, Data Matrix et Aztec.
+**PDF417 est le seul code empilé multi-rangées que ML Kit sache décoder.**
+
+Les autres familles empilées restent **hors de portée, et le resteront** tant que
+l'application s'appuie sur ML Kit :
+
+| Famille | Aspect | Lisible par |
+|---|---|---|
+| **PDF417** | rangées contiguës, **sans** séparateur horizontal | ✅ ML Kit |
+| **Codablock F** | Code 128 empilé, rangées **séparées par une barre horizontale** | ❌ ni ML Kit ni ZXing |
+| **Code 16K** | idem, base Code 128, cadre complet | ❌ ni ML Kit ni ZXing |
+| **Code 49** | idem, tables propres | ❌ ni ML Kit ni ZXing |
+| **MicroPDF417** | PDF417 compact | ❌ ML Kit |
+
+**Comment les distinguer d'un coup d'œil :** des **lignes noires horizontales pleines
+qui séparent les rangées** ⇒ ce n'est pas du PDF417, donc ce n'est pas lisible. Un
+PDF417 a ses rangées collées les unes aux autres.
+
+L'étiquette qui a motivé la décision 21 (boîtier `BJ-568A/00090`, photo du 2026-09-15)
+est précisément dans ce cas : **4 rangées séparées par des barres horizontales, dans un
+cadre complet** — Codablock F, Code 16K ou Code 49. Vérifié en essayant de la décoder
+avec ZXing (qui couvre PDF417, Data Matrix, Aztec et tout le 1D) : aucun résultat.
+
+**Contournement pour ces étiquettes-là :** le **mode OCR**, qui lit le texte humainement
+lisible imprimé au-dessus du code. Une formule du type `[A-Z]{2}-\d{3}[A-Z]/\d{5}`
+capture `BJ-568A/00090` sans rien développer de plus.
+
+Y répondre autrement supposerait soit un SDK commercial sous licence (incompatible avec
+une application hors-ligne sans abonnement), soit l'écriture d'un décodeur maison
+— localisation, redressement, segmentation des rangées puis décodage — ce qui est un
+projet en soi, et fragile sur le terrain. **À ne pas entreprendre sans validation
+explicite de l'utilisateur.**
 
 ### Limite fonctionnelle connue — reprise d'une comparaison interrompue
 

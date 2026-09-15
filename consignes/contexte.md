@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** À relire en priorité après un `/clear` ou au démarrage
 > d'une nouvelle session. À mettre à jour à chaque évolution majeure du périmètre fonctionnel.
 >
-> Dernière mise à jour : 2026-08-24 — *Vérification par consensus contre les erreurs
-> optiques (décisions 19-20)*
+> Dernière mise à jour : 2026-09-15 — *Élargissement du mode QR Code à toute la famille
+> 2D, PDF417 compris (décision 21)*
 
 ---
 
@@ -44,9 +44,15 @@ anti-erreur : en mode « QR Code », un code-barres présent dans le champ est i
 réciproquement.
 
 - **OCR** — reconnaissance de texte, filtrée par une formule regex
-- **QR Code** — 2D uniquement
-- **Code-barres** — 1D uniquement (EAN, UPC, Code 128, Code 39, ITF…)
+- **Code 2D** — QR Code, **PDF417** (empilé, multi-rangées), **Data Matrix**, **Aztec**
+  *(élargi le 2026-09-15, voir décision 21 ; s'appelait « QR Code » auparavant)*
+- **Code-barres** — 1D uniquement, une seule rangée (EAN, UPC, Code 128, Code 39, ITF…)
 - **NFC/RFID** — puce ou étiquette sans contact *(ajouté le 2026-08-21, voir décision 17)*
+
+> La frontière **1D / 2D** entre les deux modes optiques est ce qui fait tenir l'exigence
+> anti-erreur : une étiquette industrielle porte souvent un code linéaire **et** un code
+> 2D qui n'encodent pas la même chose. Un mode qui décoderait les deux créerait deux
+> lignes pour un seul objet.
 
 ### 3.2 Règles de capture
 
@@ -138,22 +144,26 @@ MENU PRINCIPAL
 │   │   └── Configurer les préférences d'envoi
 │   └── Reprendre le scan
 │       ├── Scan OCR
-│       ├── Scan QR Code
+│       ├── Scan Code 2D
 │       ├── Scan Code-barres
 │       └── Scan NFC/RFID
 │
 ├── COMPARER
 │   ├── Depuis un Dossier local
-│   │   └── Lancer le Scan  (OCR | QR Code | Code-barres | NFC/RFID)
+│   │   └── Lancer le Scan  (OCR | Code 2D | Code-barres | NFC/RFID)
 │   └── Depuis un Import .csv
-│       └── Lancer le Scan  (OCR | QR Code | Code-barres | NFC/RFID)
+│       └── Lancer le Scan  (OCR | Code 2D | Code-barres | NFC/RFID)
 │
 └── NOUVEAU SCAN
     ├── OCR
-    ├── QR Code
+    ├── Code 2D
     ├── Code-barres
     └── NFC/RFID
 ```
+
+> L'entrée « QR Code » est devenue « Code 2D » le 2026-09-15 (décision 21). Le nombre
+> d'entrées et la structure sont inchangés : c'est un élargissement de périmètre, pas
+> une nouvelle branche.
 
 > Le NFC/RFID est un quatrième mode, ajouté après la spécification initiale (décision 17).
 > Il s'insère dans les trois mêmes sous-menus que les trois modes d'origine, sans créer
@@ -184,6 +194,8 @@ MENU PRINCIPAL
 | 18 | Feedback NFC | Même vocabulaire sonore/haptique que les autres modes (`ScanFeedback.success/duplicate`) — pas de signal dédié. Un tag hors liste de référence en mode Comparer déclenche le même bandeau gris fugace « hors liste » que pour les codes optiques (décision 14) : aucune règle spécifique au NFC. | 2026-08-21 |
 | 19 | **Vérification par consensus contre les erreurs optiques** | Demandé par l'utilisateur : l'OCR et le décodage code-barres se trompent à cause de l'optique (angle, reflet, étiquette abîmée). Une valeur n'est enregistrée qu'après avoir été lue **identique X fois** avant validation — **3** en QR Code / Code-barres (~100 ms de tenue caméra à la cadence capteur), **5** en OCR (bruit par frame plus élevé, coût par lecture plus faible). Seuils figés en dur pour cette première version, à ajuster lors du test terrain S25 (phase 10) si besoin. Le débouncer de 1,5 s (décision antérieure, non renumérotée) change de rôle : il n'est plus un pré-filtre anti-rafale mais un **verrou anti-rebond posé après validation**, sans quoi il écarterait les lectures 2 et 3 avant que le consensus ne les compte. **Portée limitée au scan de dossier** : la fonction Comparer garde son verdict sur une seule lecture (choix explicite de l'utilisateur, la fausse alarme « hors liste » sur une frame isolée y subsiste), et le mode NFC n'est pas concerné (pas de bruit optique, débouncer seul). **Garde d'ambiguïté additionnelle**, proposée par le développeur et validée par l'utilisateur après discussion : le filtre regex ne couvre pas les confusions *à l'intérieur* d'une même classe de caractères (`8`↔`6`, `C`↔`G`…), qu'un format bien formé laisse passer sans broncher. Si une valeur nouvellement vue est à une lettre près (substitution, insertion ou suppression) d'une valeur en cours de comptage, et que les deux n'ont **jamais figuré ensemble dans une même image**, les deux compteurs repartent à zéro plutôt que de laisser le hasard trancher laquelle atteint le seuil en premier. La condition « jamais coexisté » est essentielle : deux numéros de série séquentiels lus ensemble dans la même image (cas fréquent en inventaire de rack) sont deux objets réels distincts et ne doivent jamais s'annuler. Désactivée en QR Code, dont la correction d'erreur Reed-Solomon rend une mauvaise lecture pratiquement impossible. | 2026-08-24 |
 | 20 | **Extension du filtre regex au QR Code et au Code-barres** | Jusque-là réservé à l'OCR (décision 8). Nécessaire car deux symbologies décodées par l'application (`CODE_39` sans clé, `ITF`) n'ont aucun contrôle d'intégrité côté ML Kit, à la différence d'EAN/UPC/Code 128 qui embarquent leur propre checksum — sans filtre, une lecture erronée mais bien formée n'est arrêtée que par le consensus (décision 19), jamais par la regex. Même bibliothèque de formules que l'OCR, mais rôle différent : **correspondance totale** de la valeur (validation), pas extraction d'un fragment dans du texte libre — pas de choix de groupe capturant, pas d'armement de la capture (un code décodé est déjà une valeur complète). Formule vide = aucun filtre, comportement inchangé par rapport à avant cette décision. | 2026-08-24 |
+
+| 21 | **Élargissement du mode QR Code à toute la famille 2D** | Demandé par l'utilisateur après avoir rencontré sur le terrain une étiquette portant un code-barres **en plusieurs étages** que l'application ne savait pas lire. Choix retenu par l'utilisateur après analyse : **élargir le mode « QR Code » existant** plutôt que créer un cinquième mode ou élargir « Code-barres ». Le mode est renommé **« Code 2D »** et décode QR Code, **PDF417**, **Data Matrix** et **Aztec** ; **« Code-barres » reste strictement linéaire**. Trois conséquences techniques : la constante `ScanMode.QR_CODE` **garde son nom** (elle est persistée telle quelle en base, la renommer imposerait une migration aux dossiers déjà scannés) ; la résolution d'analyse passe à **1080p pour ce seul mode**, les modules d'un PDF417 étant bien plus fins que ceux d'un QR de même encombrement ; la garde d'ambiguïté du consensus **reste désactivée** sur ce mode, les quatre formats portant tous une correction Reed-Solomon. **Limite assumée :** les autres familles de codes empilés (Codablock F, Code 16K, Code 49, MicroPDF417) restent illisibles — voir § 8 de `workflow.md`. | 2026-09-15 |
 
 ## 6. Hors périmètre (non demandé)
 
