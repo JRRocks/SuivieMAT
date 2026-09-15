@@ -57,7 +57,7 @@ private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
 /** Duree d'affichage du bandeau de derniere capture. */
 private const val BANNER_DURATION_MS = 1_400L
 
-/** Nouveau scan : choix OCR / QR Code / Code-barres. */
+/** Nouveau scan : choix OCR / Code 2D / Code-barres / NFC. */
 @Composable
 fun NewScanModeScreen(
     onBack: () -> Unit,

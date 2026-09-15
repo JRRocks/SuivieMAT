@@ -12,12 +12,12 @@ import com.scanlist.app.domain.model.ScanMode
  * |- DOSSIERS (liste deroulante)
  * |   |- Consulter -> Lancer la fonction Comparer
  * |   |- Exporter en .csv -> nom du fichier / preferences d'envoi
- * |   |- Reprendre le scan -> OCR | QR Code | Code-barres | NFC/RFID
+ * |   |- Reprendre le scan -> OCR | Code 2D | Code-barres | NFC/RFID
  * |- COMPARER
  * |   |- Depuis un dossier local -> Lancer le scan (OCR | QR | Code-barres | NFC/RFID)
  * |   |- Depuis un import .csv   -> Lancer le scan (OCR | QR | Code-barres | NFC/RFID)
  * |- NOUVEAU SCAN
- *     |- OCR | QR Code | Code-barres | NFC/RFID
+ *     |- OCR | Code 2D | Code-barres | NFC/RFID
  * ```
  */
 object Routes {

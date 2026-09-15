@@ -65,7 +65,7 @@
     <string name="compare_source_csv">Depuis un import .csv</string>
     <string name="compare_source_csv_desc">Charger un fichier depuis le téléphone</string>
     <string name="compare_launch_scan">Lancer le scan</string>
-    <string name="compare_launch_scan_desc">OCR, QR Code, Code-barres ou NFC/RFID</string>
+    <string name="compare_launch_scan_desc">OCR, Code 2D, Code-barres ou NFC/RFID</string>
     <!-- Code couleur imposé : rouge = à valider, vert = présence confirmée.
          Une valeur lue hors de la liste de référence n\'est pas prise en compte. -->
     <string name="compare_count_missing">%1$d à valider</string>

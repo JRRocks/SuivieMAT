@@ -73,7 +73,7 @@ fun CompareSourceScreen(
     }
 }
 
-/** Lancer le scan d'une comparaison : OCR / QR Code / Code-barres. */
+/** Lancer le scan d'une comparaison : OCR / Code 2D / Code-barres / NFC. */
 @Composable
 fun CompareScanModeScreen(
     onBack: () -> Unit,

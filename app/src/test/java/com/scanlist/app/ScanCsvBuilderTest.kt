@@ -83,7 +83,12 @@ class ScanCsvBuilderTest {
 
         assertTrue(csv.startsWith(CsvCodec.BOM))
         assertTrue(csv.contains("valeur;mode;symbologie;date_scan"))
-        assertTrue(csv.contains("BAT-1;QR Code;QR_CODE;"))
+        // La colonne "mode" porte le libelle du mode de scan, devenu "Code 2D" avec la
+        // decision 21 : un export anterieur au 2026-09-15 dit "QR Code" a cet endroit.
+        // La colonne "symbologie" reste, elle, QR_CODE : c'est elle qui identifie le
+        // format lu, donc deux exports de part et d'autre du renommage restent
+        // rapprochables sans perte d'information.
+        assertTrue(csv.contains("BAT-1;Code 2D;QR_CODE;"))
     }
 
     @Test

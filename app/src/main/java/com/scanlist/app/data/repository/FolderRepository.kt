@@ -67,7 +67,7 @@ class FolderRepository @Inject constructor(
 
     suspend fun touch(id: Long) = folderDao.touch(id, System.currentTimeMillis())
 
-    /** Nom propose a la creation : "Scan QR Code 20-08-2026 10h42". */
+    /** Nom propose a la creation : "Scan Code 2D 20-08-2026 10h42". */
     fun defaultName(mode: ScanMode, at: Long = System.currentTimeMillis()): String =
         "Scan ${mode.label} ${TIMESTAMP_FORMAT.format(Date(at))}"
 

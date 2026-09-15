@@ -440,7 +440,7 @@ private fun ScanItemRow(
     }
 }
 
-/** Reprendre le scan : sous-options OCR / QR Code / Code-barres. */
+/** Reprendre le scan : sous-options OCR / Code 2D / Code-barres / NFC. */
 @Composable
 fun FolderResumeModeScreen(
     onBack: () -> Unit,
