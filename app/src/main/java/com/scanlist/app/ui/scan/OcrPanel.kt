@@ -5,19 +5,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QuestionMark
@@ -45,11 +44,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -58,7 +60,9 @@ import androidx.compose.ui.unit.dp
 import com.scanlist.app.R
 import com.scanlist.app.data.db.entity.RegexRuleEntity
 import com.scanlist.app.domain.regex.RegexRuleEngine
+import com.scanlist.app.ui.common.LocalSnackbarHostState
 import com.scanlist.app.ui.theme.compareColors
+import kotlinx.coroutines.launch
 
 /**
  * Panneau de reglage de la formule OCR.
@@ -464,9 +468,9 @@ private fun RegexHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) 
 }
 
 /**
- * Aide-memoire regex : exemples concrets puis references (symboles, quantificateurs,
- * groupes). Contenu statique entierement porte par strings.xml (tableaux inclus),
- * mis en forme ici pour rester lisible sans jouer un bloc de texte preformate.
+ * Aide-memoire regex : la vraie recommandation (faire generer la formule par un LLM,
+ * avec un prompt pret a copier) suivie d'un exemple qui montre le resultat reel du
+ * moteur regex sur quelques valeurs, plutot qu'une reference syntaxique statique.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -488,47 +492,18 @@ private fun RegexHelpSheet(onDismiss: () -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
             )
 
-            RegexHelpSection(stringResource(R.string.regex_help_section_examples)) {
-                RegexHelpExample(
-                    title = stringResource(R.string.regex_help_example1_title),
-                    description = stringResource(R.string.regex_help_example1_desc),
-                    pattern = stringResource(R.string.regex_help_example1_pattern),
-                    detail = stringResource(R.string.regex_help_example1_detail),
-                )
-                RegexHelpExample(
-                    title = stringResource(R.string.regex_help_example2_title),
-                    description = stringResource(R.string.regex_help_example2_desc),
-                    pattern = stringResource(R.string.regex_help_example2_pattern),
-                    detail = stringResource(R.string.regex_help_example2_detail),
-                )
-                RegexHelpExample(
-                    title = stringResource(R.string.regex_help_example3_title),
-                    description = stringResource(R.string.regex_help_example3_desc),
-                    pattern = stringResource(R.string.regex_help_example3_pattern),
-                    detail = stringResource(R.string.regex_help_example3_detail),
-                )
-            }
+            Text(
+                stringResource(R.string.regex_help_intro),
+                style = MaterialTheme.typography.bodyMedium,
+            )
 
-            RegexHelpSection(stringResource(R.string.regex_help_section_symbols)) {
-                RegexHelpTable(
-                    codes = stringArrayResource(R.array.regex_help_symbols_codes),
-                    labels = stringArrayResource(R.array.regex_help_symbols_labels),
-                )
-            }
+            RegexPromptCopyBox()
 
-            RegexHelpSection(stringResource(R.string.regex_help_section_quantifiers)) {
-                RegexHelpTable(
-                    codes = stringArrayResource(R.array.regex_help_quantifiers_codes),
-                    labels = stringArrayResource(R.array.regex_help_quantifiers_labels),
-                )
-            }
-
-            RegexHelpSection(stringResource(R.string.regex_help_section_groups)) {
-                RegexHelpTable(
-                    codes = stringArrayResource(R.array.regex_help_groups_codes),
-                    labels = stringArrayResource(R.array.regex_help_groups_labels),
-                )
-            }
+            RegexHelpExample(
+                title = stringResource(R.string.regex_help_example_title),
+                description = stringResource(R.string.regex_help_example_desc),
+                pattern = stringResource(R.string.regex_help_example_pattern),
+            )
 
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.action_close))
@@ -537,20 +512,74 @@ private fun RegexHelpSheet(onDismiss: () -> Unit) {
     }
 }
 
+/**
+ * Prompt pret a copier en un clic.
+ *
+ * Le texte affiche porte des points de suspension visuels ("...") pour montrer que la
+ * phrase reste a completer, mais ce ne sont que des points de rendu : le texte copie
+ * dans le presse-papiers s'arrete juste apres "pour ", pret a recevoir la liste de
+ * valeurs de l'utilisateur sans qu'il ait a les effacer d'abord.
+ */
 @Composable
-private fun RegexHelpSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun RegexPromptCopyBox(modifier: Modifier = Modifier) {
+    val clipboard = LocalClipboardManager.current
+    val snackbarHost = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val template = stringResource(R.string.regex_help_prompt_template)
+    val copiedMessage = stringResource(R.string.regex_help_prompt_copied)
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         Text(
-            title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
+            stringResource(R.string.regex_help_prompt_label),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        content()
+        Card(
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    clipboard.setText(AnnotatedString(template))
+                    scope.launch { snackbarHost.showSnackbar(copiedMessage) }
+                },
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "$template...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Default.ContentCopy,
+                    contentDescription = stringResource(R.string.regex_help_prompt_label),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
     }
 }
 
+/**
+ * Un cas concret : la formule, puis son verdict reel (via [RegexRuleEngine.conforms],
+ * le meme moteur que le filtre de conformite) sur une poignee de valeurs proches —
+ * bonnes et mauvaises — pour montrer ce qu'une regex rejette et pourquoi.
+ */
 @Composable
-private fun RegexHelpExample(title: String, description: String, pattern: String, detail: String) {
+private fun RegexHelpExample(title: String, description: String, pattern: String) {
+    val colors = compareColors
+    val regex = remember(pattern) { RegexRuleEngine.compileOrNull(pattern) }
+    val values = stringArrayResource(R.array.regex_help_result_values)
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
@@ -558,48 +587,45 @@ private fun RegexHelpExample(title: String, description: String, pattern: String
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                pattern,
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                detail,
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** Table code / description : deux colonnes, la premiere en chasse fixe pour aligner les symboles. */
-@Composable
-private fun RegexHelpTable(codes: Array<String>, labels: Array<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        codes.forEachIndexed { index, code ->
-            Row(verticalAlignment = Alignment.Top) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                 Text(
-                    code,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.width(72.dp),
-                )
-                Text(
-                    labels.getOrElse(index) { "" },
+                    description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Text(
+                    pattern,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontFamily = FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    stringResource(R.string.regex_help_result_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                values.forEach { value ->
+                    val ok = RegexRuleEngine.conforms(value, regex)
+                    Text(
+                        value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (ok) colors.onFound else colors.onMissing,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (ok) colors.found else colors.missing,
+                                MaterialTheme.shapes.small,
+                            )
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
             }
         }
     }

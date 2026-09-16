@@ -151,80 +151,37 @@
     <string name="ocr_name_taken">Ce nom est déjà utilisé</string>
     <string name="ocr_need_valid">Saisis une formule valide pour démarrer</string>
 
-    <!-- Aide-mémoire regex, ouvert depuis "Formule regex" et "Formules enregistrées" -->
+    <!-- Aide-memoire regex, ouvert depuis "Formule regex" et "Formules enregistrees" -->
     <string name="regex_help_button">Aide sur les formules regex</string>
-    <string name="regex_help_title">Guide des expressions régulières</string>
-    <string name="regex_help_section_examples">Exemples concrets</string>
-    <string name="regex_help_section_symbols">Symboles de base</string>
-    <string name="regex_help_section_quantifiers">Répétitions (quantificateurs)</string>
-    <string name="regex_help_section_groups">Groupes et capture</string>
+    <string name="regex_help_title">Formules regex</string>
+    <string name="regex_help_intro">C\'est un outil ultra-puissant pour éviter les faux positifs, mais complexe à écrire à la main. Le plus simple ? Demande directement à un LLM (comme ChatGPT) de le générer pour toi, en lui donnant une liste des valeurs que tu cherches à capturer !</string>
 
-    <string name="regex_help_example1_title">« 123ABC12345 »</string>
-    <string name="regex_help_example1_desc">3 chiffres, 3 lettres majuscules, 5 chiffres</string>
-    <string name="regex_help_example1_pattern">^\\d{3}[A-Z]{3}\\d{5}$</string>
-    <string name="regex_help_example1_detail">^\\d{3}   commence par 3 chiffres\n[A-Z]{3} puis 3 lettres majuscules\n\\d{5}$   termine par 5 chiffres</string>
+    <string name="regex_help_prompt_label">Prompt à copier</string>
+    <!-- Texte reellement copie : sans les points de suspension, qui ne servent qu'a
+         montrer a l'ecran que la phrase reste a completer. L'espace final est
+         significatif (la liste de valeurs vient juste apres) : entoure de guillemets
+         pour que le compilateur de ressources ne le supprime pas comme un espace de
+         bord ordinaire. -->
+    <string name="regex_help_prompt_template">"Génère-moi un pattern REGEX pour "</string>
+    <string name="regex_help_prompt_copied">Prompt copié</string>
 
-    <string name="regex_help_example2_title">« 12-123456 »</string>
-    <string name="regex_help_example2_desc">2 chiffres, un tiret, 6 chiffres</string>
-    <string name="regex_help_example2_pattern">^\\d{2}-\\d{6}$</string>
-    <string name="regex_help_example2_detail">^\\d{2}   2 chiffres au début\n-        le tiret\n\\d{6}$   6 chiffres jusqu\'à la fin</string>
+    <string name="regex_help_example_title">Exemple : « 13-477484 »</string>
+    <string name="regex_help_example_desc">2 chiffres, un tiret, 6 chiffres</string>
+    <string name="regex_help_example_pattern">\\b\\d{2}-\\d{6}\\b</string>
 
-    <string name="regex_help_example3_title">Extraire depuis « Numéro : 12345 »</string>
-    <string name="regex_help_example3_desc">Ne capture que les chiffres après « Numéro : »</string>
-    <string name="regex_help_example3_pattern">Numéro\\s*:\\s*(\\d+)</string>
-    <string name="regex_help_example3_detail">Numéro    le mot exact\n\\s*:\\s*  un deux-points entouré d\'espaces optionnels\n(\\d+)     groupe de capture : extrait « 12345 »</string>
+    <string name="regex_help_result_title">Résultat sur quelques valeurs</string>
 
-    <string-array name="regex_help_symbols_codes">
-        <item>\\d</item>
-        <item>\\w</item>
-        <item>\\s</item>
-        <item>.</item>
-        <item>[A-Z]</item>
-        <item>[a-z]</item>
-        <item>[0-9]</item>
-        <item>[a-zA-Z]</item>
-        <item>^</item>
-        <item>$</item>
-    </string-array>
-    <string-array name="regex_help_symbols_labels">
-        <item>N\'importe quel chiffre (0 à 9)</item>
-        <item>Lettre, chiffre ou tiret bas</item>
-        <item>Espace, tabulation ou saut de ligne</item>
-        <item>N\'importe quel caractère</item>
-        <item>Une lettre majuscule</item>
-        <item>Une lettre minuscule</item>
-        <item>Un chiffre (équivalent à \\d)</item>
-        <item>N\'importe quelle lettre</item>
-        <item>Début de la valeur</item>
-        <item>Fin de la valeur</item>
-    </string-array>
-
-    <string-array name="regex_help_quantifiers_codes">
-        <item>{n}</item>
-        <item>{n,m}</item>
-        <item>{n,}</item>
-        <item>+</item>
-        <item>*</item>
-        <item>\?</item>
-    </string-array>
-    <string-array name="regex_help_quantifiers_labels">
-        <item>Exactement n fois</item>
-        <item>Entre n et m fois</item>
-        <item>Au moins n fois</item>
-        <item>1 fois ou plus</item>
-        <item>0, 1 ou plusieurs fois</item>
-        <item>Optionnel (0 ou 1 fois)</item>
-    </string-array>
-
-    <string-array name="regex_help_groups_codes">
-        <item>(...)</item>
-        <item>(?:...)</item>
-        <item>A|B</item>
-    </string-array>
-    <string-array name="regex_help_groups_labels">
-        <item>Groupe de capture : extrait une sous-partie</item>
-        <item>Groupe non capturant : regroupe sans extraire</item>
-        <item>Condition « ou » : trouve A ou B</item>
+    <string-array name="regex_help_result_values">
+        <item>12-123456</item>
+        <item>12 123456</item>
+        <item>12123456</item>
+        <item>02-123456</item>
+        <item>12-12345</item>
+        <item>12-1234567</item>
+        <item>12--123456</item>
+        <item>AB-123456</item>
+        <item>12-ABCDEF</item>
+        <item>12.123456</item>
     </string-array>
 
     <!-- Communs -->
