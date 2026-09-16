@@ -54,8 +54,14 @@ import kotlinx.coroutines.delay
 
 private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
 
-/** Duree d'affichage du bandeau de derniere capture. */
-private const val BANNER_DURATION_MS = 1_400L
+/**
+ * Duree d'affichage du bandeau de derniere capture.
+ *
+ * A 0 sur decision explicite de l'utilisateur : outil pro, la rapidite prime sur le
+ * confort visuel. Le retour reste assure par la vibration et le bip (ScanFeedback),
+ * independants de ce delai.
+ */
+private const val BANNER_DURATION_MS = 0L
 
 /** Nouveau scan : choix OCR / Code 2D / Code-barres / NFC. */
 @Composable
