@@ -500,9 +500,14 @@ private fun RegexHelpSheet(onDismiss: () -> Unit) {
             RegexPromptCopyBox()
 
             RegexHelpExample(
-                title = stringResource(R.string.regex_help_example_title),
-                description = stringResource(R.string.regex_help_example_desc),
-                pattern = stringResource(R.string.regex_help_example_pattern),
+                title = stringResource(
+                    R.string.regex_help_example_title,
+                    stringResource(R.string.regex_help_example_desc),
+                ),
+                pattern = stringResource(
+                    R.string.regex_help_example_pattern_label,
+                    stringResource(R.string.regex_help_example_pattern),
+                ),
             )
 
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
@@ -575,7 +580,7 @@ private fun RegexPromptCopyBox(modifier: Modifier = Modifier) {
  * bonnes et mauvaises — pour montrer ce qu'une regex rejette et pourquoi.
  */
 @Composable
-private fun RegexHelpExample(title: String, description: String, pattern: String) {
+private fun RegexHelpExample(title: String, pattern: String) {
     val colors = compareColors
     val regex = remember(pattern) { RegexRuleEngine.compileOrNull(pattern) }
     val values = stringArrayResource(R.array.regex_help_result_values)
@@ -591,11 +596,6 @@ private fun RegexHelpExample(title: String, description: String, pattern: String
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                Text(
-                    description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 Text(
                     pattern,
                     style = MaterialTheme.typography.bodyMedium,

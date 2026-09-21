@@ -165,8 +165,9 @@
     <string name="regex_help_prompt_template">"Génère-moi un pattern REGEX pour "</string>
     <string name="regex_help_prompt_copied">Prompt copié</string>
 
-    <string name="regex_help_example_title">Exemple : « 13-477484 »</string>
+    <string name="regex_help_example_title">Exemple pour : %1$s</string>
     <string name="regex_help_example_desc">2 chiffres, un tiret, 6 chiffres</string>
+    <string name="regex_help_example_pattern_label">En regex : %1$s</string>
     <string name="regex_help_example_pattern">\\b\\d{2}-\\d{6}\\b</string>
 
     <string name="regex_help_result_title">Résultat sur quelques valeurs</string>
