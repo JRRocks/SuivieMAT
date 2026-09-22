@@ -62,4 +62,49 @@ class RegexRuleRepository @Inject constructor(
     suspend fun delete(rule: RegexRuleEntity) = regexRuleDao.delete(rule)
 
     suspend fun markUsed(id: Long) = regexRuleDao.markUsed(id, System.currentTimeMillis())
+
+    /**
+     * Precharge deux formules d'exemple.
+     *
+     * A appeler une seule fois : c'est a l'appelant (voir `ScanListApplication`) de ne
+     * declencher ceci qu'au tout premier lancement, via un indicateur persistant dans
+     * `SettingsDataStore`. Un utilisateur qui supprime ensuite ces formules ne doit
+     * jamais les voir revenir toutes seules.
+     *
+     * Idempotent par construction malgre tout : une formule dont le nom existe deja
+     * n'est jamais reinseree (l'index `name` est unique, un doublon ferait planter
+     * l'insertion), au cas ou l'appelant serait invoque une seconde fois par erreur.
+     * Insere directement par l'entite plutot que par [save] pour maitriser
+     * l'horodatage et garantir un ordre d'affichage stable (bibliotheque triee par
+     * `lastUsedAt DESC`) ; les deux formules sont deja validees, la verification de
+     * [save] serait redondante.
+     */
+    suspend fun seedDefaults() {
+        val now = System.currentTimeMillis()
+        DEFAULT_RULES.forEachIndexed { index, (name, pattern) ->
+            if (regexRuleDao.getByName(name) != null) return@forEachIndexed
+            regexRuleDao.insert(
+                RegexRuleEntity(
+                    name = name,
+                    pattern = pattern,
+                    groupIndex = 0,
+                    createdAt = now,
+                    // Decroissant avec l'index : le premier de la liste reste en tete.
+                    lastUsedAt = now - index,
+                ),
+            )
+        }
+    }
+
+    private companion object {
+        /**
+         * HK416 : deux chiffres, un tiret, six chiffres (ex. numero de serie d'arme).
+         * ARVA : cinq chiffres (ex. identifiant d'appareil de recherche de victimes
+         * d'avalanche). Bornees par \b pour ne retenir que la sequence complete.
+         */
+        val DEFAULT_RULES = listOf(
+            "HK416" to """\b\d{2}-\d{6}\b""",
+            "ARVA" to """\b\d{5}\b""",
+        )
+    }
 }

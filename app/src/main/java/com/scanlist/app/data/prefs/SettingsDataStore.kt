@@ -3,6 +3,7 @@ package com.scanlist.app.data.prefs
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -33,6 +34,7 @@ class SettingsDataStore @Inject constructor(
         val EMAIL_BODY = stringPreferencesKey("email_body")
         val LAST_SCAN_MODE = stringPreferencesKey("last_scan_mode")
         val LAST_REGEX_RULE_ID = longPreferencesKey("last_regex_rule_id")
+        val REGEX_DEFAULTS_SEEDED = booleanPreferencesKey("regex_defaults_seeded")
     }
 
     val emailPrefs: Flow<EmailPrefs> = context.dataStore.data.map { prefs ->
@@ -51,6 +53,11 @@ class SettingsDataStore @Inject constructor(
         prefs[Keys.LAST_REGEX_RULE_ID]
     }
 
+    /** Vrai des que les formules d'exemple (HK416, ARVA) ont ete inserees une premiere fois. */
+    val regexDefaultsSeeded: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.REGEX_DEFAULTS_SEEDED] ?: false
+    }
+
     suspend fun setEmailPrefs(prefs: EmailPrefs) {
         context.dataStore.edit { store ->
             store[Keys.EMAIL_RECIPIENT] = prefs.recipient
@@ -67,6 +74,10 @@ class SettingsDataStore @Inject constructor(
         context.dataStore.edit { store ->
             if (id == null) store.remove(Keys.LAST_REGEX_RULE_ID) else store[Keys.LAST_REGEX_RULE_ID] = id
         }
+    }
+
+    suspend fun markRegexDefaultsSeeded() {
+        context.dataStore.edit { it[Keys.REGEX_DEFAULTS_SEEDED] = true }
     }
 
     companion object {
