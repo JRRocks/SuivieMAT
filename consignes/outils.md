@@ -144,7 +144,15 @@ inversement.
 Workflow **`.github/workflows/build-debug-apk.yml`**, ajouté le 2026-09-05 et complété
 le 2026-09-15. Branches déclenchantes : `claude/init-xyw7gc` et, depuis le 2026-09-24,
 `claude/remove-scanlist-history-a5bqzh` (branche de l'étude SuivieMAT, pour produire
-l'APK du test du badge). Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
+l'APK du test du badge).
+
+> ⚠️ **Constaté le 2026-09-24 sur le dépôt `JRRocks/SuivieMAT` : aucune exécution ne
+> s'est jamais déclenchée**, même après un push sur une branche déclenchante (le
+> workflow est pourtant enregistré et « active »). GitHub Actions est vraisemblablement
+> désactivé dans les réglages du dépôt (*Settings › Actions › General*). Tant qu'il ne
+> l'est pas, l'APK se compile depuis Android Studio, ou en session cloud (§ 6 ter).
+> L'APK de debug (54,5 Mio, et encore 37,7 Mio en arm64 seul) dépasse par ailleurs la
+> limite de 30 Mio d'envoi de fichier d'une session cloud. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
 `ubuntu-latest`, et publie l'APK en artefact (téléchargeable 7 jours depuis la page du
 run). Déclenchement : à chaque push sur la branche de travail, ou manuellement
 (`workflow_dispatch`, utilisable une fois le fichier présent sur la branche par défaut).
