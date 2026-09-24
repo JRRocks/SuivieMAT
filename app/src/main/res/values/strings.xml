@@ -185,6 +185,74 @@
         <item>12.123456</item>
     </string-array>
 
+    <!-- Test du badge : écran de diagnostic, présent dans les seuls APK de debug (décision 22) -->
+    <string name="menu_card_test">Test du badge</string>
+    <string name="menu_card_test_subtitle">Diagnostic sans contact — version de test uniquement</string>
+    <string name="card_test_title">Test du badge</string>
+    <string name="card_test_instruction">Pose le badge à plat au dos du téléphone et laisse-le immobile jusqu\'à la fin du test (quelques secondes).</string>
+    <string name="card_test_running">Test en cours — ne bouge pas le badge…</string>
+    <string name="card_test_done">Test terminé. Représente le badge pour recommencer.</string>
+    <string name="card_test_pin_notice">Aucun code PIN n\'est jamais envoyé au badge : ce test ne peut pas le bloquer.</string>
+    <string name="card_test_copy">Copier le rapport</string>
+    <string name="card_test_copied">Rapport copié</string>
+    <string name="card_test_clear">Effacer</string>
+    <string name="card_test_report_title">Test du badge — rapport</string>
+    <string name="card_mark_ok">[OK]</string>
+    <string name="card_mark_failed">[ÉCHEC]</string>
+
+    <string name="card_section_badge">Badge</string>
+    <string name="card_section_applications">Applications de la carte</string>
+    <string name="card_section_level2">Niveau 2 — lecture du certificat</string>
+    <string name="card_section_level3">Niveau 3 — défi-réponse</string>
+    <string name="card_section_holder_certificate">Certificat du titulaire (protégé par code PIN)</string>
+
+    <string name="card_label_technologies">Technologies</string>
+    <string name="card_label_iso_dep">Protocole carte à microprocesseur (ISO 14443-4)</string>
+    <string name="card_label_historical">Octets historiques</string>
+    <string name="card_label_result">Résultat</string>
+    <string name="card_label_duration">Durée totale</string>
+    <string name="card_label_directory">Répertoire EF.DIR</string>
+    <string name="card_label_piv">Application PIV</string>
+    <string name="card_label_pkcs15">Application PKCS#15</string>
+    <string name="card_label_subject">Titulaire</string>
+    <string name="card_label_issuer">Émetteur</string>
+    <string name="card_label_serial">N° de série</string>
+    <string name="card_label_validity">Validité</string>
+    <string name="card_label_key">Clé</string>
+    <string name="card_label_self_signed">Autosigné</string>
+    <string name="card_label_compressed">Compressé sur la carte</string>
+    <string name="card_label_algorithm">Algorithme</string>
+    <string name="card_label_signature_duration">Durée de la signature</string>
+    <string name="card_label_trust_chain">Chaîne de confiance</string>
+
+    <string name="card_yes">Oui</string>
+    <string name="card_no">Non</string>
+    <string name="card_present">Présente</string>
+    <string name="card_absent">Absente</string>
+    <string name="card_not_tested">Non testé</string>
+    <string name="card_no_label">(sans libellé)</string>
+    <string name="card_duration_ms">%1$d ms</string>
+    <string name="card_validity_range">du %1$s au %2$s</string>
+    <string name="card_key_description">%1$s %2$d bits</string>
+    <string name="card_historical_value">%1$s (texte : %2$s)</string>
+
+    <string name="card_iso_dep_missing">Ce badge n\'accepte pas de commandes de carte à microprocesseur : les niveaux 2 et 3 sont impossibles avec lui.</string>
+    <string name="card_connection_failed">Impossible d\'ouvrir le dialogue avec le badge — recommence en le laissant immobile.</string>
+    <string name="card_interrupted">Communication interrompue avant la fin — recommence en laissant le badge immobile.</string>
+    <string name="card_directory_empty">Répertoire présent, aucune application déclarée</string>
+    <string name="card_directory_absent">Aucun répertoire (réponse %1$s) — courant, ce n\'est pas une erreur</string>
+    <string name="card_certificate_read">Certificat lu</string>
+    <string name="card_refused">Refusé par la carte (réponse %1$s)</string>
+    <string name="card_unreadable">Réponse de la carte illisible</string>
+    <string name="card_level2_no_piv">Non testé : pas d\'application PIV, le badge suit une autre norme. Transmets ce rapport pour l\'identifier.</string>
+    <string name="card_level3_verified">Signature valide : le badge détient la clé privée du certificat</string>
+    <string name="card_level3_rejected">Signature INVALIDE : elle ne correspond pas au certificat lu</string>
+    <string name="card_level3_pin_required">Le badge exige un code PIN pour signer : le test s\'arrête là, volontairement.</string>
+    <string name="card_level3_unsupported_key">Type de clé non pris en charge par le test</string>
+    <string name="card_level3_needs_certificate">Non testé : il faut d\'abord un certificat lu au niveau 2</string>
+    <string name="card_trust_chain_unchecked">Non vérifiée — il faudra le certificat de l\'autorité de l\'organisation</string>
+    <string name="card_holder_certificate_refused">Non lisible sans contact (réponse %1$s) — attendu sur une carte PIV</string>
+
     <!-- Communs -->
     <string name="action_back">Retour</string>
     <string name="action_cancel">Annuler</string>

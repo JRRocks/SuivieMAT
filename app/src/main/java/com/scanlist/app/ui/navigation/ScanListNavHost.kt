@@ -14,7 +14,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.scanlist.app.BuildConfig
 import com.scanlist.app.domain.model.ScanMode
+import com.scanlist.app.ui.cardtest.CardTestScreen
 import com.scanlist.app.ui.common.LocalSnackbarHostState
 import com.scanlist.app.ui.compare.CompareScanModeScreen
 import com.scanlist.app.ui.compare.CompareSessionScreen
@@ -51,6 +53,11 @@ fun ScanListNavHost(
                 onFolders = { navController.navigate(Routes.FOLDERS) },
                 onCompare = { navController.navigate(Routes.COMPARE_SOURCE) },
                 onNewScan = { navController.navigate(Routes.NEW_SCAN_MODE) },
+                onCardTest = if (BuildConfig.DEBUG) {
+                    { navController.navigate(Routes.CARD_TEST) }
+                } else {
+                    null
+                },
             )
         }
 
@@ -223,6 +230,13 @@ fun ScanListNavHost(
         // ------------------------------------------------------------ Reglages
         composable(Routes.EMAIL_PREFS) {
             EmailPrefsScreen(onBack = navController::popBackStack)
+        }
+
+        // ------------------------------- Test du badge (APK de debug uniquement)
+        if (BuildConfig.DEBUG) {
+            composable(Routes.CARD_TEST) {
+                CardTestScreen(onBack = navController::popBackStack)
+            }
         }
     }
 }

@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - claude/init-xyw7gc
+      - claude/remove-scanlist-history-a5bqzh
 
 permissions:
   contents: read

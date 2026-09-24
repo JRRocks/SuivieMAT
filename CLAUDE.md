@@ -42,9 +42,11 @@ par l'IDE). Voir `consignes/outils.md` § 1 pour le détail vérifié sur ce pos
 Dans une **session cloud (claude.ai/code, web ou mobile)**, il n'y a ni SDK Android ni
 `ANDROID_HOME`, et `gradlew` n'a pas le bit exécutable après un clone frais
 (`chmod +x gradlew` avant tout `./gradlew`). Un build complet (`assembleDebug`,
-`testDebugUnitTest`) n'y est donc généralement **pas exécutable** — vérifier l'environnement
+`testDebugUnitTest`) n'y est donc **pas exécutable d'emblée** — vérifier l'environnement
 avant de promettre un résultat de build, et le dire explicitement si ce n'est pas possible
-plutôt que de simuler un résultat.
+plutôt que de simuler un résultat. Si la politique réseau le permet, le SDK s'installe
+dans le scratchpad et Maven Central se contourne par un miroir en cas de `429` : méthode
+vérifiée le 2026-09-24 dans `consignes/outils.md` § 6 ter.
 
 ### Commandes (poste local Windows avec Android Studio)
 
@@ -199,8 +201,13 @@ simulés). Cette validation ne peut se faire que sur le Galaxy S25.
 Phases 0 à 8 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC/RFID
 ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre de conformité
 QR/code-barres), vérification par consensus contre les erreurs optiques, dossiers, export
-`.csv` par mail, fonction Comparer complète. **141 tests, 0 échec, aucun avertissement de
-compilation.** Aucune coquille ne subsiste dans l'application.
+`.csv` par mail, fonction Comparer complète. **205 tests, 0 échec, aucun avertissement de
+compilation** (2026-09-24, écran de test du badge compris). Aucune coquille ne subsiste
+dans l'application.
 
 Restent les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
 `consignes/workflow.md`, qui fait foi.
+
+> **Avant toute distribution aux magasiniers**, dérouler la liste du § 0 de
+> `consignes/plan-suivimat.md` — en tête : **créer la clé de signature de release**,
+> reportée volontairement par l'utilisateur jusqu'à ce moment-là.

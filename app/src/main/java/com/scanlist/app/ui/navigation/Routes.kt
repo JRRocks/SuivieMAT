@@ -51,6 +51,12 @@ object Routes {
     // --- Reglages ---
     const val EMAIL_PREFS = "settings/email"
 
+    /**
+     * Hors hierarchie : diagnostic du badge sans contact, enregistre dans le graphe des
+     * seuls APK de debug (decision 22).
+     */
+    const val CARD_TEST = "debug/card-test"
+
     const val ARG_FOLDER_ID = "folderId"
     const val ARG_SESSION_ID = "sessionId"
     const val ARG_MODE = "mode"

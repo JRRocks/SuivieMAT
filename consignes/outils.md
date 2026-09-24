@@ -3,8 +3,9 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-09-15 — *Intégration continue GitHub Actions : tests +
-> APK* — aucune dépendance ajoutée, voir § 6 bis
+> Dernière mise à jour : 2026-09-24 — *`buildConfig` activé (écran de test du badge,
+> décision 22), CI étendue à la branche SuivieMAT, compilation possible en session
+> cloud* — aucune dépendance ajoutée, voir § 3, § 6 bis et § 6 ter
 
 ---
 
@@ -61,6 +62,7 @@
 | Une seule Activity | `MainActivity` — navigation 100 % Compose |
 | `abiFilters` | release : `arm64-v8a` · debug : `arm64-v8a` + `x86_64` — voir décision n° 10 de `contexte.md` |
 | Java / Kotlin JVM target | 17 |
+| `buildFeatures.buildConfig` | `true` depuis le 2026-09-24 : `BuildConfig.DEBUG` réserve l'écran « Test du badge » aux APK de debug (décision 22 de `contexte.md`) |
 
 ## 4. Dépendances
 
@@ -140,7 +142,9 @@ inversement.
 ## 6 bis. Intégration continue — compiler sans poste Windows
 
 Workflow **`.github/workflows/build-debug-apk.yml`**, ajouté le 2026-09-05 et complété
-le 2026-09-15. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
+le 2026-09-15. Branches déclenchantes : `claude/init-xyw7gc` et, depuis le 2026-09-24,
+`claude/remove-scanlist-history-a5bqzh` (branche de l'étude SuivieMAT, pour produire
+l'APK du test du badge). Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
 `ubuntu-latest`, et publie l'APK en artefact (téléchargeable 7 jours depuis la page du
 run). Déclenchement : à chaque push sur la branche de travail, ou manuellement
 (`workflow_dispatch`, utilisable une fois le fichier présent sur la branche par défaut).
@@ -159,6 +163,51 @@ Deux pièges déjà rencontrés, à ne pas redécouvrir :
 > qu'`assembleDebug`, et l'émulateur ne les exécute pas davantage. Le premier passage de
 > `testDebugUnitTest` en CI a immédiatement attrapé une régression réelle
 > (`ScanCsvBuilderTest`, colonne `mode` du `.csv`). Ne pas retirer cette étape.
+
+## 6 ter. Compiler et tester dans une session cloud (vérifié le 2026-09-24)
+
+Contrairement à ce que laissait penser l'absence de SDK, une session cloud **peut**
+compiler et lancer les tests, si la politique réseau de l'environnement laisse passer
+`dl.google.com` et `maven.google.com` (c'était le cas le 2026-09-24). Tout s'installe
+dans le **scratchpad** de la session, rien dans le dépôt :
+
+```bash
+SP=<scratchpad>
+mkdir -p $SP/sdk/cmdline-tools && cd $SP
+curl -sS -o cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+unzip -q cmdtools.zip -d sdk/cmdline-tools && mv sdk/cmdline-tools/cmdline-tools sdk/cmdline-tools/latest
+yes | sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SP/sdk --licenses
+sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=$SP/sdk "platforms;android-36" "build-tools;35.0.0" "platform-tools"
+export ANDROID_HOME=$SP/sdk
+chmod +x gradlew && ./gradlew --init-script $SP/mirror.init.gradle testDebugUnitTest assembleDebug
+```
+
+**Piège : Maven Central répond `429 Too Many Requests`** depuis la session (limite de
+débit de Maven Central, pas une règle du réseau). Parade : un script d'init Gradle,
+**hors du dépôt**, qui place en tête le miroir de Maven Central hébergé par Google :
+
+```groovy
+// mirror.init.gradle
+def mirror = "https://maven-central.storage-download.googleapis.com/maven2/"
+def configure = { handler ->
+    handler.maven {
+        url mirror
+        content {
+            excludeGroupByRegex("androidx.*")
+            excludeGroupByRegex("com\\.android.*")
+        }
+    }
+}
+beforeSettings { settings ->
+    configure(settings.pluginManagement.repositories)
+    configure(settings.dependencyResolutionManagement.repositories)
+}
+```
+
+Premier passage : quelques minutes de téléchargement ; ensuite, `clean testDebugUnitTest
+assembleDebug` en moins de deux minutes. Le scratchpad disparaît avec la session : tout
+est à refaire dans une nouvelle. Pas d'émulateur pour autant : la vérification écran
+par écran reste à faire sur le poste Windows ou sur le téléphone.
 
 ## 7. Commandes utiles
 
@@ -184,6 +233,9 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` (session cloud, SDK installé dans le scratchpad, § 6 ter) | ✅ **205 tests, 0 échec** — 52 nouveaux pour le test du badge : `ApduTest` 10, `BerTlvTest` 8, `CardDirectoryTest` 5, `PivTest` 13, `CardChallengeTest` 6, `CardDiagnosticTest` 10 (carte PIV simulée, RSA 2048 et ECC P-256) | 2026-09-24 |
+| `clean assembleDebug` (session cloud) | ✅ BUILD SUCCESSFUL, **aucun avertissement Kotlin** ; `app-debug.apk` 57 Mo, libellé « Test du badge » présent dans les ressources | 2026-09-24 |
+| Écran « Test du badge » sur matériel | ⬜ **Non vérifiable en session cloud ni sur émulateur** (pas d'émulateur ici, et les AVD n'ont pas de puce NFC) — test physique par l'utilisateur, avec son badge | 2026-09-24 |
 | `testDebugUnitTest` | ✅ **149 tests, 0 échec** (`BarcodeFormatsTest` : 8 tests sur les masques de symbologies et leur disjonction) | 2026-09-15 |
 | `assembleDebug` | ✅ BUILD SUCCESSFUL | 2026-09-15 |
 | APK debug produit | `app-debug.apk` — 55 Mo (arm64 + x86_64) ; contrôlé après téléchargement : libellé « Code 2D » présent dans `resources.arsc`, `libbarhopper_v3.so` et `libmlkit_google_ocr_pipeline.so` embarqués pour les deux ABI | 2026-09-15 |

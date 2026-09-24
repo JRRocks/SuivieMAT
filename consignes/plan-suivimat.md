@@ -9,9 +9,30 @@
 > propositions du § 11 ci-dessous. Une proposition validée y est reportée **par ajout de
 > ligne**, jamais en réécrivant une décision existante.
 >
-> Créé le : 2026-09-24 — dernière mise à jour : 2026-09-24, *premières réponses de
-> l'utilisateur : téléphones personnels, identification par carte à puce, VBA
-> opérationnel, mail civil → Outlook pro vérifié* (§ 10 bis, § 10 ter, § 12)
+> Créé le : 2026-09-24 — dernière mise à jour : 2026-09-24, *badge sans contact au
+> format carte bancaire ; écran « Test du badge » pour tester physiquement les niveaux 2
+> et 3 ; clé de signature reportée juste avant la distribution* (§ 0, § 10 ter)
+
+---
+
+## 0. À ne pas oublier avant la distribution aux magasiniers
+
+> Liste tenue à la demande de l'utilisateur (2026-09-24) : ces points sont **reportés
+> volontairement**, pas abandonnés. À dérouler **avant la toute première installation**
+> sur le téléphone d'un magasinier.
+
+- [ ] **Créer la clé de signature de release** (C6, D13). Décision de l'utilisateur du
+      2026-09-24 : faite **juste avant la distribution**, pas avant. Conservée **hors du
+      dépôt** (secret de la CI + copie hors ligne). Toutes les versions suivantes signées
+      avec elle : la première signature installée verrouille les mises à jour, et une
+      désinstallation efface le journal non exporté.
+- [ ] **Produire l'APK de release** avec cette clé : la CI ne compile aujourd'hui que le
+      debug.
+- [ ] **Vérifier sur l'APK de release réellement distribué** que l'entrée « Test du
+      badge » n'apparaît pas au menu principal (masquée par `BuildConfig.DEBUG`,
+      décision 22 de `contexte.md`).
+- [ ] `allowBackup="false"` (C4, D12), si validé.
+- [ ] Architectures de l'APK selon les téléphones réels (C7, U9).
 
 ---
 
@@ -437,6 +458,38 @@ Proposition (D14) — niveau 1 ou 2 au départ :
 - un téléphone **sans puce NFC** ne peut pas vérifier la carte : session ouverte en
   déclaratif, `carte_verifiee = 0`, visible du comptable.
 
+### Précision de l'utilisateur et écran de test (2026-09-24)
+
+La carte est un **badge professionnel sans contact, au format carte bancaire** (lecture B
+ci-dessus). L'utilisateur a demandé un **écran de test** pour éprouver physiquement les
+niveaux 2 et 3 avant toute décision (décision 22 de `contexte.md`).
+
+**Menu principal › Test du badge** — présent dans les **seuls APK de debug**
+(`BuildConfig.DEBUG`). Le badge posé au dos du téléphone, l'écran enchaîne :
+
+| Étape | Ce qui est fait | Ce que ça apprend |
+|---|---|---|
+| Badge | Technologies NFC, protocole ISO 14443-4, octets historiques | Si le badge accepte des commandes de carte à microprocesseur ; les octets historiques portent souvent le nom du produit |
+| Applications | Lecture du répertoire EF.DIR ; présence des applications **PIV** et **PKCS#15** | Quelle norme suit le badge |
+| Niveau 2 | Lecture du certificat de la carte (PIV, objet `5FC101`) : titulaire, émetteur, validité, clé | Si un identifiant stable est lisible sans contact |
+| Niveau 3 | Défi-réponse avec la clé d'authentification de la carte (PIV `9E`) : nonce aléatoire de 32 octets, signature par la carte, vérification avec la clé du certificat | Si le badge **prouve** sa présence |
+
+Garde-fous :
+
+- **Aucun code PIN n'est jamais envoyé** — ni saisi, ni transmis. Une série de PIN faux
+  bloque un badge ; le test ne peut donc pas le bloquer. Si la carte exige un PIN pour
+  signer, le test le constate et s'arrête là. Couvert par un test unitaire.
+- La **chaîne de confiance** (certificat de la carte ← autorité de l'organisation) n'est
+  pas vérifiée : il faudra le certificat public de l'autorité.
+- Seule la norme **PIV** est implémentée pour les niveaux 2 et 3 : c'est la norme de
+  badge professionnel qui prévoit une authentification **sans PIN et sans contact**. Si
+  le badge suit une autre norme, le rapport l'indique et liste ses applications :
+  **le bouton « Copier le rapport »** permet de le transmettre pour implémenter la
+  bonne.
+
+Logique dans `domain/card/` (pure Kotlin, testée contre une carte PIV simulée, RSA 2048
+et ECC P-256), pont Android dans `scanner/CardTestReader.kt`, écran dans `ui/cardtest/`.
+
 ## 11. Impacts sur l'existant et décisions à valider
 
 | # | Proposition | Touche à | Recommandation | État |
@@ -453,7 +506,7 @@ Proposition (D14) — niveau 1 ou 2 au départ :
 | D10 | Nom de l'application (SuivieMAT) et `applicationId` | § 3 de `outils.md` | Changer l'`applicationId` crée **une autre application** : les données de ScanList déjà sur le S25 ne suivent pas | ⬜ à valider |
 | D11 | Valorisation (prix) **exclue** du téléphone | — | ✅ recommandé (moindre donnée sensible sur le terrain) | ⬜ à valider |
 | D12 | `allowBackup="false"` (C4) | Manifest | ✅ recommandé — **prioritaire** depuis la réponse « téléphones personnels » | ⬜ à valider |
-| D13 | **Clé de signature de release unique** (C6) et **canal de distribution** de l'APK : remise en main propre par un référent, lien de téléchargement interne, ou piste de test fermée Google Play | `app/build.gradle.kts`, CI | Clé : ✅ indispensable, à créer avant toute installation chez un magasinier. Canal : à choisir | ⬜ à valider |
+| D13 | **Clé de signature de release unique** (C6) et **canal de distribution** de l'APK : remise en main propre par un référent, lien de téléchargement interne, ou piste de test fermée Google Play | `app/build.gradle.kts`, CI | Clé : ✅ indispensable, à créer avant toute installation chez un magasinier. Canal : à choisir | 🔄 Clé : **reportée juste avant la distribution** (utilisateur, 2026-09-24), inscrite au § 0. Canal : ⬜ à valider |
 | D14 | Identification par **carte à puce en NFC** : niveau 1 ou 2, à l'ouverture de chaque session, identifiant de carte jamais exporté (§ 10 ter) | Mode NFC existant | ✅ recommandé, sous réserve de U10 | ⬜ à valider |
 | D15 | **Verrou applicatif** (empreinte ou code) à l'ouverture de l'application | Nouvelle dépendance `androidx.biometric` | ✅ recommandé (aucun verrouillage n'est garanti sur un téléphone personnel) | ⬜ à valider |
 | D16 | Heure automatique désactivée : **signaler** seulement, ou **bloquer** l'ouverture d'un inventaire | — | Bloquer : rien ne permet sinon de rattraper l'heure après coup | ⬜ à valider |
@@ -490,7 +543,7 @@ Proposition (D14) — niveau 1 ou 2 au départ :
 | U7 | Que contient exactement la **synthèse** du comptable (écarts par parent, par site, valorisation…) ? | ⬜ |
 | U8 | Parent **absent du référentiel** : ignoré (règle actuelle) ou signalé au comptable ? | ⬜ |
 | U9 | **Liste des téléphones** des magasiniers : modèle, version d'Android, présence du NFC | ⬜ |
-| U10 | La « carte à puce SIM » : **carte SIM du téléphone** ou **carte professionnelle sans contact** (badge, carte agent) ? Si carte : modèle, sert-elle aussi à ouvrir des portes, son identifiant change-t-il à chaque présentation ? (un essai avec le mode NFC actuel de l'application suffit à le voir : deux lectures, deux valeurs différentes = UID aléatoire) | ⬜ |
+| U10 | La « carte à puce SIM » : **carte SIM du téléphone** ou **carte professionnelle sans contact** (badge, carte agent) ? | ✅ **Badge professionnel sans contact, format carte bancaire** (2026-09-24). Norme suivie : à établir avec l'écran « Test du badge » (§ 10 ter) |
 
 ## 13. Risques
 
@@ -518,7 +571,7 @@ Proposition (D14) — niveau 1 ou 2 au départ :
 
 | # | Étape | Contenu | Dépend de | Charge | État |
 |---|---|---|---|---|---|
-| S0 | **Cadrage** | Réponses Q1–Q11 et U1–U10, validation D1–D17. Acquis : Q1, Q3, Q4, Q9. Tests immédiats : envoi pro → personnel (Q10), deux lectures de la carte avec le mode NFC actuel (U10) | — | S | 🔄 En cours |
+| S0 | **Cadrage** | Réponses Q1–Q11 et U1–U10, validation D1–D17. Acquis : Q1, Q3, Q4, Q9, U10. Tests immédiats : envoi pro → personnel (Q10), **test physique du badge avec l'écran « Test du badge »** (§ 10 ter) | — | S | 🔄 En cours |
 | S1 | **Contrat d'échange** | Spécification figée des deux formats, forme canonique du hash, fichiers spécimens, vecteurs de test | S0 | S | ⬜ À faire |
 | S2 | **Prototype poste comptable** | Kit Excel sur fichiers spécimens, **testé sur le vrai poste** : import en texte, vérification de chaîne, continuité, tri, synthèse, génération du référentiel | S1 | M | ⬜ À faire |
 | S3 | **Correctifs du socle** | **C6 clé de signature (avant toute installation chez un magasinier)**, C1 injection CSV, C4 sauvegarde, C2 encodage d'import, C3 horodatage UTC, C7 ABI selon U9 | S0 | S | ⬜ À faire |
@@ -545,3 +598,4 @@ Ce qui est vérifiable où :
 |---|---|
 | 2026-09-24 | Création : analyse de faisabilité, recommandation option 1+, modèle de journal, ébauche du contrat d'échange, constats de sécurité C1–C5, questions Q1–Q9 / U1–U8, décisions à valider D1–D12, feuille de route S0–S9. **Aucune décision validée, aucun code modifié.** |
 | 2026-09-24 | **Premières réponses de l'utilisateur.** Téléphones **personnels** (Q1) ; VBA déjà utilisé et fonctionnel (Q4) ; `.csv` d'une messagerie personnelle vers Outlook pro vérifié (Q3, Q9) ; identification par **carte à puce**, sans clé privée, comme couche de vérification. Conséquences : nouvelle section § 10 bis (téléphones personnels : l'application porte seule les garanties qu'un MDM aurait imposées) et § 10 ter (identification par carte, trois niveaux — le défi-réponse ne demande **pas** de détenir la clé privée) ; C1 et C4 deviennent prioritaires ; deux nouveaux constats, **C6 (aucune clé de signature : chaque mise à jour effacerait le journal)** et C7 (release arm64 seulement) ; décisions D13–D17, questions Q10–Q11 et U9–U10 ajoutées ; Q7 caduque. S0 passe en cours. **Aucune décision validée, aucun code modifié.** |
+| 2026-09-24 | **Écran « Test du badge » et liste d'avant-distribution.** Le badge est une carte professionnelle sans contact au format carte bancaire (U10). À la demande de l'utilisateur : écran de diagnostic des niveaux 2 et 3 (§ 10 ter, décision 22), présent dans les seuls APK de debug, qui n'envoie jamais de code PIN ; implémentation PIV (certificat `5FC101`, défi-réponse sur la clé `9E`), plus lecture du répertoire EF.DIR pour identifier une autre norme. La clé de signature est reportée juste avant la distribution, à la demande de l'utilisateur : inscrite dans la nouvelle liste du § 0. **En attente : le rapport du test physique.** |
