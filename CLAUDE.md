@@ -18,6 +18,7 @@ interface en **français uniquement**.
 | `consignes/contexte.md` | But de l'application, périmètre, hiérarchie de menus imposée, **décisions validées** | dès qu'une décision fonctionnelle change |
 | `consignes/workflow.md` | Architecture, modèle de données, tableau d'avancement (§ 6), journal (§ 7) | à chaque phase terminée |
 | `consignes/outils.md` | Stack, versions figées, permissions, commandes, état de la chaîne de build | à chaque ajout ou montée de version d'une dépendance |
+| `consignes/plan-suivimat.md` | Évolution SuivieMAT (suivi matériel sous contraintes comptables) : faisabilité, questions ouvertes, décisions **à valider**, feuille de route S0–S9 | à chaque réponse, décision tranchée ou étape terminée |
 
 **Ne jamais modifier une décision du § 5 de `contexte.md` sans validation explicite de
 l'utilisateur.** Ces décisions viennent de lui ; certaines ont déjà été révisées par lui
@@ -28,7 +29,8 @@ l'utilisateur.** Ces décisions viennent de lui ; certaines ont déjà été ré
 1. `consignes/contexte.md` → périmètre et décisions.
 2. `consignes/outils.md` → stack et commandes de build.
 3. `consignes/workflow.md` → architecture + tableau § 6 pour la prochaine phase ⬜.
-4. Vérifier l'état **réel** du code avant de conclure quoi que ce soit.
+4. `consignes/plan-suivimat.md` → évolution SuivieMAT en cours d'étude (§ 11 à § 14).
+5. Vérifier l'état **réel** du code avant de conclure quoi que ce soit.
 
 ---
 
