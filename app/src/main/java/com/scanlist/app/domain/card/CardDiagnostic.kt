@@ -42,16 +42,19 @@ sealed interface ChallengeResult {
 }
 
 /**
- * Rapport complet. [pivPresent] et [pkcs15Present] valent null quand l'etape n'a pas pu
- * etre atteinte (badge retire avant).
+ * Rapport complet. [pivPresent] vaut null quand les sondes d'applications n'ont pas pu
+ * etre menees jusqu'au bout (badge retire avant) ; [applications] garde alors celles qui
+ * ont eu lieu.
  */
 data class CardReport(
     val directory: DirectoryResult,
+    val applications: List<ApplicationProbe>,
     val pivPresent: Boolean?,
-    val pkcs15Present: Boolean?,
     val cardAuthCertificate: CertificateResult,
     val challenge: ChallengeResult,
     val pivAuthCertificate: CertificateResult,
+    val globalPlatform: GlobalPlatformResult,
+    val desfire: DesfireResult,
     val interrupted: Boolean,
     val durationMs: Long,
 )
@@ -75,23 +78,32 @@ class CardDiagnostic(
 
     /**
      * Le repertoire d'abord : il se lit par identifiant de fichier, ce que la selection
-     * d'une application rendrait impossible ensuite sur certaines cartes. Si le badge est
-     * retire en cours de route, tout ce qui a ete obtenu jusque-la reste dans le rapport.
+     * d'une application rendrait impossible ensuite sur certaines cartes. Les commandes
+     * natives DESFire en dernier : elles sortent du cadre ISO 7816-4 que suivent toutes les
+     * autres. Si le badge est retire en cours de route, tout ce qui a ete obtenu jusque-la
+     * reste dans le rapport.
      */
     fun run(): CardReport {
         val start = clockMs()
         var directory: DirectoryResult = DirectoryResult.NotTested
+        val applications = mutableListOf<ApplicationProbe>()
         var pivPresent: Boolean? = null
-        var pkcs15Present: Boolean? = null
         var cardAuth: CertificateResult = CertificateResult.NotTested
         var challenge: ChallengeResult = ChallengeResult.NotTested
         var pivAuth: CertificateResult = CertificateResult.NotTested
+        var globalPlatform: GlobalPlatformResult = GlobalPlatformResult.NotTested
+        var desfire: DesfireResult = DesfireResult.NotTested
 
         val interrupted = try {
             directory = readDirectory()
-            val piv = select(Piv.AID).isSuccess
+            KnownApplications.ALL.forEach { application ->
+                applications += ApplicationProbe(application.name, application.aid.toHex(), select(application.aid).sw)
+            }
+            val piv = applications.any { it.name == KnownApplications.PIV.name && it.present }
             pivPresent = piv
             if (piv) {
+                // Nouvelle selection : les sondes suivantes ont change l'application courante.
+                select(Piv.AID)
                 val certificate = readCertificate(Piv.OBJECT_CARD_AUTH_CERT)
                 cardAuth = certificate
                 if (certificate is CertificateResult.Read) {
@@ -99,7 +111,8 @@ class CardDiagnostic(
                 }
                 pivAuth = readCertificate(Piv.OBJECT_PIV_AUTH_CERT)
             }
-            pkcs15Present = select(PKCS15_AID).isSuccess
+            globalPlatform = probeGlobalPlatform()
+            desfire = probeDesfire()
             false
         } catch (e: IOException) {
             true
@@ -107,14 +120,52 @@ class CardDiagnostic(
 
         return CardReport(
             directory = directory,
+            applications = applications,
             pivPresent = pivPresent,
-            pkcs15Present = pkcs15Present,
             cardAuthCertificate = cardAuth,
             challenge = challenge,
             pivAuthCertificate = pivAuth,
+            globalPlatform = globalPlatform,
+            desfire = desfire,
             interrupted = interrupted,
             durationMs = clockMs() - start,
         )
+    }
+
+    /**
+     * SELECT sans AID : sur une carte GlobalPlatform, il selectionne le domaine de securite
+     * de l'emetteur, qui repond au GET DATA du CPLC sans authentification.
+     */
+    private fun probeGlobalPlatform(): GlobalPlatformResult {
+        val selected = channel.send(0x00, INS_SELECT, P1_SELECT_BY_AID, 0x00, le = Apdu.LE_MAX)
+        val isdAid = if (selected.isSuccess) {
+            BerTlv.find(selected.data, TAG_FCI)?.let { BerTlv.find(it, TAG_DF_NAME) }?.toHex()
+        } else {
+            null
+        }
+        val cplcResponse = channel.send(CLA_GLOBAL_PLATFORM, INS_GET_DATA, 0x9F, 0x7F, le = Apdu.LE_MAX)
+        val cplc = if (cplcResponse.isSuccess) Cplc.parse(cplcResponse.data) else null
+        if (isdAid == null && cplc == null) {
+            return GlobalPlatformResult.Absent(if (selected.isSuccess) cplcResponse.sw else selected.sw)
+        }
+        return GlobalPlatformResult.Found(isdAid, cplc)
+    }
+
+    /**
+     * GetVersion natif DESFire, enveloppe ISO (CLA 90). La reponse arrive en trois trames
+     * (91AF = suite) ; la troisieme, qui porte l'UID, est lue pour clore la commande puis
+     * ignoree.
+     */
+    private fun probeDesfire(): DesfireResult {
+        val hardware = channel.send(CLA_DESFIRE, INS_DESFIRE_GET_VERSION, 0x00, 0x00, le = Apdu.LE_MAX)
+        if (hardware.sw != SW_DESFIRE_MORE) return DesfireResult.Absent(hardware.sw)
+        val software = channel.send(CLA_DESFIRE, INS_DESFIRE_MORE, 0x00, 0x00, le = Apdu.LE_MAX)
+        if (software.sw != SW_DESFIRE_MORE) return DesfireResult.Absent(software.sw)
+        val production = channel.send(CLA_DESFIRE, INS_DESFIRE_MORE, 0x00, 0x00, le = Apdu.LE_MAX)
+        if (production.sw != SW_DESFIRE_OK) return DesfireResult.Absent(production.sw)
+        val version = DesfireVersion.parse(hardware.data, software.data)
+            ?: return DesfireResult.Absent(production.sw)
+        return DesfireResult.Found(version)
     }
 
     private fun readDirectory(): DirectoryResult {
@@ -180,10 +231,17 @@ class CardDiagnostic(
         /** 32 octets : impossible a deviner, donc impossible a rejouer depuis une reponse enregistree. */
         const val NONCE_SIZE = 32
 
-        /** Application PKCS#15 (ISO 7816-15), autre norme courante de carte a certificats. */
-        val PKCS15_AID: ByteArray = hexBytes("A0 00 00 00 63 50 4B 43 53 2D 31 35")
-
         private val EF_DIR = hexBytes("2F 00")
+
+        private const val TAG_FCI = 0x6F
+        private const val TAG_DF_NAME = 0x84
+        private const val CLA_GLOBAL_PLATFORM = 0x80
+        private const val INS_GET_DATA = 0xCA
+        private const val CLA_DESFIRE = 0x90
+        private const val INS_DESFIRE_GET_VERSION = 0x60
+        private const val INS_DESFIRE_MORE = 0xAF
+        private const val SW_DESFIRE_MORE = 0x91AF
+        private const val SW_DESFIRE_OK = 0x9100
 
         private const val INS_SELECT = 0xA4
         private const val INS_READ_RECORD = 0xB2

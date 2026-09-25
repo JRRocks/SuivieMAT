@@ -2,6 +2,7 @@ package com.scanlist.app.scanner
 
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
+import android.nfc.tech.NfcA
 import com.scanlist.app.domain.card.CardDiagnostic
 import com.scanlist.app.domain.card.CardReport
 import com.scanlist.app.domain.card.CardTransport
@@ -20,6 +21,10 @@ class CardTestOutcome(
     val historicalBytes: ByteArray?,
     val report: CardReport?,
     val connectionFailed: Boolean,
+    /** Octets d'anticollision du type A : ils classent la famille de puce, pas la carte. */
+    val atqa: ByteArray? = null,
+    val sak: Int? = null,
+    val extendedLength: Boolean? = null,
 )
 
 /**
@@ -36,23 +41,36 @@ object CardTestReader {
     /** Bloquant : a appeler hors du thread principal, depuis le rappel du lecteur NFC. */
     fun read(tag: Tag): CardTestOutcome {
         val technologies = tag.techList.map { it.substringAfterLast('.') }
+        val nfcA = NfcA.get(tag)
+        val atqa = nfcA?.atqa
+        val sak = nfcA?.sak?.toInt()?.and(0xFF)
         val isoDep = IsoDep.get(tag)
-            ?: return CardTestOutcome(technologies, isoDep = false, historicalBytes = null, report = null, connectionFailed = false)
+            ?: return CardTestOutcome(
+                technologies, isoDep = false, historicalBytes = null, report = null, connectionFailed = false,
+                atqa = atqa, sak = sak,
+            )
         // Octets historiques en type A, reponse de couche haute en type B : les deux
         // portent l'identification du produit que les fabricants y placent.
         val historical = isoDep.historicalBytes ?: isoDep.hiLayerResponse
+        val extendedLength = isoDep.isExtendedLengthApduSupported
 
         val connected = runCatching {
             isoDep.connect()
             isoDep.timeout = TIMEOUT_MS
         }.isSuccess
         if (!connected) {
-            return CardTestOutcome(technologies, isoDep = true, historicalBytes = historical, report = null, connectionFailed = true)
+            return CardTestOutcome(
+                technologies, isoDep = true, historicalBytes = historical, report = null, connectionFailed = true,
+                atqa = atqa, sak = sak, extendedLength = extendedLength,
+            )
         }
 
         return try {
             val report = CardDiagnostic(IsoDepTransport(isoDep)).run()
-            CardTestOutcome(technologies, isoDep = true, historicalBytes = historical, report = report, connectionFailed = false)
+            CardTestOutcome(
+                technologies, isoDep = true, historicalBytes = historical, report = report, connectionFailed = false,
+                atqa = atqa, sak = sak, extendedLength = extendedLength,
+            )
         } finally {
             runCatching { isoDep.close() }
         }

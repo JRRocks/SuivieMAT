@@ -1,13 +1,14 @@
 package com.scanlist.app.ui.cardtest
 
 import android.content.res.Resources
-import androidx.annotation.StringRes
 import com.scanlist.app.R
 import com.scanlist.app.domain.card.ApduResponse
 import com.scanlist.app.domain.card.CardReport
 import com.scanlist.app.domain.card.CertificateResult
 import com.scanlist.app.domain.card.ChallengeResult
+import com.scanlist.app.domain.card.DesfireResult
 import com.scanlist.app.domain.card.DirectoryResult
+import com.scanlist.app.domain.card.GlobalPlatformResult
 import com.scanlist.app.domain.card.formatStatusWord
 import com.scanlist.app.domain.card.toHex
 import com.scanlist.app.scanner.CardTestOutcome
@@ -35,6 +36,7 @@ object CardReportFormatter {
         return buildList {
             add(badge)
             add(applicationsSection(res, report))
+            add(chipSection(res, report))
             add(level2Section(res, report))
             add(level3Section(res, report))
             if (report.pivPresent == true) add(holderSection(res, report))
@@ -66,8 +68,22 @@ object CardReportFormatter {
                 if (outcome.isoDep) LineStatus.OK else LineStatus.FAILED,
             ),
         )
-        outcome.historicalBytes?.takeIf { it.isNotEmpty() }?.let { bytes ->
-            lines += ReportLine(res.getString(R.string.card_label_historical), historical(res, bytes))
+        if (outcome.atqa != null && outcome.sak != null) {
+            lines += ReportLine(
+                res.getString(R.string.card_label_atqa_sak),
+                res.getString(R.string.card_atqa_sak_value, outcome.atqa.toHex(), "%02X".format(outcome.sak)),
+            )
+        }
+        if (outcome.isoDep) {
+            // Affiche meme vides : un badge sans octets historiques est deja une indication.
+            val historical = outcome.historicalBytes?.takeIf { it.isNotEmpty() }
+            lines += ReportLine(
+                res.getString(R.string.card_label_historical),
+                historical?.let { historical(res, it) } ?: res.getString(R.string.card_none),
+            )
+        }
+        outcome.extendedLength?.let {
+            lines += ReportLine(res.getString(R.string.card_label_extended_length), yesNo(res, it))
         }
         val result = res.getString(R.string.card_label_result)
         when {
@@ -108,9 +124,78 @@ object CardReportFormatter {
             DirectoryResult.NotTested ->
                 lines += ReportLine(directoryLabel, res.getString(R.string.card_not_tested))
         }
-        lines += presence(res, R.string.card_label_piv, report.pivPresent)
-        lines += presence(res, R.string.card_label_pkcs15, report.pkcs15Present)
+        report.applications.forEach { probe ->
+            val value = if (probe.present) {
+                res.getString(R.string.card_present)
+            } else {
+                res.getString(R.string.card_absent_with_sw, formatStatusWord(probe.sw))
+            }
+            lines += ReportLine(
+                res.getString(R.string.card_application_label, probe.name, probe.aid),
+                value,
+                if (probe.present) LineStatus.OK else LineStatus.INFO,
+            )
+        }
         return ReportSection(res.getString(R.string.card_section_applications), lines)
+    }
+
+    private fun chipSection(res: Resources, report: CardReport): ReportSection {
+        val lines = mutableListOf<ReportLine>()
+        val desfireLabel = res.getString(R.string.card_label_desfire)
+        when (val desfire = report.desfire) {
+            is DesfireResult.Found -> {
+                val version = desfire.version
+                val product = version.productName ?: res.getString(R.string.card_desfire_unknown_product)
+                lines += ReportLine(
+                    desfireLabel,
+                    res.getString(R.string.card_desfire_value, product, version.storageBytes / 1024.0),
+                    LineStatus.OK,
+                )
+                lines += ReportLine(
+                    res.getString(R.string.card_label_desfire_version),
+                    res.getString(R.string.card_desfire_version_value, version.hardwareHex, version.softwareHex),
+                )
+                if (report.pivPresent != true) {
+                    lines += ReportLine(
+                        res.getString(R.string.card_label_interpretation),
+                        res.getString(R.string.card_desfire_interpretation),
+                    )
+                }
+            }
+            is DesfireResult.Absent ->
+                lines += ReportLine(desfireLabel, res.getString(R.string.card_no_answer, formatStatusWord(desfire.sw)))
+            DesfireResult.NotTested ->
+                lines += ReportLine(desfireLabel, res.getString(R.string.card_not_tested))
+        }
+
+        val globalPlatformLabel = res.getString(R.string.card_label_global_platform)
+        when (val globalPlatform = report.globalPlatform) {
+            is GlobalPlatformResult.Found -> {
+                lines += ReportLine(
+                    globalPlatformLabel,
+                    globalPlatform.isdAid?.let { res.getString(R.string.card_global_platform_isd, it) }
+                        ?: res.getString(R.string.card_yes),
+                    LineStatus.OK,
+                )
+                globalPlatform.cplc?.let { cplc ->
+                    val fabricator = "%04X".format(cplc.icFabricator)
+                    lines += ReportLine(
+                        res.getString(R.string.card_label_ic_fabricator),
+                        cplc.fabricatorName?.let { "$it ($fabricator)" } ?: fabricator,
+                    )
+                    lines += ReportLine(res.getString(R.string.card_label_ic_type), "%04X".format(cplc.icType))
+                    lines += ReportLine(
+                        res.getString(R.string.card_label_os),
+                        res.getString(R.string.card_os_value, "%04X".format(cplc.osId), "%04X".format(cplc.osReleaseDate)),
+                    )
+                }
+            }
+            is GlobalPlatformResult.Absent ->
+                lines += ReportLine(globalPlatformLabel, res.getString(R.string.card_no_answer, formatStatusWord(globalPlatform.sw)))
+            GlobalPlatformResult.NotTested ->
+                lines += ReportLine(globalPlatformLabel, res.getString(R.string.card_not_tested))
+        }
+        return ReportSection(res.getString(R.string.card_section_chip), lines)
     }
 
     private fun level2Section(res: Resources, report: CardReport): ReportSection {
@@ -202,19 +287,6 @@ object CardReportFormatter {
             ),
             ReportLine(res.getString(R.string.card_label_self_signed), yesNo(res, summary.selfSigned)),
             ReportLine(res.getString(R.string.card_label_compressed), yesNo(res, read.compressed)),
-        )
-    }
-
-    private fun presence(res: Resources, @StringRes labelRes: Int, present: Boolean?): ReportLine {
-        val value = when (present) {
-            true -> R.string.card_present
-            false -> R.string.card_absent
-            null -> R.string.card_not_tested
-        }
-        return ReportLine(
-            res.getString(labelRes),
-            res.getString(value),
-            if (present == true) LineStatus.OK else LineStatus.INFO,
         )
     }
 

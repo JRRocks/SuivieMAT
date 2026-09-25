@@ -7,12 +7,14 @@ import com.scanlist.app.domain.card.CardApplication
 import com.scanlist.app.domain.card.CardDiagnostic
 import com.scanlist.app.domain.card.CertificateResult
 import com.scanlist.app.domain.card.ChallengeResult
+import com.scanlist.app.domain.card.DesfireResult
 import com.scanlist.app.domain.card.DirectoryResult
+import com.scanlist.app.domain.card.GlobalPlatformResult
+import com.scanlist.app.domain.card.KnownApplications
 import com.scanlist.app.domain.card.PivAlgorithm
 import com.scanlist.app.domain.card.hexBytes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.security.KeyPairGenerator
@@ -80,7 +82,7 @@ class CardDiagnosticTest {
         val report = CardDiagnostic(FakePivCard(pivPresent = false)).run()
 
         assertEquals(false, report.pivPresent)
-        assertEquals(false, report.pkcs15Present)
+        assertFalse(report.applications.single { it.name == "PKCS#15" }.present)
         assertEquals(CertificateResult.NotTested, report.cardAuthCertificate)
         assertEquals(ChallengeResult.NotTested, report.challenge)
         assertFalse(report.interrupted)
@@ -136,6 +138,76 @@ class CardDiagnosticTest {
         assertTrue(report.interrupted)
         assertTrue(report.cardAuthCertificate is CertificateResult.Read)
         assertEquals(ChallengeResult.NotTested, report.challenge)
-        assertNull(report.pkcs15Present)
+        assertEquals(GlobalPlatformResult.NotTested, report.globalPlatform)
+        assertEquals(DesfireResult.NotTested, report.desfire)
+    }
+
+    @Test
+    fun `un badge retire pendant les sondes garde celles deja faites`() {
+        val card = FakePivCard(pivPresent = false, failOnInstruction = FakePivCard.INS_GP_GET_DATA)
+
+        val report = CardDiagnostic(card).run()
+
+        assertTrue(report.interrupted)
+        assertEquals(KnownApplications.ALL.size, report.applications.size)
+        assertEquals(false, report.pivPresent)
+    }
+
+    // ------------------------------------------------ identification du badge
+
+    @Test
+    fun `les applications connues sont sondees une a une avec la reponse exacte de la carte`() {
+        val report = CardDiagnostic(FakePivCard(pivPresent = false)).run()
+
+        assertEquals(KnownApplications.ALL.map { it.name }, report.applications.map { it.name })
+        assertTrue(report.applications.all { it.sw == 0x6A82 && !it.present })
+    }
+
+    @Test
+    fun `une carte PIV est reselectionnee apres les sondes avant la lecture du certificat`() {
+        val card = FakePivCard(certificate = CardFixtures.ecCertificate, privateKey = CardFixtures.ecPrivateKey)
+
+        val report = CardDiagnostic(card).run()
+
+        assertTrue(report.applications.single { it.name == "PIV" }.present)
+        assertTrue(report.challenge is ChallengeResult.Verified)
+    }
+
+    @Test
+    fun `un badge DESFire est identifie par sa version`() {
+        val card = FakePivCard(pivPresent = false, desfireVersion = FakePivCard.DESFIRE_EV2_VERSION)
+
+        val desfire = CardDiagnostic(card).run().desfire as DesfireResult.Found
+
+        assertEquals("MIFARE DESFire EV2", desfire.version.productName)
+        assertEquals(8192, desfire.version.storageBytes)
+        assertEquals("04010112001A05", desfire.version.hardwareHex)
+    }
+
+    @Test
+    fun `une carte qui ignore les commandes DESFire est signalee sans erreur`() {
+        val report = CardDiagnostic(FakePivCard(pivPresent = false)).run()
+
+        assertEquals(DesfireResult.Absent(0x6E00), report.desfire)
+        assertFalse(report.interrupted)
+    }
+
+    @Test
+    fun `une carte GlobalPlatform donne son domaine de securite et le fabricant de sa puce`() {
+        val cplc = hexBytes("4790 5040 D003 3082") + ByteArray(34)
+        val card = FakePivCard(pivPresent = false, isdAid = hexBytes("A000000151000000"), cplc = cplc)
+
+        val globalPlatform = CardDiagnostic(card).run().globalPlatform as GlobalPlatformResult.Found
+
+        assertEquals("A000000151000000", globalPlatform.isdAid)
+        assertEquals("NXP", globalPlatform.cplc!!.fabricatorName)
+        assertEquals(0x5040, globalPlatform.cplc!!.icType)
+    }
+
+    @Test
+    fun `une carte sans GlobalPlatform est signalee sans erreur`() {
+        val report = CardDiagnostic(FakePivCard(pivPresent = false)).run()
+
+        assertTrue(report.globalPlatform is GlobalPlatformResult.Absent)
     }
 }

@@ -263,6 +263,8 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` (session cloud, puis CI GitHub) | ✅ **220 tests, 0 échec** — +15 pour les sondes d'identification du badge (`CardIdentificationTest` 8, `CardDiagnosticTest` +7) | 2026-09-25 |
+| CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI (runs n° 1 et 2) ; APK vérifié : signé par `app/debug.keystore`, écran « Test du badge » présent | 2026-09-25 |
 | `testDebugUnitTest` (session cloud, SDK installé dans le scratchpad, § 6 ter) | ✅ **205 tests, 0 échec** — 52 nouveaux pour le test du badge : `ApduTest` 10, `BerTlvTest` 8, `CardDirectoryTest` 5, `PivTest` 13, `CardChallengeTest` 6, `CardDiagnosticTest` 10 (carte PIV simulée, RSA 2048 et ECC P-256) | 2026-09-24 |
 | `clean assembleDebug` (session cloud) | ✅ BUILD SUCCESSFUL, **aucun avertissement Kotlin** ; `app-debug.apk` 57 Mo, libellé « Test du badge » présent dans les ressources | 2026-09-24 |
 | Écran « Test du badge » sur matériel | ⬜ **Non vérifiable en session cloud ni sur émulateur** (pas d'émulateur ici, et les AVD n'ont pas de puce NFC) — test physique par l'utilisateur, avec son badge | 2026-09-24 |

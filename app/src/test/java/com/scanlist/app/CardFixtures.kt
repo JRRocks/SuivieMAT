@@ -97,6 +97,11 @@ class FakePivCard(
     private val challengeStatus: Int = 0x9000,
     private val compressCertificate: Boolean = false,
     private val failOnInstruction: Int? = null,
+    /** 28 octets de GetVersion DESFire (7 materiel, 7 logiciel, 14 fabrication) ; null = pas une DESFire. */
+    private val desfireVersion: ByteArray? = null,
+    /** Domaine de securite GlobalPlatform selectionne par defaut ; null = pas de GlobalPlatform. */
+    private val isdAid: ByteArray? = null,
+    private val cplc: ByteArray? = null,
 ) : CardTransport {
 
     val commands = mutableListOf<ByteArray>()
@@ -105,6 +110,7 @@ class FakePivCard(
     private val chain = ByteArrayOutputStream()
     private var pivSelected = false
     private var directorySelected = false
+    private var desfireFrame = 0
 
     /** Instructions recues, dans l'ordre (octet INS de chaque commande). */
     fun instructions(): List<Int> = commands.map { it[1].toInt() and 0xFF }
@@ -120,8 +126,10 @@ class FakePivCard(
         } else {
             ByteArray(0)
         }
+        if (cla == CLA_DESFIRE) return desfire(ins)
         return when (ins) {
             INS_SELECT -> select(p1, data)
+            INS_GP_GET_DATA -> if (cla == 0x80 && cplc != null) respond(BerTlv.encode(0x9F7F, cplc)) else status(0x6D00)
             INS_READ_RECORD -> readRecord(p1)
             INS_GET_DATA -> getData(data)
             INS_GENERAL_AUTHENTICATE -> generalAuthenticate(cla, data)
@@ -142,7 +150,29 @@ class FakePivCard(
                 directorySelected = true
                 status(0x9000)
             }
+            p1 == 0x04 && data.isEmpty() && isdAid != null ->
+                respond(BerTlv.encode(0x6F, BerTlv.encode(0x84, isdAid) + BerTlv.encode(0xA5, ByteArray(0))))
             else -> status(0x6A82)
+        }
+    }
+
+    /** GetVersion natif en trois trames, comme une vraie DESFire ; 6E00 sinon (CLA inconnue). */
+    private fun desfire(ins: Int): ByteArray {
+        val version = desfireVersion ?: return status(0x6E00)
+        return when {
+            ins == 0x60 -> {
+                desfireFrame = 1
+                version.copyOfRange(0, 7) + status(0x91AF)
+            }
+            ins == 0xAF && desfireFrame == 1 -> {
+                desfireFrame = 2
+                version.copyOfRange(7, 14) + status(0x91AF)
+            }
+            ins == 0xAF && desfireFrame == 2 -> {
+                desfireFrame = 0
+                version.copyOfRange(14, 28) + status(0x9100)
+            }
+            else -> status(0x911C)
         }
     }
 
@@ -219,6 +249,13 @@ class FakePivCard(
         const val INS_GENERAL_AUTHENTICATE = 0x87
         const val INS_GET_RESPONSE = 0xC0
         const val INS_VERIFY = 0x20
+        const val INS_GP_GET_DATA = 0xCA
+        const val CLA_DESFIRE = 0x90
         const val MAX_RESPONSE = 256
+
+        /** GetVersion d'une DESFire EV2 8 Ko : NXP (04), type 01, version 12 00, taille 1A. */
+        val DESFIRE_EV2_VERSION: ByteArray = hexBytes(
+            "04 01 01 12 00 1A 05" + "04 01 01 02 00 1A 05" + "04 11 22 33 44 55 66 BA 7C 11 22 33 18 20",
+        )
     }
 }

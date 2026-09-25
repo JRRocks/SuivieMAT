@@ -493,6 +493,36 @@ Garde-fous :
 Logique dans `domain/card/` (pure Kotlin, testée contre une carte PIV simulée, RSA 2048
 et ECC P-256), pont Android dans `scanner/CardTestReader.kt`, écran dans `ui/cardtest/`.
 
+### Premier test physique (2026-09-25)
+
+| Observation | Lecture |
+|---|---|
+| `IsoDep`, `NfcA`, ISO 14443-4 : oui, 93 ms | Carte à microprocesseur de type A, rapide |
+| Aucun octet historique affiché | Rien d'exploitable pour nommer le produit |
+| EF.DIR : `6A86` (paramètres P1-P2 incorrects) | Le badge refuse la sélection par identifiant de fichier : typique d'une carte où seules des applications nommées se sélectionnent (Java Card / GlobalPlatform), ou d'une MIFARE DESFire |
+| PIV absente, PKCS#15 absente | Pas une carte à certificat de format standard : niveaux 2 et 3 non testables tels quels |
+
+**Écran enrichi en conséquence** (sondes d'identification, lecture seule, sans clé ni
+code) : ATQA/SAK, octets historiques même vides, support des longues commandes par le
+téléphone ; sélection d'une liste d'applications connues (PIV, PKCS#15, MIFARE DESFire
+ISO, NFC Forum Type 4, OpenPGP, FIDO U2F) **avec la réponse exacte** de la carte ;
+version **MIFARE DESFire** (GetVersion natif — la trame portant l'UID est lue pour clore
+la commande puis ignorée) ; identité **GlobalPlatform** (domaine de sécurité par défaut,
+début du CPLC : fabricant, type de puce, système — le numéro de série de la puce n'est
+pas lu).
+
+**Ce que chaque issue voudrait dire :**
+
+- **DESFire** — badge d'accès courant : pas de certificat (niveau 2 impossible), et
+  l'authentification (niveau 3) repose sur des **clés AES secrètes** détenues par le
+  gestionnaire du système de badges — cohérent avec « nous n'avons pas la clé ». Seul le
+  niveau 1 reste accessible sans son concours.
+- **GlobalPlatform avec une application propriétaire** — carte agent à certificats
+  (IAS-ECC ou autre) : il faudra la spécification de l'application, et possiblement un
+  canal sécurisé sans contact.
+
+**En attente : le second rapport.**
+
 ## 11. Impacts sur l'existant et décisions à valider
 
 | # | Proposition | Touche à | Recommandation | État |
@@ -602,3 +632,4 @@ Ce qui est vérifiable où :
 | 2026-09-24 | Création : analyse de faisabilité, recommandation option 1+, modèle de journal, ébauche du contrat d'échange, constats de sécurité C1–C5, questions Q1–Q9 / U1–U8, décisions à valider D1–D12, feuille de route S0–S9. **Aucune décision validée, aucun code modifié.** |
 | 2026-09-24 | **Premières réponses de l'utilisateur.** Téléphones **personnels** (Q1) ; VBA déjà utilisé et fonctionnel (Q4) ; `.csv` d'une messagerie personnelle vers Outlook pro vérifié (Q3, Q9) ; identification par **carte à puce**, sans clé privée, comme couche de vérification. Conséquences : nouvelle section § 10 bis (téléphones personnels : l'application porte seule les garanties qu'un MDM aurait imposées) et § 10 ter (identification par carte, trois niveaux — le défi-réponse ne demande **pas** de détenir la clé privée) ; C1 et C4 deviennent prioritaires ; deux nouveaux constats, **C6 (aucune clé de signature : chaque mise à jour effacerait le journal)** et C7 (release arm64 seulement) ; décisions D13–D17, questions Q10–Q11 et U9–U10 ajoutées ; Q7 caduque. S0 passe en cours. **Aucune décision validée, aucun code modifié.** |
 | 2026-09-24 | **Écran « Test du badge » et liste d'avant-distribution.** Le badge est une carte professionnelle sans contact au format carte bancaire (U10). À la demande de l'utilisateur : écran de diagnostic des niveaux 2 et 3 (§ 10 ter, décision 22), présent dans les seuls APK de debug, qui n'envoie jamais de code PIN ; implémentation PIV (certificat `5FC101`, défi-réponse sur la clé `9E`), plus lecture du répertoire EF.DIR pour identifier une autre norme. La clé de signature est reportée juste avant la distribution, à la demande de l'utilisateur : inscrite dans la nouvelle liste du § 0. **En attente : le rapport du test physique.** |
+| 2026-09-25 | **Premier rapport du badge** : ISO 14443-4 type A, ni PIV ni PKCS#15, EF.DIR refusé (`6A86`). Écran enrichi de sondes d'identification (applications connues avec leur réponse exacte, version DESFire, CPLC GlobalPlatform, ATQA/SAK) pour trancher entre badge d'accès DESFire et carte à certificats propriétaire (§ 10 ter). **En attente : le second rapport.** |
