@@ -212,7 +212,7 @@ simulés). Cette validation ne peut se faire que sur le Galaxy S25.
 Phases 0 à 8 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC/RFID
 ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre de conformité
 QR/code-barres), vérification par consensus contre les erreurs optiques, dossiers, export
-`.csv` par mail, fonction Comparer complète. **220 tests, 0 échec, aucun avertissement de
+`.csv` par mail, fonction Comparer complète. **222 tests, 0 échec, aucun avertissement de
 compilation** (2026-09-25, écran de test du badge compris). Aucune coquille ne subsiste
 dans l'application.
 

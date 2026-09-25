@@ -210,4 +210,24 @@ class CardDiagnosticTest {
 
         assertTrue(report.globalPlatform is GlobalPlatformResult.Absent)
     }
+
+    @Test
+    fun `une carte durcie qui refuse la selection implicite est trouvee via l AID ISD par defaut`() {
+        val card = FakePivCard(
+            pivPresent = false,
+            isdAid = hexBytes("A000000151000000"),
+            hardenedSelection = true,
+        )
+
+        val globalPlatform = CardDiagnostic(card).run().globalPlatform as GlobalPlatformResult.Found
+
+        assertEquals("A000000151000000", globalPlatform.isdAid)
+    }
+
+    @Test
+    fun `IAS-ECC figure dans les applications sondees`() {
+        val report = CardDiagnostic(FakePivCard(pivPresent = false)).run()
+
+        assertTrue(report.applications.any { it.name == "IAS-ECC" })
+    }
 }

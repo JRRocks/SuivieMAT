@@ -102,6 +102,8 @@ class FakePivCard(
     /** Domaine de securite GlobalPlatform selectionne par defaut ; null = pas de GlobalPlatform. */
     private val isdAid: ByteArray? = null,
     private val cplc: ByteArray? = null,
+    /** true : la carte refuse la selection implicite (AID vide), comme une carte durcie. */
+    private val hardenedSelection: Boolean = false,
 ) : CardTransport {
 
     val commands = mutableListOf<ByteArray>()
@@ -150,7 +152,11 @@ class FakePivCard(
                 directorySelected = true
                 status(0x9000)
             }
-            p1 == 0x04 && data.isEmpty() && isdAid != null ->
+            p1 == 0x04 && data.isEmpty() && isdAid != null && !hardenedSelection ->
+                respond(BerTlv.encode(0x6F, BerTlv.encode(0x84, isdAid) + BerTlv.encode(0xA5, ByteArray(0))))
+            // Carte durcie : seule la selection par AID explicite du domaine de securite
+            // par defaut (A000000151000000, essaye par CardDiagnostic) aboutit.
+            p1 == 0x04 && hardenedSelection && isdAid != null && data.contentEquals(hexBytes("A000000151000000")) ->
                 respond(BerTlv.encode(0x6F, BerTlv.encode(0x84, isdAid) + BerTlv.encode(0xA5, ByteArray(0))))
             else -> status(0x6A82)
         }

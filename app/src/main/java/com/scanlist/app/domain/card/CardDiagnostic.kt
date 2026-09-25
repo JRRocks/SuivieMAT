@@ -137,7 +137,18 @@ class CardDiagnostic(
      * de l'emetteur, qui repond au GET DATA du CPLC sans authentification.
      */
     private fun probeGlobalPlatform(): GlobalPlatformResult {
-        val selected = channel.send(0x00, INS_SELECT, P1_SELECT_BY_AID, 0x00, le = Apdu.LE_MAX)
+        val implicit = channel.send(0x00, INS_SELECT, P1_SELECT_BY_AID, 0x00, le = Apdu.LE_MAX)
+        // Une carte durcie peut refuser la selection implicite (AID vide) par prudence :
+        // on retente alors avec les AID de domaine de securite par defaut les plus repandus,
+        // plutot que de conclure trop vite a l'absence de GlobalPlatform.
+        val selected = if (implicit.isSuccess) {
+            implicit
+        } else {
+            KNOWN_ISD_AIDS.firstNotNullOfOrNull { aid ->
+                channel.send(0x00, INS_SELECT, P1_SELECT_BY_AID, 0x00, aid, le = Apdu.LE_MAX)
+                    .takeIf { it.isSuccess }
+            } ?: implicit
+        }
         val isdAid = if (selected.isSuccess) {
             BerTlv.find(selected.data, TAG_FCI)?.let { BerTlv.find(it, TAG_DF_NAME) }?.toHex()
         } else {
@@ -236,6 +247,18 @@ class CardDiagnostic(
         private const val TAG_FCI = 0x6F
         private const val TAG_DF_NAME = 0x84
         private const val CLA_GLOBAL_PLATFORM = 0x80
+
+        /**
+         * AID de domaine de securite par defaut les plus repandus, essayes si la selection
+         * implicite (AID vide) est refusee. A000000151000000 : ISD de reference
+         * GlobalPlatform, tres largement utilise (JCOP, GlobalPlatformPro...).
+         * A000000003000000 : forme plus ancienne, encore rencontree sur des cartes anterieures
+         * a GlobalPlatform 2.1.1.
+         */
+        private val KNOWN_ISD_AIDS: List<ByteArray> = listOf(
+            hexBytes("A0 00 00 01 51 00 00 00"),
+            hexBytes("A0 00 00 00 03 00 00 00"),
+        )
         private const val INS_GET_DATA = 0xCA
         private const val CLA_DESFIRE = 0x90
         private const val INS_DESFIRE_GET_VERSION = 0x60

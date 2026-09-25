@@ -23,6 +23,11 @@ object KnownApplications {
         KnownApplication("NFC Forum Type 4 (NDEF)", hexBytes("D2 76 00 00 85 01 01")),
         KnownApplication("OpenPGP", hexBytes("D2 76 00 01 24 01")),
         KnownApplication("FIDO U2F", hexBytes("A0 00 00 06 47 2F 00 01")),
+        // IAS-ECC : norme franco-europeenne (ANSSI) de carte a puce administrative,
+        // notamment les "cartes agents" de l'ANTS. AID de l'applet standard Oberthur,
+        // largement repris comme AID generique de detection IAS-ECC (source : OpenSC,
+        // driver card-iasecc.c, OberthurIASECC_AID).
+        KnownApplication("IAS-ECC", hexBytes("A0 00 00 00 77 01 08 00 07 00 00 FE 00 00 01 00")),
     )
 }
 

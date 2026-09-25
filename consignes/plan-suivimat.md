@@ -521,7 +521,36 @@ pas lu).
   (IAS-ECC ou autre) : il faudra la spécification de l'application, et possiblement un
   canal sécurisé sans contact.
 
-**En attente : le second rapport.**
+### Deuxième rapport (2026-09-25) et recherche documentaire
+
+| Observation | Lecture |
+|---|---|
+| ATQA `4800`, SAK `20` | SAK `0x20` = conforme ISO 14443-4 générique — confirme ce qu'on savait déjà, ne désigne pas un produit précis |
+| Les six applications connues : toutes `6A82` (absente) | Le badge **répond correctement** à SELECT par AID (ce n'est pas un dialogue cassé), il ne connaît simplement aucune des six essayées |
+| GlobalPlatform (sélection implicite, AID vide) : `6A82` | La carte **refuse la sélection implicite** — comportement de durcissement volontaire, pas absence de GlobalPlatform |
+| Commande native DESFire (GetVersion, CLA `90`) : `6999` | **`6999` = « Applet selection failed »**, un mot d'état **spécifique aux cartes JavaCard/JCOP** (confirmé par recherche), pas une réponse DESFire. Le badge est presque certainement une **carte JavaCard/GlobalPlatform** (probablement NXP JCOP), pas une puce DESFire |
+
+**Recherche documentaire** : le contexte (badge professionnel français, carte à puce,
+JavaCard) correspond au profil d'une carte **IAS-ECC**, la norme franco-européenne
+(ANSSI) de carte administrative professionnelle, notamment les « cartes agents »
+délivrées par l'ANTS. Trouvé dans le pilote `card-iasecc.c` d'OpenSC un AID nommé
+`OberthurIASECC_AID`, repris comme AID générique de détection IAS-ECC :
+`A0 00 00 00 77 01 08 00 07 00 00 FE 00 00 01 00`.
+
+**Ajouté à l'écran, à tester** :
+- **IAS-ECC** dans la liste des applications sondées (AID ci-dessus).
+- **Repli GlobalPlatform** : si la sélection implicite échoue, deux AID de domaine de
+  sécurité connus sont essayés — `A000000151000000` (ISD de référence GlobalPlatform,
+  très répandu) et `A000000003000000` (forme plus ancienne).
+
+**Ce que ce troisième test dira :** si IAS-ECC répond `9000`, c'est la norme à
+programmer pour les niveaux 2 et 3 — mais IAS-ECC n'est **pas** PIV : la lecture de
+certificat et le défi-réponse actuels (écrits pour PIV) ne s'y appliqueront pas tels
+quels, une nouvelle implémentation sera nécessaire. Si elle échoue aussi, il faudra
+remettre le rapport complet à un lecteur de cartes professionnel pour continuer la
+recherche.
+
+**En attente : le troisième rapport.**
 
 ## 11. Impacts sur l'existant et décisions à valider
 
@@ -633,4 +662,5 @@ Ce qui est vérifiable où :
 | 2026-09-24 | **Premières réponses de l'utilisateur.** Téléphones **personnels** (Q1) ; VBA déjà utilisé et fonctionnel (Q4) ; `.csv` d'une messagerie personnelle vers Outlook pro vérifié (Q3, Q9) ; identification par **carte à puce**, sans clé privée, comme couche de vérification. Conséquences : nouvelle section § 10 bis (téléphones personnels : l'application porte seule les garanties qu'un MDM aurait imposées) et § 10 ter (identification par carte, trois niveaux — le défi-réponse ne demande **pas** de détenir la clé privée) ; C1 et C4 deviennent prioritaires ; deux nouveaux constats, **C6 (aucune clé de signature : chaque mise à jour effacerait le journal)** et C7 (release arm64 seulement) ; décisions D13–D17, questions Q10–Q11 et U9–U10 ajoutées ; Q7 caduque. S0 passe en cours. **Aucune décision validée, aucun code modifié.** |
 | 2026-09-24 | **Écran « Test du badge » et liste d'avant-distribution.** Le badge est une carte professionnelle sans contact au format carte bancaire (U10). À la demande de l'utilisateur : écran de diagnostic des niveaux 2 et 3 (§ 10 ter, décision 22), présent dans les seuls APK de debug, qui n'envoie jamais de code PIN ; implémentation PIV (certificat `5FC101`, défi-réponse sur la clé `9E`), plus lecture du répertoire EF.DIR pour identifier une autre norme. La clé de signature est reportée juste avant la distribution, à la demande de l'utilisateur : inscrite dans la nouvelle liste du § 0. **En attente : le rapport du test physique.** |
 | 2026-09-25 | **Premier rapport du badge** : ISO 14443-4 type A, ni PIV ni PKCS#15, EF.DIR refusé (`6A86`). Écran enrichi de sondes d'identification (applications connues avec leur réponse exacte, version DESFire, CPLC GlobalPlatform, ATQA/SAK) pour trancher entre badge d'accès DESFire et carte à certificats propriétaire (§ 10 ter). **En attente : le second rapport.** |
+| 2026-09-25 | **Deuxième rapport du badge, recherche documentaire (§ 10 ter).** Réponse `6999` à la commande native DESFire identifiée, par recherche, comme « Applet selection failed » — spécifique aux cartes JavaCard/JCOP, pas une réponse DESFire : le badge est une carte JavaCard/GlobalPlatform, pas une puce DESFire. Piste retenue : **IAS-ECC**, norme franco-européenne des cartes professionnelles administratives (« cartes agents » ANTS), AID trouvé dans le pilote OpenSC `card-iasecc.c`. Ajouté à l'écran : sonde IAS-ECC, repli GlobalPlatform par AID de domaine de sécurité connus si la sélection implicite est refusée. 222 tests, 0 échec. **En attente : le troisième rapport.** |
 | 2026-09-25 | **D10 validée : SuivieMAT devient une application distincte de ScanList.** L'utilisateur confirme que ScanList est une application indépendante, gardée en l'état — les deux se seraient superposées sous l'ancien `applicationId` hérité du projet d'origine. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (décision 23 de `contexte.md`). À refaire à la prochaine compilation : redéployer l'APK dans `release/`, qui portait encore l'ancien identifiant. |

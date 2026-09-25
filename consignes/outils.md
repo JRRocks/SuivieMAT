@@ -265,6 +265,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug` (session cloud), sondes IAS-ECC + repli GlobalPlatform | ✅ **222 tests, 0 échec**, signature inchangée | 2026-09-25 |
 | `testDebugUnitTest` + `assembleDebug` (session cloud), après renommage | ✅ **220 tests, 0 échec** ; `applicationId='com.suiviemat.app'`, `application-label:'SuivieMAT'` (`aapt2 dump badging`), signature inchangée | 2026-09-25 |
 | `testDebugUnitTest` (session cloud, puis CI GitHub) | ✅ **220 tests, 0 échec** — +15 pour les sondes d'identification du badge (`CardIdentificationTest` 8, `CardDiagnosticTest` +7) | 2026-09-25 |
 | CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI (runs n° 1 et 2) ; APK vérifié : signé par `app/debug.keystore`, écran « Test du badge » présent | 2026-09-25 |
