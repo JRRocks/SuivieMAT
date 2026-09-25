@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** À relire en priorité après un `/clear` ou au démarrage
 > d'une nouvelle session. À mettre à jour à chaque évolution majeure du périmètre fonctionnel.
 >
-> Dernière mise à jour : 2026-09-24 — *Écran de test du badge sans contact, APK de debug
-> uniquement (décision 22)*
+> Dernière mise à jour : 2026-09-25 — *`applicationId` renommé en `com.suiviemat.app`,
+> nom affiché « SuivieMAT » : ScanList est une application indépendante (décision 23)*
 
 ---
 
@@ -201,6 +201,7 @@ MENU PRINCIPAL
 
 | 21 | **Élargissement du mode QR Code à toute la famille 2D** | Demandé par l'utilisateur après avoir rencontré sur le terrain une étiquette portant un code-barres **en plusieurs étages** que l'application ne savait pas lire. Choix retenu par l'utilisateur après analyse : **élargir le mode « QR Code » existant** plutôt que créer un cinquième mode ou élargir « Code-barres ». Le mode est renommé **« Code 2D »** et décode QR Code, **PDF417**, **Data Matrix** et **Aztec** ; **« Code-barres » reste strictement linéaire**. Trois conséquences techniques : la constante `ScanMode.QR_CODE` **garde son nom** (elle est persistée telle quelle en base, la renommer imposerait une migration aux dossiers déjà scannés) ; la résolution d'analyse passe à **1080p pour ce seul mode**, les modules d'un PDF417 étant bien plus fins que ceux d'un QR de même encombrement ; la garde d'ambiguïté du consensus **reste désactivée** sur ce mode, les quatre formats portant tous une correction Reed-Solomon. **Limite assumée :** les autres familles de codes empilés (Codablock F, Code 16K, Code 49, MicroPDF417) restent illisibles — voir § 8 de `workflow.md`. | 2026-09-15 |
 | 22 | **Écran de test du badge sans contact** | Demandé par l'utilisateur dans le cadre de l'étude SuivieMAT (`plan-suivimat.md` § 10 ter), après avoir précisé que l'identification se fera par un badge professionnel sans contact au format carte bancaire : tester **physiquement** les niveaux 2 (lecture du certificat) et 3 (défi-réponse) avant d'arrêter quoi que ce soit. Entrée « Test du badge » au menu principal, **hors de la hiérarchie imposée du § 4** et présente dans les **seuls APK de debug** (`BuildConfig.DEBUG`), pour qu'elle ne puisse pas atteindre un magasinier. **Aucun code PIN n'est jamais envoyé au badge** : le test ne peut pas le bloquer. Outil de diagnostic, pas une fonction de l'application ; son avenir se décidera avec le résultat du test. | 2026-09-24 |
+| 23 | **SuivieMAT est une application distincte de ScanList** | ScanList est une **application indépendante**, sans rapport avec ce dépôt, que l'utilisateur garde en l'état sur son téléphone. Or ce dépôt utilisait encore `applicationId = com.scanlist.app` et le nom affiché « ScanList », hérités du projet d'origine — les deux applications se seraient donc superposées (même identifiant Android = conflit d'installation, même nom affiché = confusion). **`applicationId` renommé en `com.suiviemat.app`, nom affiché en « SuivieMAT »** ; c'était déjà signalé, sans être tranché, à la proposition D10 de `plan-suivimat.md`. Le *namespace* Kotlin du code source reste `com.scanlist.app` (renommer le `package` de tous les fichiers n'aurait aucun effet sur la coexistence des deux applications, pour un chantier mécanique important) — Android distingue explicitement les deux : seul l'`applicationId` compte pour l'installation. **Conséquence assumée : nouvelle application du point de vue d'Android**, sans lien avec un éventuel test antérieur fait sous l'ancien identifiant — cohérent avec le fait qu'aucune donnée réelle n'existe encore (phases 9-10 non commencées). | 2026-09-25 |
 
 ## 6. Hors périmètre (non demandé)
 

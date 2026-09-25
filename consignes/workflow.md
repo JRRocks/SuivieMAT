@@ -4,8 +4,8 @@
 > **Règle absolue :** mettre à jour le tableau d'avancement (§ 6) et le journal (§ 7)
 > à chaque évolution majeure, et systématiquement avant/après un `/clear`.
 >
-> Dernière mise à jour : 2026-09-24 — *Écran « Test du badge » (décision 22) ; étude SuivieMAT dans
-> `plan-suivimat.md`*
+> Dernière mise à jour : 2026-09-25 — *`applicationId` renommé en `com.suiviemat.app`,
+> ScanList est une application indépendante (décision 23)*
 
 ---
 
@@ -38,6 +38,10 @@
 ```
 
 ### Découpage en packages
+
+> Ce chemin est le *namespace* Kotlin du code source, volontairement distinct de
+> l'`applicationId` (`com.suiviemat.app`) depuis le 2026-09-25 — voir décision 23 de
+> `contexte.md` et `outils.md` § 3.
 
 ```
 com.scanlist.app
@@ -347,6 +351,7 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
+| 2026-09-25 | **SuivieMAT devient une application distincte de ScanList (décision 23).** L'utilisateur a précisé que ScanList est une application indépendante qu'il garde en l'état : sous l'`applicationId` et le nom hérités du projet d'origine, les deux se seraient superposées sur un même téléphone. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (`app_name`), nom du projet Gradle → « SuivieMAT » (cosmétique). Le *namespace* Kotlin du code source reste `com.scanlist.app` : seul l'`applicationId` détermine l'identité Android, le renommer n'aurait rien apporté pour un chantier mécanique sur tout le code. Conséquence assumée : à l'installation, c'est une **application neuve** pour Android, sans lien avec un test antérieur fait sous l'ancien identifiant. 220 tests, 0 échec, `aapt2 dump badging` vérifié (`package='com.suiviemat.app'`, `application-label:'SuivieMAT'`). | `contexte.md`, `outils.md`, `plan-suivimat.md` |
 | 2026-09-25 | **Test du badge : sondes d'identification.** Le premier test physique montre un badge ISO 14443-4 sans PIV ni PKCS#15, qui refuse la sélection par identifiant de fichier (`6A86`). Ajout, en lecture seule et sans clé : sélection d'applications connues avec la réponse exacte de la carte (`KnownApplications`), GetVersion **MIFARE DESFire** (UID lu pour clore la commande, jamais conservé), CPLC **GlobalPlatform** limité au fabricant, au type de puce et au système (numéro de série jamais lu), ATQA/SAK. Nouvelle section « Identification de la puce » dans le rapport, avec une interprétation quand la puce est une DESFire. `domain/card/CardIdentification.kt`, carte simulée étendue (DESFire, GlobalPlatform). **220 tests, 0 échec**, sans avertissement. | `plan-suivimat.md` |
 | 2026-09-25 | **APK de test compilé sur GitHub et déposé dans `release/`.** Demandé par l'utilisateur, sans ordinateur sous la main. Le push ne déclenche pas le workflow sur ce dépôt, mais le lancement manuel fonctionne (y compris depuis une session cloud). Le workflow dépose désormais l'APK dans `release/SuivieMAT-debug.apk` de la branche, avec commit source, date et SHA-256 (`release/SuivieMAT-debug.txt`), en arm64 seul (`-Papk.phoneOnly`) pour limiter le poids de l'historique. **Clé de debug versionnée** (`app/debug.keystore`) : sans elle, chaque runner signait avec une clé jetable et chaque APK de test aurait imposé une désinstallation, donc la perte des dossiers du téléphone. Passage unique : l'application installée avant depuis Android Studio doit être désinstallée une fois. Mode d'emploi : `release/LISEZMOI.md`. 205 tests, 0 échec, en local avant le push. | `outils.md`, `plan-suivimat.md` |
 | 2026-09-24 | **Écran « Test du badge » (décision 22).** Demandé par l'utilisateur pour éprouver physiquement l'identification par badge professionnel sans contact (étude SuivieMAT, `plan-suivimat.md` § 10 ter). Entrée au menu principal réservée aux APK de debug (`BuildConfig.DEBUG`, `buildConfig` activé). L'écran lit le répertoire EF.DIR, sonde les applications PIV et PKCS#15, puis, sur une carte PIV : **niveau 2** = lecture du certificat de la carte (`5FC101`, gzip géré), **niveau 3** = défi-réponse sur la clé `9E` (nonce aléatoire de 32 octets, bloc PKCS#1 v1.5 construit côté téléphone pour RSA, empreinte pour ECC, signature vérifiée avec la clé du certificat). **Aucune commande de vérification de PIN n'existe dans le code** : le test ne peut pas bloquer le badge (couvert par un test). Rapport copiable pour transmission. Toute la logique dans `domain/card/`, pure et testée contre une carte PIV simulée qui reproduit le chaînage de commandes et les réponses longues (`61xx`) ; `scanner/CardTestReader` n'est que le pont `IsoDep`. 52 tests ajoutés (**205 au total, 0 échec**), `assembleDebug` sans avertissement — **compilés en session cloud** pour la première fois (SDK installé dans le scratchpad, miroir Maven, `outils.md` § 6 ter). **Non vérifié sur émulateur** (aucun émulateur en session cloud, pas de NFC sur les AVD) : c'est le test physique de l'utilisateur qui validera l'écran. La CI se déclenche désormais aussi sur la branche de l'étude. | `contexte.md`, `outils.md`, `workflow.md`, `plan-suivimat.md` |

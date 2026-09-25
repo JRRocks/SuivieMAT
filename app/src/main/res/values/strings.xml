@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ScanList</string>
+    <string name="app_name">SuivieMAT</string>
 
     <!-- Menu principal -->
     <string name="menu_title">Menu principal</string>

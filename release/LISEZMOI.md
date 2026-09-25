@@ -16,15 +16,23 @@ téléphone, sans ordinateur.
    depuis le navigateur.
 3. Vérifier au besoin l'empreinte SHA-256 avec celle de `SuivieMAT-debug.txt`.
 
-## ⚠️ Première installation
+## ⚠️ Changement d'identité le 2026-09-25 : nouvelle installation
 
-Ces APK sont signés avec la clé de debug **versionnée** du dépôt (`app/debug.keystore`),
-en place depuis le 2026-09-25. Une application installée **avant**, depuis Android
-Studio, porte une autre signature : Android refuse alors la mise à jour
-(« Application non installée »). Il faut la **désinstaller d'abord**, ce qui **efface
-ses dossiers**. Exporter ce qui doit être conservé avant.
+Jusqu'au 2026-09-25, cette application portait `applicationId = com.scanlist.app` et
+s'appelait « ScanList », hérités du projet d'origine — au risque de se superposer avec
+**ScanList, une application réellement indépendante** que l'utilisateur garde par
+ailleurs. Elle porte désormais `applicationId = com.suiviemat.app` et s'appelle
+**« SuivieMAT »** (décision 23 de `consignes/contexte.md`).
 
-Les installations suivantes se font ensuite par-dessus, sans rien perdre.
+**Conséquence : pour Android, c'est une application neuve.** Si un APK de test antérieur
+au 2026-09-25 est déjà installé (sous l'ancien nom « ScanList », ancien identifiant), il
+reste sur le téléphone comme une **application séparée** — sans rien perdre, elle
+n'est ni écrasée ni mise à jour. Elle peut être désinstallée à part si elle n'a plus
+d'usage.
+
+Ces APK sont signés avec la clé de debug **versionnée** du dépôt (`app/debug.keystore`).
+Elle ne change pas : les installations suivantes de « SuivieMAT » (sous le nouvel
+identifiant) se font par-dessus les précédentes, sans rien perdre.
 
 ## Ce que ce dossier n'est pas
 

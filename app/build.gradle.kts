@@ -7,11 +7,17 @@ plugins {
 }
 
 android {
+    // Le namespace (package Kotlin genere pour R/BuildConfig) reste com.scanlist.app :
+    // le renommer imposerait de reecrire le "package" et les imports de tous les fichiers
+    // source, sans aucun effet sur la coexistence des deux applications. C'est
+    // l'applicationId ci-dessous qui identifie l'app pour Android — lui seul importe pour
+    // eviter le conflit avec ScanList, application independante (decision 23 de
+    // consignes/contexte.md).
     namespace = "com.scanlist.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.scanlist.app"
+        applicationId = "com.suiviemat.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

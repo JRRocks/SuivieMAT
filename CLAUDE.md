@@ -6,6 +6,12 @@ Application Android native de **scan à la chaîne** (QR, code-barres, OCR, NFC/
 l'inventaire et le contrôle de matériel. Kotlin + Jetpack Compose, 100 % hors-ligne,
 interface en **français uniquement**.
 
+> **Identité de l'application** : `applicationId` = `com.suiviemat.app`, nom affiché
+> « SuivieMAT ». **ScanList est une application indépendante**, sans rapport avec ce
+> dépôt — le *namespace* Kotlin du code source, lui, reste `com.scanlist.app`
+> (héritage du projet d'origine, sans effet sur l'identité Android). Voir décision 23
+> de `consignes/contexte.md`.
+
 ---
 
 ## Règle absolue du projet

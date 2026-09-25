@@ -3,9 +3,9 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-09-24 — *`buildConfig` activé (écran de test du badge,
-> décision 22), CI étendue à la branche SuivieMAT, compilation possible en session
-> cloud* — aucune dépendance ajoutée, voir § 3, § 6 bis et § 6 ter
+> Dernière mise à jour : 2026-09-25 — *`applicationId` renommé en `com.suiviemat.app`,
+> nom affiché « SuivieMAT » (décision 23) : ScanList est une application indépendante*
+> — aucune dépendance ajoutée, voir § 3, § 6 bis et § 6 ter
 
 ---
 
@@ -54,7 +54,9 @@
 
 | Paramètre | Valeur |
 |---|---|
-| `applicationId` | `com.scanlist.app` |
+| `applicationId` | `com.suiviemat.app` (depuis le 2026-09-25, décision 23 — était `com.scanlist.app`, identifiant de l'application indépendante ScanList) |
+| Nom affiché (`app_name`) | `SuivieMAT` (depuis le 2026-09-25 — était `ScanList`) |
+| *namespace* Kotlin | `com.scanlist.app`, **volontairement inchangé** : ne détermine ni l'installation ni l'affichage, renommer le `package` de tous les fichiers source n'apporterait rien à la séparation des deux applications |
 | `minSdk` | 26 (Android 8.0) |
 | `targetSdk` / `compileSdk` | 36 |
 | Build system | Gradle Kotlin DSL + `libs.versions.toml` (version catalog) |
@@ -263,6 +265,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug` (session cloud), après renommage | ✅ **220 tests, 0 échec** ; `applicationId='com.suiviemat.app'`, `application-label:'SuivieMAT'` (`aapt2 dump badging`), signature inchangée | 2026-09-25 |
 | `testDebugUnitTest` (session cloud, puis CI GitHub) | ✅ **220 tests, 0 échec** — +15 pour les sondes d'identification du badge (`CardIdentificationTest` 8, `CardDiagnosticTest` +7) | 2026-09-25 |
 | CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI (runs n° 1 et 2) ; APK vérifié : signé par `app/debug.keystore`, écran « Test du badge » présent | 2026-09-25 |
 | `testDebugUnitTest` (session cloud, SDK installé dans le scratchpad, § 6 ter) | ✅ **205 tests, 0 échec** — 52 nouveaux pour le test du badge : `ApduTest` 10, `BerTlvTest` 8, `CardDirectoryTest` 5, `PivTest` 13, `CardChallengeTest` 6, `CardDiagnosticTest` 10 (carte PIV simulée, RSA 2048 et ECC P-256) | 2026-09-24 |
