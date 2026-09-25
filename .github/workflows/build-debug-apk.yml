@@ -1,18 +1,24 @@
 name: Build debug APK
 
-# Sert a produire un APK de debug telechargeable depuis une session cloud,
-# qui n'a pas de SDK Android local (voir CLAUDE.md). workflow_dispatch ne
-# devient utilisable qu'une fois ce fichier present sur la branche par
-# defaut ; le declenchement sur push fonctionne des la premiere branche.
+# Produit l'APK de debug sans poste Windows (voir CLAUDE.md), et le depose dans le
+# dossier release/ de la branche compilee.
+#
+# Sur le depot SuivieMAT, le declenchement sur push ne s'est jamais produit (constate le
+# 2026-09-24) ; le lancement manuel (workflow_dispatch), lui, fonctionne, y compris sur
+# une branche autre que la branche par defaut — depuis l'onglet Actions ou l'API.
 on:
   workflow_dispatch:
   push:
     branches:
       - claude/init-xyw7gc
       - claude/remove-scanlist-history-a5bqzh
+    # Le commit de l'APK lui-meme ne doit pas relancer une compilation.
+    paths-ignore:
+      - 'release/**'
 
 permissions:
-  contents: read
+  # Ecriture : necessaire au depot de l'APK dans release/.
+  contents: write
 
 jobs:
   build:
@@ -48,8 +54,10 @@ jobs:
       - name: Lancer les tests unitaires
         run: ./gradlew testDebugUnitTest --stacktrace
 
+      # apk.phoneOnly : arm64 seul, l'APK depose est destine au telephone, pas a
+      # l'emulateur (voir app/build.gradle.kts).
       - name: Compiler l'APK de debug
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug -Papk.phoneOnly --stacktrace
 
       - name: Publier le rapport de tests en cas d'echec
         if: failure()
@@ -65,3 +73,23 @@ jobs:
           name: app-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 7
+
+      # Dans la branche elle-meme, a la demande de l'utilisateur : sans ordinateur, un
+      # fichier de la branche se telecharge depuis le telephone, alors qu'un artefact de
+      # run expire en 7 jours. Un push fait avec GITHUB_TOKEN ne declenche aucun nouveau
+      # run : pas de boucle, en plus du paths-ignore ci-dessus.
+      - name: Deposer l'APK dans release/ de la branche
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk release/SuivieMAT-debug.apk
+          {
+            echo "commit source : ${GITHUB_SHA}"
+            echo "compile le    : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "sha256        : $(sha256sum release/SuivieMAT-debug.apk | cut -d' ' -f1)"
+          } > release/SuivieMAT-debug.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add release/
+          git diff --cached --quiet && exit 0
+          git commit -m "Depose l'APK de debug compile par la CI (${GITHUB_SHA::7})"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

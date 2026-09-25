@@ -60,7 +60,8 @@
 | Build system | Gradle Kotlin DSL + `libs.versions.toml` (version catalog) |
 | Processeur d'annotations | KSP (Room, Hilt) |
 | Une seule Activity | `MainActivity` — navigation 100 % Compose |
-| `abiFilters` | release : `arm64-v8a` · debug : `arm64-v8a` + `x86_64` — voir décision n° 10 de `contexte.md` |
+| `abiFilters` | release : `arm64-v8a` · debug : `arm64-v8a` + `x86_64` — voir décision n° 10 de `contexte.md`. Propriété `-Papk.phoneOnly` : debug en `arm64-v8a` seul, utilisée par la CI pour l'APK déposé dans `release/` |
+| Signature debug | `app/debug.keystore` versionnée (depuis le 2026-09-25), partagée par toutes les machines — voir § 6 bis. Publique : jamais pour un APK distribué |
 | Java / Kotlin JVM target | 17 |
 | `buildFeatures.buildConfig` | `true` depuis le 2026-09-24 : `BuildConfig.DEBUG` réserve l'écran « Test du badge » aux APK de debug (décision 22 de `contexte.md`) |
 
@@ -146,13 +147,34 @@ le 2026-09-15. Branches déclenchantes : `claude/init-xyw7gc` et, depuis le 2026
 `claude/remove-scanlist-history-a5bqzh` (branche de l'étude SuivieMAT, pour produire
 l'APK du test du badge).
 
-> ⚠️ **Constaté le 2026-09-24 sur le dépôt `JRRocks/SuivieMAT` : aucune exécution ne
-> s'est jamais déclenchée**, même après un push sur une branche déclenchante (le
-> workflow est pourtant enregistré et « active »). GitHub Actions est vraisemblablement
-> désactivé dans les réglages du dépôt (*Settings › Actions › General*). Tant qu'il ne
-> l'est pas, l'APK se compile depuis Android Studio, ou en session cloud (§ 6 ter).
-> L'APK de debug (54,5 Mio, et encore 37,7 Mio en arm64 seul) dépasse par ailleurs la
-> limite de 30 Mio d'envoi de fichier d'une session cloud. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
+> ⚠️ **Sur le dépôt `JRRocks/SuivieMAT`, le push ne déclenche pas le workflow**
+> (constaté le 2026-09-24 : aucune exécution après un push sur une branche
+> déclenchante). **Le lancement manuel fonctionne** (vérifié le 2026-09-25) : onglet
+> *Actions › Build debug APK › Run workflow* en choisissant la branche, ou depuis une
+> session cloud par l'outil GitHub `actions_run_trigger` (`run_workflow`, `ref` = la
+> branche). Actions n'est donc pas désactivé ; seul le déclenchement au push fait défaut.
+
+**Dépôt de l'APK dans `release/`** (depuis le 2026-09-25, à la demande de l'utilisateur,
+qui n'a pas toujours d'ordinateur sous la main) : après tests et compilation, le
+workflow copie l'APK dans `release/SuivieMAT-debug.apk` de la branche compilée, avec
+`release/SuivieMAT-debug.txt` (commit source, date, SHA-256), et pousse ce commit
+(`permissions: contents: write`). Un push fait avec `GITHUB_TOKEN` ne relance pas de
+run, et `paths-ignore: release/**` double la garde. L'APK est compilé avec
+`-Papk.phoneOnly` : arm64 seul (≈ 39 Mo au lieu de 57), parce que chaque version reste
+dans l'historique git. Il se télécharge depuis la page du fichier sur GitHub, depuis le
+téléphone. Mode d'emploi pour l'utilisateur : `release/LISEZMOI.md`.
+
+**Clé de debug versionnée** (`app/debug.keystore`, depuis le 2026-09-25) : le poste
+Windows, la CI et les sessions cloud signent tous les APK de debug avec la même clé, ce
+qui permet d'installer un nouvel APK de test **par-dessus** le précédent. Sans elle,
+chaque runner de CI signait avec une clé jetable, et chaque mise à jour imposait une
+désinstallation — donc la perte des dossiers du téléphone. Cette clé est **publique**
+(mots de passe `android`) : elle ne signe **jamais** un APK distribué. Passage unique :
+une application installée avant depuis Android Studio porte l'ancienne signature et doit
+être désinstallée une fois.
+
+L'APK de debug (54,5 Mio, 37,7 Mio en arm64 seul) dépasse la limite de 30 Mio d'envoi
+de fichier d'une session cloud : c'est ce qui a motivé le dépôt dans `release/`. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
 `ubuntu-latest`, et publie l'APK en artefact (téléchargeable 7 jours depuis la page du
 run). Déclenchement : à chaque push sur la branche de travail, ou manuellement
 (`workflow_dispatch`, utilisable une fois le fichier présent sur la branche par défaut).

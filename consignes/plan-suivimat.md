@@ -28,6 +28,9 @@
       désinstallation efface le journal non exporté.
 - [ ] **Produire l'APK de release** avec cette clé : la CI ne compile aujourd'hui que le
       debug.
+- [ ] **Ne jamais distribuer un APK de `release/`** : ce sont des APK de debug, signés
+      avec la clé de debug versionnée `app/debug.keystore`, publique dans le dépôt
+      (depuis le 2026-09-25, `outils.md` § 6 bis).
 - [ ] **Vérifier sur l'APK de release réellement distribué** que l'entrée « Test du
       badge » n'apparaît pas au menu principal (masquée par `BuildConfig.DEBUG`,
       décision 22 de `contexte.md`).

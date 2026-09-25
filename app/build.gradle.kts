@@ -20,13 +20,30 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Cle de debug versionnee, partagee par le poste Windows, la CI et les sessions
+    // cloud. Sans elle, chaque machine signe avec sa propre cle, et un APK de test ne
+    // peut pas remplacer le precedent sans desinstallation — donc sans perdre les
+    // dossiers du telephone. Elle n'est PAS secrete : jamais pour signer un APK distribue
+    // (la cle de release est a part, voir consignes/plan-suivimat.md § 0).
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     // Les modeles ML Kit embarques pesent lourd et sont livres pour quatre ABI.
     // Filtrer divise l'APK par ~4, mais un APK arm64 seul refuse de s'installer sur
-    // l'emulateur x86_64 : le debug embarque donc les deux architectures.
+    // l'emulateur x86_64 : le debug embarque donc les deux architectures — sauf avec
+    // -Papk.phoneOnly, utilise par la CI pour l'APK depose dans release/, destine au seul
+    // telephone (17 Mo de moins a chaque version conservee dans l'historique git).
+    val phoneOnly = providers.gradleProperty("apk.phoneOnly").isPresent
     buildTypes {
         debug {
             ndk {
-                abiFilters += listOf("arm64-v8a", "x86_64")
+                abiFilters += if (phoneOnly) listOf("arm64-v8a") else listOf("arm64-v8a", "x86_64")
             }
         }
         release {
