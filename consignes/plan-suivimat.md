@@ -9,9 +9,9 @@
 > propositions du § 11 ci-dessous. Une proposition validée y est reportée **par ajout de
 > ligne**, jamais en réécrivant une décision existante.
 >
-> Créé le : 2026-09-24 — dernière mise à jour : 2026-09-24, *badge sans contact au
-> format carte bancaire ; écran « Test du badge » pour tester physiquement les niveaux 2
-> et 3 ; clé de signature reportée juste avant la distribution* (§ 0, § 10 ter)
+> Créé le : 2026-09-24 — dernière mise à jour : 2026-09-25, *identification par carte à
+> puce arrêtée au niveau 1 (lecture d'UID via le mode NFC existant) ; écran de test
+> retiré ; clé de signature reportée juste avant la distribution* (§ 0, § 10 ter)
 
 ---
 
@@ -31,9 +31,6 @@
 - [ ] **Ne jamais distribuer un APK de `release/`** : ce sont des APK de debug, signés
       avec la clé de debug versionnée `app/debug.keystore`, publique dans le dépôt
       (depuis le 2026-09-25, `outils.md` § 6 bis).
-- [ ] **Vérifier sur l'APK de release réellement distribué** que l'entrée « Test du
-      badge » n'apparaît pas au menu principal (masquée par `BuildConfig.DEBUG`,
-      décision 22 de `contexte.md`).
 - [ ] `allowBackup="false"` (C4, D12), si validé.
 - [ ] Architectures de l'APK selon les téléphones réels (C7, U9).
 
@@ -439,147 +436,47 @@ permission supplémentaire et n'est souvent pas inscrit sur la SIM. Et une SIM i
 l'**abonnement personnel** du magasinier, pas l'agent.
 
 **B. Une carte professionnelle (badge, carte agent) présentée au dos du téléphone, en
-NFC — faisable, en trois niveaux.** L'application sait déjà lire une puce sans contact
-(mode NFC, `NfcValue`).
+NFC.** L'application sait déjà lire une puce sans contact (mode NFC, `NfcValue`) : c'est
+exactement ce que fait la fonction Comparer avec l'UID d'un tag NFC, sans rien y ajouter.
 
-| Niveau | Ce qu'on lit | Ce que ça vaut | Charge |
-|---|---|---|---|
-| **1** | L'identifiant de la puce (UID) — déjà lu par le code actuel | Couche de vérification. Deux limites : beaucoup de cartes sécurisées émettent un **UID aléatoire à chaque présentation** (inexploitable), et un UID fixe se **recopie** sur une carte vierge | S |
-| **2** | Le **certificat public** stocké sur la carte (commandes APDU via `IsoDep`) : nom, matricule | Identifiant stable même quand l'UID est aléatoire. Un certificat est public, donc copiable : toujours pas une preuve. Demande la spécification de la carte | M |
-| **3** | **Défi-réponse** : l'application envoie un nombre aléatoire, la carte le signe, l'application vérifie la signature avec le certificat de la carte, puis ce certificat avec celui de l'autorité de l'organisation | **Preuve de présence de la carte.** Et, point important : **il n'est pas nécessaire de détenir la clé privée** — elle ne quitte jamais la carte, c'est la carte qui signe. Il faut en revanche que la signature soit permise en sans contact (souvent désactivée), la saisie du PIN de la carte en général, la spécification de l'applet, et l'accord du responsable de la sécurité pour utiliser la carte officielle dans une application interne | L |
+### Décision finale (2026-09-25) : niveau 1 seul
 
-Proposition (D14) — niveau 1 ou 2 au départ :
+Le badge présenté par l'utilisateur pour ses tests s'est révélé être une **carte CIMS**
+(Carte d'Identité Multi-Services, ministère des Armées). Une CIMS porte un certificat géré
+par l'IGC du ministère, interne et non publique : aucune application hors du ministère ne
+peut en vérifier l'authenticité de façon honnête. En vérifier l'authenticité n'est donc
+**pas envisagé** — ce serait du théâtre de sécurité (afficher « authentique » sans pouvoir
+réellement écarter une contrefaçon), et ce n'est pas le rôle d'une application d'inventaire
+privée sur téléphone personnel.
+
+**Ce qui est retenu :** l'identification se fait au **niveau 1 seulement** — lecture de
+l'identifiant (UID) de la carte, comme pour n'importe quel tag NFC, via le mode NFC déjà
+implémenté (`ScanMode.NFC`, `NfcValue`, `NfcTagDecoder`). **Aucun développement
+supplémentaire n'est nécessaire pour cela** : c'est le chemin de lecture NFC déjà en
+place, déjà testé. Ce n'est qu'une couche de commodité (un UID peut être recopié), pas une
+preuve d'identité — cohérent avec la remarque initiale de l'utilisateur (« pas une
+certitude, une couche de vérification »).
+
+**Aucun matériel de test à fabriquer** : la carte CIMS du magasinier sert elle-même de
+badge d'enrôlement, sans besoin de dupliquer un dispositif NFC de substitution.
+
+**Écran de diagnostic retiré (2026-09-25).** L'écran « Test du badge » et toute la
+logique associée (`domain/card/`, `ui/cardtest/`, `scanner/CardTestReader.kt`, décision 22
+de `contexte.md`), construits pour explorer une lecture de certificat et un défi-réponse,
+ont été supprimés du code avec leurs tests : cette voie est refermée.
+
+**Enrôlement et usage courant (D14) :**
 
 - **enrôlement** une fois, en présence du référent : la carte est présentée, le
   téléphone l'associe au matricule du magasinier (évènement `ENROLEMENT`) ;
 - **présentation de la carte à l'ouverture de chaque session d'inventaire**, jamais à
   chaque saisie — le rythme du relevé n'en souffre pas ;
 - **l'identifiant de la carte ne quitte jamais le téléphone** : le journal porte le
-  matricule et `carte_verifiee = 1`. Si le badge sert aussi à ouvrir des portes, exporter
-  son UID dans un `.csv` qui transite par une messagerie personnelle reviendrait à
-  diffuser de quoi le cloner ;
+  matricule et `carte_verifiee = 1`. Exporter l'UID d'un badge qui ouvre aussi des portes
+  dans un `.csv` qui transite par une messagerie personnelle reviendrait à diffuser de
+  quoi le cloner ;
 - un téléphone **sans puce NFC** ne peut pas vérifier la carte : session ouverte en
   déclaratif, `carte_verifiee = 0`, visible du comptable.
-
-### Précision de l'utilisateur et écran de test (2026-09-24)
-
-La carte est un **badge professionnel sans contact, au format carte bancaire** (lecture B
-ci-dessus). L'utilisateur a demandé un **écran de test** pour éprouver physiquement les
-niveaux 2 et 3 avant toute décision (décision 22 de `contexte.md`).
-
-**Menu principal › Test du badge** — présent dans les **seuls APK de debug**
-(`BuildConfig.DEBUG`). Le badge posé au dos du téléphone, l'écran enchaîne :
-
-| Étape | Ce qui est fait | Ce que ça apprend |
-|---|---|---|
-| Badge | Technologies NFC, protocole ISO 14443-4, octets historiques | Si le badge accepte des commandes de carte à microprocesseur ; les octets historiques portent souvent le nom du produit |
-| Applications | Lecture du répertoire EF.DIR ; présence des applications **PIV** et **PKCS#15** | Quelle norme suit le badge |
-| Niveau 2 | Lecture du certificat de la carte (PIV, objet `5FC101`) : titulaire, émetteur, validité, clé | Si un identifiant stable est lisible sans contact |
-| Niveau 3 | Défi-réponse avec la clé d'authentification de la carte (PIV `9E`) : nonce aléatoire de 32 octets, signature par la carte, vérification avec la clé du certificat | Si le badge **prouve** sa présence |
-
-Garde-fous :
-
-- **Aucun code PIN n'est jamais envoyé** — ni saisi, ni transmis. Une série de PIN faux
-  bloque un badge ; le test ne peut donc pas le bloquer. Si la carte exige un PIN pour
-  signer, le test le constate et s'arrête là. Couvert par un test unitaire.
-- La **chaîne de confiance** (certificat de la carte ← autorité de l'organisation) n'est
-  pas vérifiée : il faudra le certificat public de l'autorité.
-- Seule la norme **PIV** est implémentée pour les niveaux 2 et 3 : c'est la norme de
-  badge professionnel qui prévoit une authentification **sans PIN et sans contact**. Si
-  le badge suit une autre norme, le rapport l'indique et liste ses applications :
-  **le bouton « Copier le rapport »** permet de le transmettre pour implémenter la
-  bonne.
-
-Logique dans `domain/card/` (pure Kotlin, testée contre une carte PIV simulée, RSA 2048
-et ECC P-256), pont Android dans `scanner/CardTestReader.kt`, écran dans `ui/cardtest/`.
-
-### Premier test physique (2026-09-25)
-
-| Observation | Lecture |
-|---|---|
-| `IsoDep`, `NfcA`, ISO 14443-4 : oui, 93 ms | Carte à microprocesseur de type A, rapide |
-| Aucun octet historique affiché | Rien d'exploitable pour nommer le produit |
-| EF.DIR : `6A86` (paramètres P1-P2 incorrects) | Le badge refuse la sélection par identifiant de fichier : typique d'une carte où seules des applications nommées se sélectionnent (Java Card / GlobalPlatform), ou d'une MIFARE DESFire |
-| PIV absente, PKCS#15 absente | Pas une carte à certificat de format standard : niveaux 2 et 3 non testables tels quels |
-
-**Écran enrichi en conséquence** (sondes d'identification, lecture seule, sans clé ni
-code) : ATQA/SAK, octets historiques même vides, support des longues commandes par le
-téléphone ; sélection d'une liste d'applications connues (PIV, PKCS#15, MIFARE DESFire
-ISO, NFC Forum Type 4, OpenPGP, FIDO U2F) **avec la réponse exacte** de la carte ;
-version **MIFARE DESFire** (GetVersion natif — la trame portant l'UID est lue pour clore
-la commande puis ignorée) ; identité **GlobalPlatform** (domaine de sécurité par défaut,
-début du CPLC : fabricant, type de puce, système — le numéro de série de la puce n'est
-pas lu).
-
-**Ce que chaque issue voudrait dire :**
-
-- **DESFire** — badge d'accès courant : pas de certificat (niveau 2 impossible), et
-  l'authentification (niveau 3) repose sur des **clés AES secrètes** détenues par le
-  gestionnaire du système de badges — cohérent avec « nous n'avons pas la clé ». Seul le
-  niveau 1 reste accessible sans son concours.
-- **GlobalPlatform avec une application propriétaire** — carte agent à certificats
-  (IAS-ECC ou autre) : il faudra la spécification de l'application, et possiblement un
-  canal sécurisé sans contact.
-
-### Deuxième rapport (2026-09-25) et recherche documentaire
-
-| Observation | Lecture |
-|---|---|
-| ATQA `4800`, SAK `20` | SAK `0x20` = conforme ISO 14443-4 générique — confirme ce qu'on savait déjà, ne désigne pas un produit précis |
-| Les six applications connues : toutes `6A82` (absente) | Le badge **répond correctement** à SELECT par AID (ce n'est pas un dialogue cassé), il ne connaît simplement aucune des six essayées |
-| GlobalPlatform (sélection implicite, AID vide) : `6A82` | La carte **refuse la sélection implicite** — comportement de durcissement volontaire, pas absence de GlobalPlatform |
-| Commande native DESFire (GetVersion, CLA `90`) : `6999` | **`6999` = « Applet selection failed »**, un mot d'état **spécifique aux cartes JavaCard/JCOP** (confirmé par recherche), pas une réponse DESFire. Le badge est presque certainement une **carte JavaCard/GlobalPlatform** (probablement NXP JCOP), pas une puce DESFire |
-
-**Recherche documentaire** : le contexte (badge professionnel français, carte à puce,
-JavaCard) correspond au profil d'une carte **IAS-ECC**, la norme franco-européenne
-(ANSSI) de carte administrative professionnelle, notamment les « cartes agents »
-délivrées par l'ANTS. Trouvé dans le pilote `card-iasecc.c` d'OpenSC un AID nommé
-`OberthurIASECC_AID`, repris comme AID générique de détection IAS-ECC :
-`A0 00 00 00 77 01 08 00 07 00 00 FE 00 00 01 00`.
-
-**Ajouté à l'écran, à tester** :
-- **IAS-ECC** dans la liste des applications sondées (AID ci-dessus).
-- **Repli GlobalPlatform** : si la sélection implicite échoue, deux AID de domaine de
-  sécurité connus sont essayés — `A000000151000000` (ISD de référence GlobalPlatform,
-  très répandu) et `A000000003000000` (forme plus ancienne).
-
-### Troisième rapport (2026-09-25) : le badge est une CIMS — piste arrêtée
-
-Le troisième rapport (IAS-ECC également `6A82`, sélection implicite `6A82`, DESFire
-`6999`) a été accompagné de l'information décisive de l'utilisateur : **le badge est une
-carte CIMS** (Carte d'Identité Multi-Services du **ministère des Armées**).
-
-Ce qu'en disent les sources publiques (Bulletin officiel des armées, directive
-N° 21/ARM/DGNUM du 18 mai 2022 ; Wikipédia) : puce au **standard IAS-ECC**, évaluée
-**EAL4+ qualifié renforcé 3 étoiles**, portant nativement un **triplet de certificats**
-(authentification, signature, chiffrement) émis et gérés par l'**IGC CIMS**,
-l'infrastructure de clés interne au ministère.
-
-**Décision : ne pas utiliser la carte CIMS comme mécanisme d'identification, et ne pas
-développer de vérification de son authenticité.** Deux raisons cumulées :
-
-1. **Techniquement hors de portée avec nos ressources.** Certifier l'authenticité d'une
-   CIMS suppose de valider son certificat jusqu'à la racine de l'IGC CIMS et de vérifier
-   sa révocation. Ces racines et services sont **internes au ministère, non publics**. Un
-   défi-réponse seul prouve la détention d'une clé, **pas** que le certificat émane de
-   l'autorité réelle : sans la racine authentique, l'application ne ferait que du théâtre
-   de sécurité (elle afficherait « authentique » sans pouvoir écarter une contrefaçon).
-2. **Cadre inapproprié.** La CIMS est un titre d'identité de la Défense ; une application
-   d'inventaire privée, installée à la main sur des téléphones personnels, n'en est pas un
-   consommateur légitime. La directive du ministère impose que tout service s'appuyant sur
-   les certificats CIMS passe par l'IGC officielle et une autorisation (SC2A/DGNUM). Ce
-   n'est pas à reconstituer hors de ce cadre.
-
-**À la place, pour identifier un magasinier :** un identifiant **contrôlé par
-l'entreprise** — enrôlement matricule (§ 10 ter, niveau 1) et/ou badge d'entreprise
-(tag NFC dont l'entreprise possède les identifiants). Si le déploiement est réellement en
-contexte Défense, l'identification et l'architecture des données relèvent du **SSI de
-l'unité / de la DIRISI**, pas d'un side-load sur téléphone personnel : question à poser
-**avant** tout développement.
-
-**Sort de l'écran « Test du badge » : à trancher par l'utilisateur** — le retirer, ou le
-garder comme simple diagnostic sans jamais viser la vérification d'un titre CIMS. La piste
-« authentification par la carte » est close.
 
 ## 11. Impacts sur l'existant et décisions à valider
 
@@ -598,7 +495,7 @@ garder comme simple diagnostic sans jamais viser la vérification d'un titre CIM
 | D11 | Valorisation (prix) **exclue** du téléphone | — | ✅ recommandé (moindre donnée sensible sur le terrain) | ⬜ à valider |
 | D12 | `allowBackup="false"` (C4) | Manifest | ✅ recommandé — **prioritaire** depuis la réponse « téléphones personnels » | ⬜ à valider |
 | D13 | **Clé de signature de release unique** (C6) et **canal de distribution** de l'APK : remise en main propre par un référent, lien de téléchargement interne, ou piste de test fermée Google Play | `app/build.gradle.kts`, CI | Clé : ✅ indispensable, à créer avant toute installation chez un magasinier. Canal : à choisir | 🔄 Clé : **reportée juste avant la distribution** (utilisateur, 2026-09-24), inscrite au § 0. Canal : ⬜ à valider |
-| D14 | Identification par **carte à puce en NFC** : niveau 1 ou 2, à l'ouverture de chaque session, identifiant de carte jamais exporté (§ 10 ter) | Mode NFC existant | ✅ recommandé, sous réserve de U10 | ⬜ à valider |
+| D14 | Identification par **carte à puce en NFC, niveau 1 seul** (lecture d'UID) à l'ouverture de chaque session, identifiant jamais exporté (§ 10 ter) | Mode NFC existant, déjà implémenté — aucun code nouveau | **Validé et fait** (2026-09-25) : le badge des magasiniers est une carte CIMS, dont l'authenticité ne peut pas être vérifiée par cette application (IGC interne au ministère) — seul le niveau 1 est retenu | ✅ **fait** |
 | D15 | **Verrou applicatif** (empreinte ou code) à l'ouverture de l'application | Nouvelle dépendance `androidx.biometric` | ✅ recommandé (aucun verrouillage n'est garanti sur un téléphone personnel) | ⬜ à valider |
 | D16 | Heure automatique désactivée : **signaler** seulement, ou **bloquer** l'ouverture d'un inventaire | — | Bloquer : rien ne permet sinon de rattraper l'heure après coup | ⬜ à valider |
 | D17 | **Minimisation** du fichier montant : codes et quantités, pas de désignations | Format d'échange § 8 | ✅ recommandé | ⬜ à valider |
@@ -689,8 +586,5 @@ Ce qui est vérifiable où :
 |---|---|
 | 2026-09-24 | Création : analyse de faisabilité, recommandation option 1+, modèle de journal, ébauche du contrat d'échange, constats de sécurité C1–C5, questions Q1–Q9 / U1–U8, décisions à valider D1–D12, feuille de route S0–S9. **Aucune décision validée, aucun code modifié.** |
 | 2026-09-24 | **Premières réponses de l'utilisateur.** Téléphones **personnels** (Q1) ; VBA déjà utilisé et fonctionnel (Q4) ; `.csv` d'une messagerie personnelle vers Outlook pro vérifié (Q3, Q9) ; identification par **carte à puce**, sans clé privée, comme couche de vérification. Conséquences : nouvelle section § 10 bis (téléphones personnels : l'application porte seule les garanties qu'un MDM aurait imposées) et § 10 ter (identification par carte, trois niveaux — le défi-réponse ne demande **pas** de détenir la clé privée) ; C1 et C4 deviennent prioritaires ; deux nouveaux constats, **C6 (aucune clé de signature : chaque mise à jour effacerait le journal)** et C7 (release arm64 seulement) ; décisions D13–D17, questions Q10–Q11 et U9–U10 ajoutées ; Q7 caduque. S0 passe en cours. **Aucune décision validée, aucun code modifié.** |
-| 2026-09-24 | **Écran « Test du badge » et liste d'avant-distribution.** Le badge est une carte professionnelle sans contact au format carte bancaire (U10). À la demande de l'utilisateur : écran de diagnostic des niveaux 2 et 3 (§ 10 ter, décision 22), présent dans les seuls APK de debug, qui n'envoie jamais de code PIN ; implémentation PIV (certificat `5FC101`, défi-réponse sur la clé `9E`), plus lecture du répertoire EF.DIR pour identifier une autre norme. La clé de signature est reportée juste avant la distribution, à la demande de l'utilisateur : inscrite dans la nouvelle liste du § 0. **En attente : le rapport du test physique.** |
-| 2026-09-25 | **Premier rapport du badge** : ISO 14443-4 type A, ni PIV ni PKCS#15, EF.DIR refusé (`6A86`). Écran enrichi de sondes d'identification (applications connues avec leur réponse exacte, version DESFire, CPLC GlobalPlatform, ATQA/SAK) pour trancher entre badge d'accès DESFire et carte à certificats propriétaire (§ 10 ter). **En attente : le second rapport.** |
-| 2026-09-25 | **Deuxième rapport du badge, recherche documentaire (§ 10 ter).** Réponse `6999` à la commande native DESFire identifiée, par recherche, comme « Applet selection failed » — spécifique aux cartes JavaCard/JCOP, pas une réponse DESFire : le badge est une carte JavaCard/GlobalPlatform, pas une puce DESFire. Piste retenue : **IAS-ECC**, norme franco-européenne des cartes professionnelles administratives (« cartes agents » ANTS), AID trouvé dans le pilote OpenSC `card-iasecc.c`. Ajouté à l'écran : sonde IAS-ECC, repli GlobalPlatform par AID de domaine de sécurité connus si la sélection implicite est refusée. 222 tests, 0 échec. **En attente : le troisième rapport.** |
-| 2026-09-25 | **Badge identifié : carte CIMS (ministère des Armées) — piste d'authentification arrêtée (§ 10 ter).** L'utilisateur a précisé que le badge est une CIMS. Décision : **ne pas utiliser la CIMS comme mécanisme d'identification, ne pas développer de vérification de son authenticité** — techniquement hors de portée (validation de la chaîne jusqu'à l'IGC CIMS interne au ministère, non publique ; un défi-réponse ne prouve pas l'authenticité de l'émetteur) et cadre inapproprié (titre de la Défense, une appli d'inventaire privée sur téléphone personnel n'en est pas un consommateur légitime ; directive N° 21/ARM/DGNUM). Retour à un **identifiant contrôlé par l'entreprise** (matricule enrôlé, badge d'entreprise). Sort de l'écran « Test du badge » à trancher (retrait ou simple diagnostic). Aucun code modifié ce jour. |
-| 2026-09-25 | **D10 validée : SuivieMAT devient une application distincte de ScanList.** L'utilisateur confirme que ScanList est une application indépendante, gardée en l'état — les deux se seraient superposées sous l'ancien `applicationId` hérité du projet d'origine. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (décision 23 de `contexte.md`). À refaire à la prochaine compilation : redéployer l'APK dans `release/`, qui portait encore l'ancien identifiant. |
+| 2026-09-24 à 25 | **Écran « Test du badge » : construit, testé, puis retiré.** À la demande de l'utilisateur, un écran de diagnostic (décision 22) a exploré une identification aux niveaux 2 (certificat) et 3 (défi-réponse) sur le badge des magasiniers, sans jamais envoyer de code PIN. Les tests physiques ont montré que ce badge est une **carte CIMS** (ministère des Armées) : son authenticité ne peut pas être vérifiée par cette application, l'IGC qui la gère étant interne au ministère. **Décision du 2026-09-25 : identification arrêtée au niveau 1** (lecture d'UID, via le mode NFC déjà existant, sans code nouveau), **écran de diagnostic et toute sa logique retirés du code** (`domain/card/`, `ui/cardtest/`, `scanner/CardTestReader.kt` supprimés). Voir § 10 ter. |
+| 2026-09-25 | **D10 validée : SuivieMAT devient une application distincte de ScanList.** L'utilisateur confirme que ScanList est une application indépendante, gardée en l'état — les deux se seraient superposées sous l'ancien `applicationId` hérité du projet d'origine. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (décision 23 de `contexte.md`). |

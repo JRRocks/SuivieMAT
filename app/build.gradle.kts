@@ -76,9 +76,6 @@ android {
 
     buildFeatures {
         compose = true
-        // BuildConfig.DEBUG masque l'ecran de test du badge dans l'APK de release
-        // (decision 22) : un oubli de retrait ne peut pas atteindre un magasinier.
-        buildConfig = true
     }
 
     packaging {

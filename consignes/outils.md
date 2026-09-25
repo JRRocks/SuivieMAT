@@ -3,9 +3,8 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-09-25 — *`applicationId` renommé en `com.suiviemat.app`,
-> nom affiché « SuivieMAT » (décision 23) : ScanList est une application indépendante*
-> — aucune dépendance ajoutée, voir § 3, § 6 bis et § 6 ter
+> Dernière mise à jour : 2026-09-25 — *Écran de test du badge retiré, identification
+> par carte arrêtée au niveau 1 (décision 24)* — aucune dépendance ajoutée
 
 ---
 
@@ -65,7 +64,6 @@
 | `abiFilters` | release : `arm64-v8a` · debug : `arm64-v8a` + `x86_64` — voir décision n° 10 de `contexte.md`. Propriété `-Papk.phoneOnly` : debug en `arm64-v8a` seul, utilisée par la CI pour l'APK déposé dans `release/` |
 | Signature debug | `app/debug.keystore` versionnée (depuis le 2026-09-25), partagée par toutes les machines — voir § 6 bis. Publique : jamais pour un APK distribué |
 | Java / Kotlin JVM target | 17 |
-| `buildFeatures.buildConfig` | `true` depuis le 2026-09-24 : `BuildConfig.DEBUG` réserve l'écran « Test du badge » aux APK de debug (décision 22 de `contexte.md`) |
 
 ## 4. Dépendances
 
@@ -146,8 +144,7 @@ inversement.
 
 Workflow **`.github/workflows/build-debug-apk.yml`**, ajouté le 2026-09-05 et complété
 le 2026-09-15. Branches déclenchantes : `claude/init-xyw7gc` et, depuis le 2026-09-24,
-`claude/remove-scanlist-history-a5bqzh` (branche de l'étude SuivieMAT, pour produire
-l'APK du test du badge).
+`claude/remove-scanlist-history-a5bqzh` (branche de l'étude SuivieMAT).
 
 > ⚠️ **Sur le dépôt `JRRocks/SuivieMAT`, le push ne déclenche pas le workflow**
 > (constaté le 2026-09-24 : aucune exécution après un push sur une branche
@@ -265,13 +262,8 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
-| `testDebugUnitTest` + `assembleDebug` (session cloud), sondes IAS-ECC + repli GlobalPlatform | ✅ **222 tests, 0 échec**, signature inchangée | 2026-09-25 |
-| `testDebugUnitTest` + `assembleDebug` (session cloud), après renommage | ✅ **220 tests, 0 échec** ; `applicationId='com.suiviemat.app'`, `application-label:'SuivieMAT'` (`aapt2 dump badging`), signature inchangée | 2026-09-25 |
-| `testDebugUnitTest` (session cloud, puis CI GitHub) | ✅ **220 tests, 0 échec** — +15 pour les sondes d'identification du badge (`CardIdentificationTest` 8, `CardDiagnosticTest` +7) | 2026-09-25 |
-| CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI (runs n° 1 et 2) ; APK vérifié : signé par `app/debug.keystore`, écran « Test du badge » présent | 2026-09-25 |
-| `testDebugUnitTest` (session cloud, SDK installé dans le scratchpad, § 6 ter) | ✅ **205 tests, 0 échec** — 52 nouveaux pour le test du badge : `ApduTest` 10, `BerTlvTest` 8, `CardDirectoryTest` 5, `PivTest` 13, `CardChallengeTest` 6, `CardDiagnosticTest` 10 (carte PIV simulée, RSA 2048 et ECC P-256) | 2026-09-24 |
-| `clean assembleDebug` (session cloud) | ✅ BUILD SUCCESSFUL, **aucun avertissement Kotlin** ; `app-debug.apk` 57 Mo, libellé « Test du badge » présent dans les ressources | 2026-09-24 |
-| Écran « Test du badge » sur matériel | ⬜ **Non vérifiable en session cloud ni sur émulateur** (pas d'émulateur ici, et les AVD n'ont pas de puce NFC) — test physique par l'utilisateur, avec son badge | 2026-09-24 |
+| `testDebugUnitTest` + `assembleDebug` (session cloud), après retrait de l'écran de test du badge | ✅ **153 tests, 0 échec**, sans avertissement ; `applicationId='com.suiviemat.app'`, `application-label:'SuivieMAT'` (`aapt2 dump badging`), signature inchangée | 2026-09-25 |
+| CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI | 2026-09-25 |
 | `testDebugUnitTest` | ✅ **149 tests, 0 échec** (`BarcodeFormatsTest` : 8 tests sur les masques de symbologies et leur disjonction) | 2026-09-15 |
 | `assembleDebug` | ✅ BUILD SUCCESSFUL | 2026-09-15 |
 | APK debug produit | `app-debug.apk` — 55 Mo (arm64 + x86_64) ; contrôlé après téléchargement : libellé « Code 2D » présent dans `resources.arsc`, `libbarhopper_v3.so` et `libmlkit_google_ocr_pipeline.so` embarqués pour les deux ABI | 2026-09-15 |

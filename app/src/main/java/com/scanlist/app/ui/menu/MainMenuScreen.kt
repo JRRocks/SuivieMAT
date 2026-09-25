@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,17 +18,12 @@ import com.scanlist.app.ui.common.ScanListScaffold
 
 /**
  * Menu principal : les trois branches de la specification, dans l'ordre impose.
- *
- * [onCardTest] n'est fourni que dans les APK de debug : l'ecran de test du badge est un
- * outil de diagnostic hors de la hierarchie imposee (decision 22), il ne doit pas
- * apparaitre dans la version distribuee.
  */
 @Composable
 fun MainMenuScreen(
     onFolders: () -> Unit,
     onCompare: () -> Unit,
     onNewScan: () -> Unit,
-    onCardTest: (() -> Unit)? = null,
 ) {
     ScanListScaffold(title = stringResource(R.string.menu_title)) { padding ->
         Column(
@@ -57,14 +51,6 @@ fun MainMenuScreen(
                 icon = Icons.Default.QrCodeScanner,
                 onClick = onNewScan,
             )
-            if (onCardTest != null) {
-                MenuCard(
-                    title = stringResource(R.string.menu_card_test),
-                    subtitle = stringResource(R.string.menu_card_test_subtitle),
-                    icon = Icons.Default.Nfc,
-                    onClick = onCardTest,
-                )
-            }
         }
     }
 }
