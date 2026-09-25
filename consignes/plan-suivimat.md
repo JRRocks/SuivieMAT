@@ -543,14 +543,43 @@ délivrées par l'ANTS. Trouvé dans le pilote `card-iasecc.c` d'OpenSC un AID n
   sécurité connus sont essayés — `A000000151000000` (ISD de référence GlobalPlatform,
   très répandu) et `A000000003000000` (forme plus ancienne).
 
-**Ce que ce troisième test dira :** si IAS-ECC répond `9000`, c'est la norme à
-programmer pour les niveaux 2 et 3 — mais IAS-ECC n'est **pas** PIV : la lecture de
-certificat et le défi-réponse actuels (écrits pour PIV) ne s'y appliqueront pas tels
-quels, une nouvelle implémentation sera nécessaire. Si elle échoue aussi, il faudra
-remettre le rapport complet à un lecteur de cartes professionnel pour continuer la
-recherche.
+### Troisième rapport (2026-09-25) : le badge est une CIMS — piste arrêtée
 
-**En attente : le troisième rapport.**
+Le troisième rapport (IAS-ECC également `6A82`, sélection implicite `6A82`, DESFire
+`6999`) a été accompagné de l'information décisive de l'utilisateur : **le badge est une
+carte CIMS** (Carte d'Identité Multi-Services du **ministère des Armées**).
+
+Ce qu'en disent les sources publiques (Bulletin officiel des armées, directive
+N° 21/ARM/DGNUM du 18 mai 2022 ; Wikipédia) : puce au **standard IAS-ECC**, évaluée
+**EAL4+ qualifié renforcé 3 étoiles**, portant nativement un **triplet de certificats**
+(authentification, signature, chiffrement) émis et gérés par l'**IGC CIMS**,
+l'infrastructure de clés interne au ministère.
+
+**Décision : ne pas utiliser la carte CIMS comme mécanisme d'identification, et ne pas
+développer de vérification de son authenticité.** Deux raisons cumulées :
+
+1. **Techniquement hors de portée avec nos ressources.** Certifier l'authenticité d'une
+   CIMS suppose de valider son certificat jusqu'à la racine de l'IGC CIMS et de vérifier
+   sa révocation. Ces racines et services sont **internes au ministère, non publics**. Un
+   défi-réponse seul prouve la détention d'une clé, **pas** que le certificat émane de
+   l'autorité réelle : sans la racine authentique, l'application ne ferait que du théâtre
+   de sécurité (elle afficherait « authentique » sans pouvoir écarter une contrefaçon).
+2. **Cadre inapproprié.** La CIMS est un titre d'identité de la Défense ; une application
+   d'inventaire privée, installée à la main sur des téléphones personnels, n'en est pas un
+   consommateur légitime. La directive du ministère impose que tout service s'appuyant sur
+   les certificats CIMS passe par l'IGC officielle et une autorisation (SC2A/DGNUM). Ce
+   n'est pas à reconstituer hors de ce cadre.
+
+**À la place, pour identifier un magasinier :** un identifiant **contrôlé par
+l'entreprise** — enrôlement matricule (§ 10 ter, niveau 1) et/ou badge d'entreprise
+(tag NFC dont l'entreprise possède les identifiants). Si le déploiement est réellement en
+contexte Défense, l'identification et l'architecture des données relèvent du **SSI de
+l'unité / de la DIRISI**, pas d'un side-load sur téléphone personnel : question à poser
+**avant** tout développement.
+
+**Sort de l'écran « Test du badge » : à trancher par l'utilisateur** — le retirer, ou le
+garder comme simple diagnostic sans jamais viser la vérification d'un titre CIMS. La piste
+« authentification par la carte » est close.
 
 ## 11. Impacts sur l'existant et décisions à valider
 
@@ -663,4 +692,5 @@ Ce qui est vérifiable où :
 | 2026-09-24 | **Écran « Test du badge » et liste d'avant-distribution.** Le badge est une carte professionnelle sans contact au format carte bancaire (U10). À la demande de l'utilisateur : écran de diagnostic des niveaux 2 et 3 (§ 10 ter, décision 22), présent dans les seuls APK de debug, qui n'envoie jamais de code PIN ; implémentation PIV (certificat `5FC101`, défi-réponse sur la clé `9E`), plus lecture du répertoire EF.DIR pour identifier une autre norme. La clé de signature est reportée juste avant la distribution, à la demande de l'utilisateur : inscrite dans la nouvelle liste du § 0. **En attente : le rapport du test physique.** |
 | 2026-09-25 | **Premier rapport du badge** : ISO 14443-4 type A, ni PIV ni PKCS#15, EF.DIR refusé (`6A86`). Écran enrichi de sondes d'identification (applications connues avec leur réponse exacte, version DESFire, CPLC GlobalPlatform, ATQA/SAK) pour trancher entre badge d'accès DESFire et carte à certificats propriétaire (§ 10 ter). **En attente : le second rapport.** |
 | 2026-09-25 | **Deuxième rapport du badge, recherche documentaire (§ 10 ter).** Réponse `6999` à la commande native DESFire identifiée, par recherche, comme « Applet selection failed » — spécifique aux cartes JavaCard/JCOP, pas une réponse DESFire : le badge est une carte JavaCard/GlobalPlatform, pas une puce DESFire. Piste retenue : **IAS-ECC**, norme franco-européenne des cartes professionnelles administratives (« cartes agents » ANTS), AID trouvé dans le pilote OpenSC `card-iasecc.c`. Ajouté à l'écran : sonde IAS-ECC, repli GlobalPlatform par AID de domaine de sécurité connus si la sélection implicite est refusée. 222 tests, 0 échec. **En attente : le troisième rapport.** |
+| 2026-09-25 | **Badge identifié : carte CIMS (ministère des Armées) — piste d'authentification arrêtée (§ 10 ter).** L'utilisateur a précisé que le badge est une CIMS. Décision : **ne pas utiliser la CIMS comme mécanisme d'identification, ne pas développer de vérification de son authenticité** — techniquement hors de portée (validation de la chaîne jusqu'à l'IGC CIMS interne au ministère, non publique ; un défi-réponse ne prouve pas l'authenticité de l'émetteur) et cadre inapproprié (titre de la Défense, une appli d'inventaire privée sur téléphone personnel n'en est pas un consommateur légitime ; directive N° 21/ARM/DGNUM). Retour à un **identifiant contrôlé par l'entreprise** (matricule enrôlé, badge d'entreprise). Sort de l'écran « Test du badge » à trancher (retrait ou simple diagnostic). Aucun code modifié ce jour. |
 | 2026-09-25 | **D10 validée : SuivieMAT devient une application distincte de ScanList.** L'utilisateur confirme que ScanList est une application indépendante, gardée en l'état — les deux se seraient superposées sous l'ancien `applicationId` hérité du projet d'origine. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (décision 23 de `contexte.md`). À refaire à la prochaine compilation : redéployer l'APK dans `release/`, qui portait encore l'ancien identifiant. |
