@@ -174,9 +174,31 @@ une application installée avant depuis Android Studio porte l'ancienne signatur
 
 L'APK de debug (54,5 Mio, 37,7 Mio en arm64 seul) dépasse la limite de 30 Mio d'envoi
 de fichier d'une session cloud : c'est ce qui a motivé le dépôt dans `release/`. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
-`ubuntu-latest`, et publie l'APK en artefact (téléchargeable 7 jours depuis la page du
-run). Déclenchement : à chaque push sur la branche de travail, ou manuellement
+`ubuntu-latest`. Déclenchement : à chaque push sur la branche de travail, ou manuellement
 (`workflow_dispatch`, utilisable une fois le fichier présent sur la branche par défaut).
+
+**Stockage Actions — nettoyage automatique (depuis le 2026-10-10)**, après que le compte
+JRRocks a atteint 100 % de son quota de stockage Actions (0,5 Go inclus sur le plan
+gratuit, **pour tout le compte**, partagé avec GitHub Packages). Ce stockage est
+**facturé à l'heure** : un artefact gardé 7 jours coûte 7 fois plus qu'un artefact gardé
+1 jour, et le supprimer arrête le compteur **sans rembourser** ce qui est déjà décompté
+dans le mois. Les caches (10 Go par dépôt, quota séparé) et les journaux de run (non
+décomptés) n'y entrent pas.
+
+- L'APK **n'est plus publié en artefact** quand le dépôt dans `release/` a réussi (il
+  doublait ~40 Mo par run pendant 7 jours) ; il ne l'est plus qu'en repli, si ce dépôt
+  échoue. Le rapport de tests d'un échec reste publié. Rétention ramenée à **1 jour**.
+- Workflow **`.github/workflows/nettoyage-actions.yml`** : supprime les artefacts plus
+  vieux que `age_max_heures` (24 h par défaut), en épargnant toujours ceux du run en
+  cours. Trois déclenchements : **après chaque compilation** (job `nettoyage` de
+  `build-debug-apk.yml`, avec `age_max_heures: 0`, actif sur toute branche) ; **chaque
+  nuit à 03:17 UTC** (le `schedule` n'est lu par GitHub que sur la branche par défaut :
+  inactif tant que le fichier n'est pas fusionné dans `main`) ; **à la main**, onglet
+  *Actions › Nettoyage du stockage Actions*, `0` pour tout purger (même restriction :
+  le bouton n'apparaît qu'une fois le fichier sur `main`).
+- Constat le jour de la mise en place : **ce dépôt ne portait aucun artefact** (ceux des
+  runs du 2026-09-25 avaient expiré le 2026-10-02). Le quota est consommé par d'autres
+  dépôts du compte ; ce nettoyage est ici préventif.
 
 C'est le seul moyen de produire un APK depuis une session cloud claude.ai/code, qui n'a
 ni SDK Android ni `ANDROID_HOME` (voir `CLAUDE.md`).

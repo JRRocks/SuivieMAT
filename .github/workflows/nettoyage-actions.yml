@@ -1,0 +1,86 @@
+name: Nettoyage du stockage Actions
+
+# Le stockage des artefacts (0,5 Go inclus sur le plan gratuit, pour tout le compte,
+# partage avec GitHub Packages) est facture a l'heure : un artefact garde 7 jours coute
+# 7 fois plus qu'un artefact garde 1 jour. Le supprimer arrete le compteur, mais ne
+# rembourse pas ce qui est deja decompte dans le mois.
+#
+# Les caches (quota separe de 10 Go par depot) et les journaux de run (non decomptes)
+# ne pesent pas sur ce quota : ils ne sont pas touches ici.
+#
+# Trois declenchements :
+# - apres chaque compilation, appele par build-debug-apk.yml : fonctionne sur toute
+#   branche, sans attendre que ce fichier soit sur main ;
+# - chaque nuit : GitHub ne lit les "schedule" que sur la branche par defaut, ce
+#   declenchement ne s'active donc qu'une fois ce fichier fusionne dans main ;
+# - a la main (onglet Actions), age_max_heures = 0 pour tout purger d'un coup.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      age_max_heures:
+        description: "Supprimer les artefacts crees il y a plus de N heures (0 = tous)"
+        type: number
+        default: 24
+  workflow_call:
+    inputs:
+      age_max_heures:
+        type: number
+        default: 24
+
+permissions:
+  # Ecriture : necessaire a la suppression d'artefacts.
+  actions: write
+
+jobs:
+  purger-artefacts:
+    runs-on: ubuntu-latest
+    steps:
+      # Les artefacts du run en cours sont epargnes : appele depuis la compilation, ce
+      # run porte le rapport de tests d'un echec, qu'il faut pouvoir consulter.
+      # Passe par env plutot qu'interpole dans le script : aucune valeur saisie n'est
+      # alors executee comme du shell.
+      - name: Supprimer les artefacts perimes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AGE_MAX_HEURES: ${{ inputs.age_max_heures }}
+        run: |
+          set -euo pipefail
+          # Vide sur un declenchement "schedule", qui ne porte aucune entree.
+          AGE_MAX_HEURES="${AGE_MAX_HEURES:-24}"
+          if ! [[ "$AGE_MAX_HEURES" =~ ^[0-9]+$ ]]; then
+            echo "age_max_heures invalide : '$AGE_MAX_HEURES' (entier positif attendu)" >&2
+            exit 1
+          fi
+          seuil="$(date -u -d "-${AGE_MAX_HEURES} hours" +%Y-%m-%dT%H:%M:%SZ)"
+
+          # Liste figee avant toute suppression : supprimer en paginant decalerait les
+          # pages et laisserait des artefacts de cote. Dates ISO 8601 en UTC : la
+          # comparaison de chaines suffit.
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[]
+                  | select(.expired | not)
+                  | select(.workflow_run.id != ${GITHUB_RUN_ID})
+                  | select(.created_at < \"${seuil}\")
+                  | \"\(.id) \(.size_in_bytes) \(.name)\"" > a-supprimer.txt
+
+          nb=0
+          octets=0
+          while read -r id taille nom; do
+            # Un 404 (artefact deja supprime par un nettoyage concurrent) ne doit pas
+            # faire echouer les suivants.
+            if gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}" < /dev/null > /dev/null; then
+              echo "supprime : ${nom} (${taille} octets)"
+              nb=$((nb + 1))
+              octets=$((octets + taille))
+            else
+              echo "::warning::suppression impossible : ${nom} (id ${id})"
+            fi
+          done < a-supprimer.txt
+
+          mo="$(awk -v o="$octets" 'BEGIN { printf "%.1f", o / 1048576 }')"
+          bilan="${nb} artefact(s) supprime(s), ${mo} Mo liberes (seuil : plus de ${AGE_MAX_HEURES} h)"
+          echo "$bilan"
+          echo "### Nettoyage du stockage Actions" >> "$GITHUB_STEP_SUMMARY"
+          echo "$bilan" >> "$GITHUB_STEP_SUMMARY"

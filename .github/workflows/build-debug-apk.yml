@@ -59,24 +59,19 @@ jobs:
       - name: Compiler l'APK de debug
         run: ./gradlew assembleDebug -Papk.phoneOnly --stacktrace
 
+      # Retention d'un jour : le stockage des artefacts est facture a l'heure, sur un
+      # quota de 0,5 Go partage par tout le compte (atteint le 2026-10-10).
       - name: Publier le rapport de tests en cas d'echec
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: rapport-tests
           path: app/build/reports/tests/
-          retention-days: 7
-
-      - name: Publier l'APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 7
+          retention-days: 1
 
       # Dans la branche elle-meme, a la demande de l'utilisateur : sans ordinateur, un
       # fichier de la branche se telecharge depuis le telephone, alors qu'un artefact de
-      # run expire en 7 jours. Un push fait avec GITHUB_TOKEN ne declenche aucun nouveau
+      # run expire (et coute du stockage). Un push fait avec GITHUB_TOKEN ne declenche aucun nouveau
       # run : pas de boucle, en plus du paths-ignore ci-dessus.
       - name: Deposer l'APK dans release/ de la branche
         run: |
@@ -93,3 +88,25 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Depose l'APK de debug compile par la CI (${GITHUB_SHA::7})"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      # L'APK est deja dans release/ : en artefact, il doublait ~40 Mo par run pendant
+      # 7 jours. Il n'est plus publie que si le depot dans la branche a echoue, comme
+      # repli. Sans APK (tests en echec), rien a publier, sans erreur.
+      - name: Publier l'APK si le depot dans release/ a echoue
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
+          if-no-files-found: ignore
+
+  # Purge les artefacts des runs precedents, quelle que soit l'issue de celui-ci.
+  nettoyage:
+    needs: build
+    if: always()
+    uses: ./.github/workflows/nettoyage-actions.yml
+    with:
+      age_max_heures: 0
+    permissions:
+      actions: write
