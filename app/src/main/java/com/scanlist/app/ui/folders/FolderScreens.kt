@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Compare
@@ -22,7 +25,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -54,8 +57,10 @@ import com.scanlist.app.data.db.entity.ScanItemEntity
 import com.scanlist.app.domain.model.FolderKind
 import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.ui.common.EmptyState
+import com.scanlist.app.ui.common.HeaderCounter
 import com.scanlist.app.ui.common.LocalSnackbarHostState
 import com.scanlist.app.ui.common.MenuCard
+import com.scanlist.app.ui.common.PrimaryButton
 import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
 import com.scanlist.app.ui.theme.ScanValueTextStyle
@@ -92,9 +97,10 @@ fun FolderListScreen(
                     label = { Text(stringResource(R.string.folders_search)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp),
                 )
             }
 
@@ -156,6 +162,13 @@ fun FolderActionsScreen(
 
     ScanListScaffold(
         title = folder?.name ?: stringResource(R.string.folders_title),
+        subtitle = folder?.let { current ->
+            stringResource(
+                R.string.folder_header_details,
+                DAY_FORMAT.format(Date(current.createdAt)),
+                current.defaultScanMode.label,
+            )
+        },
         onBack = onBack,
         actions = {
             FolderOverflowMenu(
@@ -163,31 +176,20 @@ fun FolderActionsScreen(
                 onDelete = { confirmingDelete = true },
             )
         },
+        headerTrailing = { ItemCounter(count) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            folder?.let { current ->
-                Text(
-                    stringResource(R.string.folder_created_at, DAY_FORMAT.format(Date(current.createdAt))),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    stringResource(R.string.folder_last_mode, current.defaultScanMode.label),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             MenuCard(
                 title = stringResource(R.string.folder_action_consult),
                 subtitle = stringResource(R.string.folder_action_consult_desc),
                 icon = Icons.Default.Visibility,
-                trailing = count.toString(),
                 onClick = onConsult,
             )
             MenuCard(
@@ -353,7 +355,9 @@ fun FolderDetailScreen(
 
     ScanListScaffold(
         title = folder?.name ?: stringResource(R.string.folder_action_consult),
+        subtitle = stringResource(R.string.folder_action_consult),
         onBack = onBack,
+        headerTrailing = { ItemCounter(items.size) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -374,12 +378,7 @@ fun FolderDetailScreen(
                     hint = stringResource(R.string.folder_detail_empty_hint),
                 )
             } else {
-                Text(
-                    stringResource(R.string.folder_item_count, items.size),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp),
-                )
+                HorizontalDivider()
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(items, key = { it.id }) { item ->
                         ScanItemRow(
@@ -407,7 +406,8 @@ private fun ScanItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            .heightIn(min = 68.dp)
+            .padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -452,30 +452,21 @@ fun FolderResumeModeScreen(
 
     ScanListScaffold(
         title = stringResource(R.string.folder_action_resume),
+        subtitle = folder?.name,
         onBack = onBack,
+        headerTrailing = { ItemCounter(count) },
     ) { padding ->
-        Column(
+        // Le mode du dernier scan est mis en avant : c'est presque toujours celui
+        // qu'on veut reprendre pour completer la meme liste.
+        ScanModePicker(
+            onModeSelected = onModeSelected,
+            highlighted = folder?.defaultScanMode,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            folder?.let {
-                Text(it.name, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(R.string.folder_item_count, count),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            // Le mode du dernier scan est mis en avant : c'est presque toujours celui
-            // qu'on veut reprendre pour completer la meme liste.
-            ScanModePicker(
-                onModeSelected = onModeSelected,
-                highlighted = folder?.defaultScanMode,
-            )
-        }
+        )
     }
 }
 
@@ -508,17 +499,19 @@ fun FolderExportScreen(
         }
     }
 
-    ScanListScaffold(title = stringResource(R.string.export_title), onBack = onBack) { padding ->
+    ScanListScaffold(
+        title = stringResource(R.string.export_title),
+        subtitle = folder?.name,
+        onBack = onBack,
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            folder?.let {
-                Text(it.name, style = MaterialTheme.typography.titleMedium)
-            }
             Text(
                 if (count == 0) {
                     stringResource(R.string.export_empty)
@@ -534,6 +527,7 @@ fun FolderExportScreen(
                 onValueChange = viewModel::setFileName,
                 label = { Text(stringResource(R.string.export_file_name)) },
                 singleLine = true,
+                shape = MaterialTheme.shapes.medium,
                 supportingText = {
                     // L'assainissement est montre en direct : les caracteres interdits
                     // ne doivent pas se decouvrir une fois le mail parti.
@@ -559,7 +553,9 @@ fun FolderExportScreen(
                 onClick = onEmailPrefs,
             )
 
-            Button(
+            PrimaryButton(
+                text = stringResource(R.string.export_send),
+                icon = Icons.AutoMirrored.Filled.Send,
                 onClick = {
                     viewModel.buildShareIntent { intent ->
                         // Aucune application de messagerie n'est garantie presente :
@@ -573,13 +569,16 @@ fun FolderExportScreen(
                 },
                 enabled = count > 0,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                Text(
-                    stringResource(R.string.export_send),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+            )
         }
     }
+}
+
+/** Nombre d'elements du dossier, dans l'en-tete bleu. */
+@Composable
+private fun ItemCounter(count: Int) {
+    HeaderCounter(
+        value = count.toString(),
+        label = pluralStringResource(R.plurals.folder_item_label, count),
+    )
 }

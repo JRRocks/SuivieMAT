@@ -8,16 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -35,8 +34,10 @@ import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.ui.common.EmptyState
 import com.scanlist.app.ui.common.LocalSnackbarHostState
 import com.scanlist.app.ui.common.MenuCard
+import com.scanlist.app.ui.common.PrimaryButton
 import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
+import com.scanlist.app.ui.common.SecondaryButton
 
 /** Comparer : choix de la source de la liste de reference. */
 @Composable
@@ -45,7 +46,11 @@ fun CompareSourceScreen(
     onFromFolder: () -> Unit,
     onFromCsv: () -> Unit,
 ) {
-    ScanListScaffold(title = stringResource(R.string.compare_title), onBack = onBack) { padding ->
+    ScanListScaffold(
+        title = stringResource(R.string.compare_title),
+        subtitle = stringResource(R.string.compare_source),
+        onBack = onBack,
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -53,10 +58,6 @@ fun CompareSourceScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                stringResource(R.string.compare_source),
-                style = MaterialTheme.typography.titleMedium,
-            )
             MenuCard(
                 title = stringResource(R.string.compare_source_folder),
                 subtitle = stringResource(R.string.compare_source_folder_desc),
@@ -83,25 +84,19 @@ fun CompareScanModeScreen(
     val references by viewModel.references.collectAsStateWithLifecycle()
     val missing = references.count { it.state == ReferenceState.MISSING }
 
-    ScanListScaffold(title = stringResource(R.string.compare_title), onBack = onBack) { padding ->
-        Column(
+    ScanListScaffold(
+        title = stringResource(R.string.compare_launch_scan),
+        subtitle = stringResource(R.string.compare_remaining, missing),
+        onBack = onBack,
+    ) { padding ->
+        ScanModePicker(
+            onModeSelected = onModeSelected,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                stringResource(R.string.choose_scan_mode),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                stringResource(R.string.compare_remaining, missing),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            ScanModePicker(onModeSelected = onModeSelected)
-        }
+        )
     }
 }
 
@@ -140,42 +135,42 @@ fun CompareSessionScreen(
     ScanListScaffold(
         title = session?.name ?: stringResource(R.string.compare_title),
         onBack = onBack,
+        headerBottom = { CompareCounterBar(found = found.size, missing = missing.size) },
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            CompareCounterBar(found = found.size, missing = missing.size)
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(onClick = onLaunchScan, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = null)
-                    Text(
-                        stringResource(R.string.compare_launch_scan),
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                PrimaryButton(
+                    text = stringResource(R.string.compare_launch_scan),
+                    icon = Icons.Default.QrCodeScanner,
+                    onClick = onLaunchScan,
+                    modifier = Modifier.fillMaxWidth(),
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    OutlinedButton(
+                    SecondaryButton(
+                        text = stringResource(R.string.compare_save_session),
+                        icon = Icons.Default.CreateNewFolder,
                         onClick = viewModel::saveToFolder,
                         // Deja enregistree : le depot renverrait le meme dossier, mais
                         // proposer le bouton laisserait croire a une seconde sauvegarde.
                         enabled = resultFolderName == null,
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Text(stringResource(R.string.compare_save_session))
-                    }
-                    OutlinedButton(
+                    )
+                    SecondaryButton(
+                        text = stringResource(R.string.compare_export),
+                        icon = Icons.AutoMirrored.Filled.Send,
                         onClick = {
                             viewModel.buildShareIntent { intent ->
                                 // Aucune application de messagerie n'est garantie
@@ -189,13 +184,7 @@ fun CompareSessionScreen(
                         },
                         enabled = references.isNotEmpty(),
                         modifier = Modifier.weight(1f),
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null)
-                        Text(
-                            stringResource(R.string.compare_export),
-                            modifier = Modifier.padding(start = 8.dp),
-                        )
-                    }
+                    )
                 }
                 resultFolderName?.let { name ->
                     Text(
@@ -205,8 +194,6 @@ fun CompareSessionScreen(
                     )
                 }
             }
-
-            HorizontalDivider()
 
             if (references.isEmpty()) {
                 EmptyState(

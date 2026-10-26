@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-09-25 — *Écran de test du badge retiré, identification
-> par carte arrêtée au niveau 1 (décision 24)* — aucune dépendance ajoutée
+> Dernière mise à jour : 2026-10-26 — *Polices Source Sans 3 et Source Code Pro
+> embarquées (décision 27)* ; APK compilé en session cloud faute de minutes GitHub Actions
 
 ---
 
@@ -103,6 +103,21 @@
 | Test | `junit:junit` | Tests unitaires (regex, CSV, déduplication, comparaison) |
 | Test | `org.jetbrains.kotlinx:kotlinx-coroutines-test` | Tests de flux |
 | Test | `androidx.room:room-testing` | Migrations |
+
+**Polices embarquées** (depuis le 2026-10-26, décision 27) — ce ne sont pas des
+dépendances Gradle mais des fichiers du dépôt :
+
+| Fichier | Police | Rôle | Licence |
+|---|---|---|---|
+| `app/src/main/res/font/source_sans_3.ttf` | Source Sans 3, variable (axe `wght`) | Toute l'interface | SIL OFL 1.1 — `app/src/main/assets/licences/source-sans-3-OFL.txt` |
+| `app/src/main/res/font/source_code_pro.ttf` | Source Code Pro, variable (axe `wght`) | Valeurs scannées et formules regex | SIL OFL 1.1 — `app/src/main/assets/licences/source-code-pro-OFL.txt` |
+
+Fichiers tirés de `github.com/google/fonts` (`ofl/sourcesans3`, `ofl/sourcecodepro`),
+non modifiés, seulement renommés pour `res/font` (le nom « Source » est réservé par la
+licence pour une version **modifiée**). Embarquées plutôt que téléchargées : l'application
+est hors-ligne. Poids ajouté à l'APK : environ 0,85 Mo. Chaque graisse déclarée dans
+`Theme.kt` règle l'axe `wght` du même fichier (minSdk 26 : les polices variables sont
+prises en charge).
 
 ## 5. Permissions Android
 
@@ -296,6 +311,8 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), refonte style « Bleu de travail » (décision 27) | ✅ **180 tests, 0 échec**, sans avertissement ; `versionName` 1.1 ; APK arm64 38 Mo **déposé dans `release/` par la session** (la CI n'a plus de minutes jusqu'au 1er novembre) | 2026-10-26 |
+| Nouvelle interface à l'écran | ⬜ **Non vérifiée** — pas d'émulateur dans la session cloud (pas de `/dev/kvm`). À contrôler sur le Galaxy S25, thème clair et sombre | 2026-10-26 |
 | `testDebugUnitTest` + `assembleDebug` (session cloud), générateur de formules (décision 25) | ✅ **180 tests, 0 échec** (27 nouveaux dans `RegexSuggesterTest`), sans avertissement ; APK debug 55 Mo, **aucune dépendance ajoutée** | 2026-10-26 |
 | CI GitHub (push puis lancement manuel) | ❌ exécutions n° 10 et 11 refusées sans machine (voir § 6 bis) ; APK de test arm64 compilé en session cloud et transmis directement à l'utilisateur, `release/` non mis à jour | 2026-10-26 |
 | Générateur de formules à l'écran | ⬜ **Non vérifié** — pas d'émulateur dans la session cloud (pas de `/dev/kvm`). Moteur entièrement couvert en test JVM ; panneau, bouton et application de la formule à contrôler sur le Galaxy S25 | 2026-10-26 |

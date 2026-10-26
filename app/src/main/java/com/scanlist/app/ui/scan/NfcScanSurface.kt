@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +33,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.scanlist.app.R
 import com.scanlist.app.scanner.DetectedNfcTag
 import com.scanlist.app.scanner.NfcTagDecoder
+import com.scanlist.app.ui.common.PrimaryButton
 
 /**
  * Surface d'attente d'un tag NFC/RFID.
@@ -122,9 +122,10 @@ fun NfcScanSurface(
                 textAlign = TextAlign.Center,
             )
             if (nfcAdapter != null && !enabled) {
-                Button(onClick = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) }) {
-                    Text(stringResource(R.string.nfc_enable_settings))
-                }
+                PrimaryButton(
+                    text = stringResource(R.string.nfc_enable_settings),
+                    onClick = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) },
+                )
             }
         }
     }

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.scanlist.app.R
+import com.scanlist.app.ui.common.PrimaryButton
 
 /**
  * Affiche [content] une fois la permission camera accordee.
@@ -80,9 +80,10 @@ fun CameraPermissionGate(content: @Composable () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
             )
-            Button(onClick = { launcher.launch(Manifest.permission.CAMERA) }) {
-                Text(stringResource(R.string.scan_permission_grant))
-            }
+            PrimaryButton(
+                text = stringResource(R.string.scan_permission_grant),
+                onClick = { launcher.launch(Manifest.permission.CAMERA) },
+            )
         }
     }
 }

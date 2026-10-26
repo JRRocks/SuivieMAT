@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +26,7 @@ import androidx.lifecycle.viewModelScope
 import com.scanlist.app.R
 import com.scanlist.app.data.prefs.EmailPrefs
 import com.scanlist.app.data.prefs.SettingsDataStore
+import com.scanlist.app.ui.common.PrimaryButton
 import com.scanlist.app.ui.common.ScanListScaffold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -84,6 +85,7 @@ fun EmailPrefsScreen(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next,
                 ),
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
@@ -91,6 +93,7 @@ fun EmailPrefsScreen(
                 onValueChange = { subject = it },
                 label = { Text(stringResource(R.string.settings_email_subject)) },
                 singleLine = true,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
@@ -98,17 +101,17 @@ fun EmailPrefsScreen(
                 onValueChange = { body = it },
                 label = { Text(stringResource(R.string.settings_email_body)) },
                 minLines = 3,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(
+            PrimaryButton(
+                text = stringResource(R.string.settings_save),
                 onClick = {
                     viewModel.save(EmailPrefs(recipient.trim(), subject, body))
                     onBack()
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.settings_save))
-            }
+            )
         }
     }
 }

@@ -2,15 +2,17 @@ package com.scanlist.app.ui.scan
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOff
@@ -31,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -41,6 +44,7 @@ import com.scanlist.app.data.db.entity.ScanItemEntity
 import com.scanlist.app.domain.model.ReferenceState
 import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.domain.regex.RegexRuleEngine
+import com.scanlist.app.ui.common.HeaderCounter
 import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
 import com.scanlist.app.ui.compare.CompareCounterBar
@@ -69,20 +73,19 @@ fun NewScanModeScreen(
     onBack: () -> Unit,
     onModeSelected: (ScanMode) -> Unit,
 ) {
-    ScanListScaffold(title = stringResource(R.string.menu_new_scan), onBack = onBack) { padding ->
-        Column(
+    ScanListScaffold(
+        title = stringResource(R.string.menu_new_scan),
+        subtitle = stringResource(R.string.choose_scan_mode),
+        onBack = onBack,
+    ) { padding ->
+        ScanModePicker(
+            onModeSelected = onModeSelected,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                stringResource(R.string.choose_scan_mode),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            ScanModePicker(onModeSelected = onModeSelected)
-        }
+        )
     }
 }
 
@@ -139,10 +142,36 @@ fun ScanScreen(
     val found = references.filter { it.state == ReferenceState.FOUND }
     val missing = references.filter { it.state == ReferenceState.MISSING }
 
+    // Le compteur vit dans l'en-tete bleu : le nombre de captures a cote du nom du
+    // dossier, l'avancement sous le nom de la session. Il reste visible quelle que soit
+    // la longueur de la liste en dessous.
+    val isNewFolder = !isCompare && folderName == null
     ScanListScaffold(
-        title = (if (isCompare) sessionName else folderName)
-            ?: "${stringResource(R.string.scan_title)} — ${mode.label}",
+        title = when {
+            isCompare -> sessionName ?: stringResource(R.string.compare_title)
+            else -> folderName ?: stringResource(R.string.scan_new_folder_title)
+        },
+        subtitle = if (isNewFolder) {
+            stringResource(R.string.scan_subtitle_new_folder, mode.label)
+        } else {
+            mode.label
+        },
         onBack = onBack,
+        headerTrailing = if (isCompare) {
+            null
+        } else {
+            {
+                HeaderCounter(
+                    value = items.size.toString(),
+                    label = pluralStringResource(R.plurals.scan_capture_label, items.size),
+                )
+            }
+        },
+        headerBottom = if (isCompare) {
+            { CompareCounterBar(found = found.size, missing = missing.size) }
+        } else {
+            null
+        },
         actions = {
             // Pas de camera en NFC : la torche n'a pas de sens dans ce mode.
             if (!isNfc) {
@@ -236,15 +265,6 @@ fun ScanScreen(
                 )
             }
 
-            if (isCompare) {
-                CompareCounterBar(found = found.size, missing = missing.size)
-            } else {
-                CaptureHeader(
-                    count = items.size,
-                    folderName = folderName,
-                    mode = mode,
-                )
-            }
             HorizontalDivider()
 
             LazyColumn(
@@ -281,34 +301,6 @@ fun ScanScreen(
             onDelete = viewModel::deleteRule,
             onSave = viewModel::saveCurrentRule,
             onDismiss = { libraryOpen = false },
-        )
-    }
-}
-
-@Composable
-private fun CaptureHeader(count: Int, folderName: String?, mode: ScanMode) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.scan_captured, count),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                folderName ?: stringResource(R.string.scan_new_folder),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Text(
-            mode.label,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
@@ -372,11 +364,11 @@ private fun LastEventBanner(event: ScanEvent?, modifier: Modifier = Modifier) {
         Text(
             text = label,
             color = foreground,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
             modifier = Modifier
                 .background(background, MaterialTheme.shapes.medium)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 18.dp, vertical = 10.dp),
         )
     }
 }
@@ -386,7 +378,8 @@ private fun CapturedRow(item: ScanItemEntity, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            .heightIn(min = 68.dp)
+            .padding(start = 20.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {

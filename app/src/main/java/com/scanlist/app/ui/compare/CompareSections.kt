@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -15,12 +16,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.scanlist.app.R
 import com.scanlist.app.data.db.entity.ReferenceEntryEntity
+import com.scanlist.app.ui.common.SectionTitle
 import com.scanlist.app.ui.theme.ScanValueTextStyle
 import com.scanlist.app.ui.theme.compareColors
 import java.text.SimpleDateFormat
@@ -45,7 +48,7 @@ private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
  *
  * Deux compteurs colores et une barre : d'un coup d'oeil, combien il en reste. Les
  * couleurs portent la meme information que les chiffres, l'utilisateur n'a pas a lire
- * le libelle pour savoir ou il en est.
+ * le libelle pour savoir ou il en est. Pose dans l'en-tete bleu, sans fond propre.
  */
 @Composable
 fun CompareCounterBar(
@@ -56,11 +59,8 @@ fun CompareCounterBar(
     val colors = compareColors
     val total = found + missing
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -83,9 +83,12 @@ fun CompareCounterBar(
         if (total > 0) {
             LinearProgressIndicator(
                 progress = { found.toFloat() / total },
-                color = colors.onFound,
+                color = colors.progress,
                 trackColor = colors.missing,
-                modifier = Modifier.fillMaxWidth(),
+                strokeCap = StrokeCap.Round,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
             )
         }
     }
@@ -101,11 +104,12 @@ private fun CountChip(
     Text(
         text = text,
         color = foreground,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold,
         textAlign = TextAlign.Center,
         modifier = modifier
             .background(background, MaterialTheme.shapes.small)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
+            .padding(vertical = 10.dp, horizontal = 4.dp),
     )
 }
 
@@ -152,12 +156,9 @@ fun LazyListScope.compareSections(
 
 @Composable
 private fun SectionHeader(text: String) {
-    Text(
+    SectionTitle(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 6.dp),
     )
 }
 
@@ -178,9 +179,9 @@ private fun CompareRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 3.dp)
-            .background(background, MaterialTheme.shapes.small)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .background(background, MaterialTheme.shapes.medium)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -188,16 +189,16 @@ private fun CompareRow(
             if (!label.isNullOrBlank()) {
                 Text(
                     label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = foreground.copy(alpha = 0.85f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = foreground,
                 )
             }
         }
         if (trailing != null) {
             Text(
                 trailing,
-                style = MaterialTheme.typography.labelSmall,
-                color = foreground.copy(alpha = 0.85f),
+                style = MaterialTheme.typography.bodySmall,
+                color = foreground,
             )
         }
     }

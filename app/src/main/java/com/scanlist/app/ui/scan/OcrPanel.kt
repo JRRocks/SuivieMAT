@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,7 +56,6 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -67,6 +65,9 @@ import com.scanlist.app.R
 import com.scanlist.app.data.db.entity.RegexRuleEntity
 import com.scanlist.app.domain.regex.RegexRuleEngine
 import com.scanlist.app.ui.common.LocalSnackbarHostState
+import com.scanlist.app.ui.common.PrimaryButton
+import com.scanlist.app.ui.theme.PatternTextStyle
+import com.scanlist.app.ui.theme.ValueFontFamily
 import com.scanlist.app.ui.theme.compareColors
 import kotlinx.coroutines.launch
 
@@ -119,9 +120,8 @@ fun OcrControlPanel(
                 autoCorrectEnabled = false,
                 imeAction = ImeAction.Done,
             ),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                fontFamily = FontFamily.Monospace,
-            ),
+            textStyle = PatternTextStyle,
+            shape = MaterialTheme.shapes.medium,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -153,7 +153,9 @@ fun OcrControlPanel(
             }
         }
 
-        Button(
+        PrimaryButton(
+            text = stringResource(if (capturing) R.string.ocr_stop else R.string.ocr_start),
+            icon = if (capturing) Icons.Default.Stop else Icons.Default.PlayArrow,
             onClick = onToggleCapture,
             enabled = validation is RegexRuleEngine.Validation.Valid,
             colors = if (capturing) {
@@ -165,16 +167,7 @@ fun OcrControlPanel(
                 ButtonDefaults.buttonColors()
             },
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            Icon(
-                if (capturing) Icons.Default.Stop else Icons.Default.PlayArrow,
-                contentDescription = null,
-            )
-            Text(
-                stringResource(if (capturing) R.string.ocr_stop else R.string.ocr_start),
-                modifier = Modifier.padding(start = 8.dp),
-            )
-        }
+        )
     }
 }
 
@@ -223,9 +216,8 @@ fun BarcodeFilterPanel(
                 autoCorrectEnabled = false,
                 imeAction = ImeAction.Done,
             ),
-            textStyle = MaterialTheme.typography.bodyLarge.copy(
-                fontFamily = FontFamily.Monospace,
-            ),
+            textStyle = PatternTextStyle,
+            shape = MaterialTheme.shapes.medium,
             modifier = Modifier.fillMaxWidth(),
         )
 
@@ -288,15 +280,19 @@ private fun RegexToolButton(
 ) {
     FilledTonalButton(
         onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
         // Marges reduites au minimum : sur le S25 (environ 384 dp de large), chaque
         // bouton dispose d'environ 112 dp, et "Regex Auto" en occupe environ 74 a lui
         // seul. Avec les 24 dp de marge par defaut, le libelle serait tronque.
         contentPadding = PaddingValues(horizontal = 4.dp),
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 48.dp),
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        // labelMedium et non labelLarge (16 sp) : a 16 sp, "Regex Auto" et son icone
+        // rempliraient tout juste les 112 dp du bouton, au risque d'etre tronques.
         Text(
             stringResource(label),
+            style = MaterialTheme.typography.labelMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = 6.dp),
@@ -363,7 +359,7 @@ fun RegexLibrarySheet(
                     ListItem(
                         headlineContent = { Text(rule.name) },
                         supportingContent = {
-                            Text(rule.pattern, fontFamily = FontFamily.Monospace)
+                            Text(rule.pattern, fontFamily = ValueFontFamily)
                         },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -404,7 +400,7 @@ fun RegexLibrarySheet(
                 Text(
                     currentPattern,
                     style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = ValueFontFamily,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedTextField(
@@ -414,7 +410,8 @@ fun RegexLibrarySheet(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Button(
+                PrimaryButton(
+                    text = stringResource(R.string.ocr_save),
                     onClick = {
                         onSave(name)
                         name = ""
@@ -422,9 +419,7 @@ fun RegexLibrarySheet(
                     },
                     enabled = name.isNotBlank(),
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.ocr_save))
-                }
+                )
             }
 
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
@@ -592,7 +587,7 @@ private fun RegexHelpExample(title: String, pattern: String) {
                 Text(
                     pattern,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
+                    fontFamily = ValueFontFamily,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
@@ -608,7 +603,7 @@ private fun RegexHelpExample(title: String, pattern: String) {
                     Text(
                         value,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = FontFamily.Monospace,
+                        fontFamily = ValueFontFamily,
                         color = if (ok) colors.onFound else colors.onMissing,
                         modifier = Modifier
                             .fillMaxWidth()

@@ -2,33 +2,45 @@ package com.scanlist.app.ui.common
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.TextFields
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -36,9 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.scanlist.app.R
 import com.scanlist.app.domain.model.ScanMode
+import com.scanlist.app.ui.theme.shellColors
 
 /**
  * Etat des snackbars, partage par tout le graphe de navigation.
@@ -48,21 +62,72 @@ import com.scanlist.app.domain.model.ScanMode
  */
 val LocalSnackbarHostState = staticCompositionLocalOf { SnackbarHostState() }
 
-/** En-tete commun a tous les ecrans, avec fleche de retour optionnelle. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * Cadre commun a tous les ecrans : l'en-tete bleu, puis le contenu.
+ *
+ * [headerTrailing] place un compteur a droite du titre, [headerBottom] une bande sous
+ * le titre (les compteurs de comparaison) : c'est la signature du style, le chiffre
+ * qui compte vit dans l'en-tete et reste visible quoi qu'il arrive en dessous.
+ */
 @Composable
 fun ScanListScaffold(
     title: String,
     onBack: (() -> Unit)? = null,
-    actions: @Composable () -> Unit = {},
+    subtitle: String? = null,
+    actions: (@Composable RowScope.() -> Unit)? = null,
+    headerTrailing: (@Composable () -> Unit)? = null,
+    headerBottom: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(LocalSnackbarHostState.current) },
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
+            ShellHeader(
+                title = title,
+                subtitle = subtitle,
+                onBack = onBack,
+                actions = actions,
+                trailing = headerTrailing,
+                bottom = headerBottom,
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        content = content,
+    )
+}
+
+@Composable
+private fun ShellHeader(
+    title: String,
+    subtitle: String?,
+    onBack: (() -> Unit)?,
+    actions: (@Composable RowScope.() -> Unit)?,
+    trailing: (@Composable () -> Unit)?,
+    bottom: (@Composable ColumnScope.() -> Unit)?,
+) {
+    val shell = shellColors
+    val hasIconRow = onBack != null || actions != null
+
+    Surface(color = shell.container, contentColor = shell.content) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // Le bleu passe sous la barre d'etat (edge-to-edge) ; seul le contenu
+                // s'en ecarte.
+                .windowInsetsPadding(
+                    WindowInsets.statusBars
+                        .union(WindowInsets.displayCutout)
+                        .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                ),
+        ) {
+            if (hasIconRow) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (onBack != null) {
                         IconButton(onClick = onBack) {
                             Icon(
@@ -71,19 +136,82 @@ fun ScanListScaffold(
                             )
                         }
                     }
-                },
-                actions = { actions() },
-            )
-        },
-        content = content,
-    )
+                    Spacer(Modifier.weight(1f))
+                    actions?.invoke(this)
+                }
+            } else {
+                Spacer(Modifier.height(28.dp))
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        title,
+                        // Ecran racine sans fleche de retour : le titre est le nom de
+                        // l'application, il prend la taille du dessus.
+                        style = if (hasIconRow) {
+                            MaterialTheme.typography.headlineSmall
+                        } else {
+                            MaterialTheme.typography.headlineLarge
+                        },
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = shell.contentVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (trailing != null) {
+                    Spacer(Modifier.width(12.dp))
+                    trailing()
+                }
+            }
+
+            if (bottom != null) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    content = bottom,
+                )
+            }
+        }
+    }
 }
 
 /**
- * Entree de menu : titre, sous-titre et chevron.
- * Brique de base de toute la hierarchie de navigation.
+ * Compteur pose a droite du titre de l'en-tete : un grand chiffre, son unite dessous.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HeaderCounter(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.End) {
+        Text(value, style = MaterialTheme.typography.headlineMedium)
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = shellColors.contentVariant,
+        )
+    }
+}
+
+/**
+ * Entree de menu : icone, titre et sous-titre sur une carte blanche.
+ * Brique de base de toute la hierarchie de navigation.
+ *
+ * [emphasized] teint la carte du bleu de l'en-tete : reserve a l'entree que
+ * l'utilisateur prend le plus souvent (Nouveau scan, dernier mode utilise).
+ */
 @Composable
 fun MenuCard(
     title: String,
@@ -91,56 +219,127 @@ fun MenuCard(
     icon: ImageVector? = null,
     trailing: String? = null,
     enabled: Boolean = true,
+    emphasized: Boolean = false,
     onClick: () -> Unit,
 ) {
+    val shell = shellColors
+    val container = if (emphasized) shell.container else MaterialTheme.colorScheme.surface
+    val content = if (emphasized) shell.content else MaterialTheme.colorScheme.onSurface
+    val secondary = if (emphasized) shell.contentVariant else MaterialTheme.colorScheme.onSurfaceVariant
+    val accent = if (emphasized) shell.content else MaterialTheme.colorScheme.primary
+
     Card(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = container, contentColor = content),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (emphasized) 3.dp else 1.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 18.dp),
+                .heightIn(min = 88.dp)
+                .padding(horizontal = 18.dp, vertical = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp),
+                    tint = accent,
+                    modifier = Modifier.size(30.dp),
                 )
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(18.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(title, style = MaterialTheme.typography.titleLarge)
                 if (subtitle != null) {
                     Text(
                         subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = secondary,
                     )
                 }
             }
             if (trailing != null) {
+                Spacer(Modifier.width(12.dp))
                 Text(
                     trailing,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = accent,
                 )
-                Spacer(Modifier.width(8.dp))
             }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
+}
+
+/**
+ * Bouton d'action principal : pleine largeur, 56 dp, coins de 16 dp. Un seul par ecran.
+ */
+@Composable
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.buttonColors(),
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        shape = MaterialTheme.shapes.medium,
+        colors = colors,
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        modifier = modifier.heightIn(min = 56.dp),
+    ) {
+        ButtonContent(text = text, icon = icon)
+    }
+}
+
+/**
+ * Bouton secondaire, teinte claire du bleu : pour les actions qui accompagnent
+ * l'action principale sans lui disputer l'attention.
+ */
+@Composable
+fun SecondaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 12.dp),
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = MaterialTheme.shapes.medium,
+        contentPadding = contentPadding,
+        modifier = modifier.heightIn(min = 50.dp),
+    ) {
+        ButtonContent(text = text, icon = icon)
+    }
+}
+
+@Composable
+private fun RowScope.ButtonContent(text: String, icon: ImageVector?) {
+    if (icon != null) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+    }
+    Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+}
+
+/** Intitule de section, au-dessus d'une liste ou d'un groupe de cartes. */
+@Composable
+fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier,
+    )
 }
 
 /**
@@ -149,6 +348,8 @@ fun MenuCard(
  * Reutilise par "Nouveau scan", "Reprendre le scan" et "Lancer le scan" d'une
  * comparaison : les trois sous-menus de la specification pointent sur ce composant,
  * ce qui garantit qu'ils proposent exactement les memes options.
+ *
+ * [highlighted] met en avant le mode du dernier scan, teint du bleu de l'en-tete.
  */
 @Composable
 fun ScanModePicker(
@@ -164,28 +365,28 @@ fun ScanModePicker(
             title = stringResource(R.string.mode_ocr),
             subtitle = stringResource(R.string.mode_ocr_desc),
             icon = Icons.Default.TextFields,
-            trailing = if (highlighted == ScanMode.OCR) "•" else null,
+            emphasized = highlighted == ScanMode.OCR,
             onClick = { onModeSelected(ScanMode.OCR) },
         )
         MenuCard(
             title = stringResource(R.string.mode_qr),
             subtitle = stringResource(R.string.mode_qr_desc),
             icon = Icons.Default.QrCode,
-            trailing = if (highlighted == ScanMode.QR_CODE) "•" else null,
+            emphasized = highlighted == ScanMode.QR_CODE,
             onClick = { onModeSelected(ScanMode.QR_CODE) },
         )
         MenuCard(
             title = stringResource(R.string.mode_barcode),
             subtitle = stringResource(R.string.mode_barcode_desc),
             icon = Icons.Default.QrCodeScanner,
-            trailing = if (highlighted == ScanMode.BARCODE) "•" else null,
+            emphasized = highlighted == ScanMode.BARCODE,
             onClick = { onModeSelected(ScanMode.BARCODE) },
         )
         MenuCard(
             title = stringResource(R.string.mode_nfc),
             subtitle = stringResource(R.string.mode_nfc_desc),
             icon = Icons.Default.Nfc,
-            trailing = if (highlighted == ScanMode.NFC) "•" else null,
+            emphasized = highlighted == ScanMode.NFC,
             onClick = { onModeSelected(ScanMode.NFC) },
         )
     }
@@ -210,28 +411,10 @@ fun EmptyState(title: String, hint: String? = null) {
             Spacer(Modifier.height(8.dp))
             Text(
                 hint,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
-    }
-}
-
-/** Bandeau des ecrans dont la logique arrive dans une phase ulterieure. */
-@Composable
-fun PhaseNotice(text: String = stringResource(R.string.wip_notice)) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Text(
-            text,
-            modifier = Modifier.padding(16.dp),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

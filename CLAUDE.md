@@ -62,6 +62,35 @@ attribuer de machine (cause probable : quota ou facturation du compte, voir
 `outils.md` § 6 bis). Il dépose l'APK dans
 `release/` de la branche, signé par la clé de debug versionnée — voir `outils.md` § 6 bis.
 
+### Miroir Google Drive (règles du dossier `2 - Jean/Claude Code/`)
+
+Le Drive de l'utilisateur est une **seconde sauvegarde**, à sens unique : local → Drive,
+jamais d'édition directe sur le Drive. Son propre `CLAUDE.md` (à la racine de
+`2 - Jean/Claude Code/`) fait foi. Pour ce projet :
+
+| Dossier Drive | Source locale |
+|---|---|
+| `2 - Jean/Claude Code/SuivieMAT/` | `C:\Users\Taiepii\Desktop\Claude Code\ScanList` |
+
+Resynchroniser **après chaque changement livré** (nouveau commit, nouvelle version), depuis
+le poste Windows, Drive monté en `G:` (`Mon Drive` ou `My Drive` selon le PC :
+`Test-Path "G:\My Drive"`) :
+
+```powershell
+robocopy "C:\Users\Taiepii\Desktop\Claude Code\ScanList" "G:\<Drive root>\2 - Jean\Claude Code\SuivieMAT" /MIR /XD .git .gradle .kotlin build .idea /XF local.properties *.apk /R:1 /W:1
+Copy-Item "app\build\outputs\apk\debug\app-debug.apk" "G:\<Drive root>\2 - Jean\Claude Code\APK release\SuivieMAT.<versionName>.apk"
+```
+
+`/MIR` supprime côté Drive ce qui n'existe plus en local : vérifier la destination.
+Codes de sortie robocopy 0 à 7 = succès. **Monter `versionName`** à chaque APK livré,
+pour qu'un APK n'en écrase jamais un autre dans `APK release/` (ni de copie dans le
+dossier miroir : les APK vont dans `APK release/`).
+
+**Depuis une session cloud**, ni robocopy ni montage `G:` : le connecteur Google Drive ne
+sait ni envoyer un APK (≈ 40 Mo), ni remplacer un fichier existant. La session pousse
+sur GitHub et dépose l'APK dans `release/` ; la copie vers le Drive se fait à la
+prochaine session sur le PC.
+
 ### Commandes (poste local Windows avec Android Studio)
 
 Compiler l'APK de debug :
@@ -220,7 +249,14 @@ QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA
 mail, fonction Comparer complète. **180 tests, 0 échec, aucun avertissement de
 compilation** (vérifié le 2026-10-26). Aucune coquille ne subsiste dans l'application.
 
-Restent les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
+**Refonte de l'interface en cours** (décision 27, phase 11 de `workflow.md`) : style
+« Bleu de travail » appliqué à tous les écrans (étape 1/7) ; chaque étape suivante
+propose cinq variantes à l'utilisateur sur le canevas de maquettes. Conventions du
+style : en-tête bleu via `ScanListScaffold` (jamais de `TopAppBar`), compteur dans
+l'en-tête (`headerTrailing` / `headerBottom`), boutons via `PrimaryButton` /
+`SecondaryButton`, valeurs en `ScanValueTextStyle`, formules en `PatternTextStyle`.
+
+Restent aussi les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
 `consignes/workflow.md`, qui fait foi.
 
 > **Avant toute distribution aux magasiniers**, dérouler la liste du § 0 de

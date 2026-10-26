@@ -28,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -37,6 +36,8 @@ import com.scanlist.app.R
 import com.scanlist.app.domain.regex.RegexSuggester
 import com.scanlist.app.domain.regex.RegexSuggester.BlockType
 import com.scanlist.app.domain.regex.RegexSuggester.Kind
+import com.scanlist.app.ui.theme.PatternTextStyle
+import com.scanlist.app.ui.theme.ValueFontFamily
 import com.scanlist.app.ui.theme.compareColors
 
 /**
@@ -87,9 +88,8 @@ fun RegexGeneratorSheet(onApply: (String) -> Unit, onDismiss: () -> Unit) {
                     autoCorrectEnabled = false,
                     imeAction = ImeAction.Done,
                 ),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = FontFamily.Monospace,
-                ),
+                textStyle = PatternTextStyle,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -153,7 +153,7 @@ private fun SuggestionCard(suggestion: RegexSuggester.Suggestion, onClick: () ->
             Text(
                 suggestion.pattern,
                 style = MaterialTheme.typography.bodyMedium,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = ValueFontFamily,
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
@@ -177,7 +177,7 @@ private fun IllustrationLine(text: String, accepted: Boolean) {
     Text(
         text,
         style = MaterialTheme.typography.bodySmall,
-        fontFamily = FontFamily.Monospace,
+        fontFamily = ValueFontFamily,
         color = if (accepted) colors.onFound else colors.onMissing,
         modifier = Modifier
             .fillMaxWidth()

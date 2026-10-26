@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Compare
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.runtime.Composable
@@ -18,6 +18,9 @@ import com.scanlist.app.ui.common.ScanListScaffold
 
 /**
  * Menu principal : les trois branches de la specification, dans l'ordre impose.
+ *
+ * "Nouveau scan" est teint du bleu de l'en-tete : c'est le geste de tous les jours, il
+ * doit se trouver sans lire.
  */
 @Composable
 fun MainMenuScreen(
@@ -25,7 +28,10 @@ fun MainMenuScreen(
     onCompare: () -> Unit,
     onNewScan: () -> Unit,
 ) {
-    ScanListScaffold(title = stringResource(R.string.menu_title)) { padding ->
+    ScanListScaffold(
+        title = stringResource(R.string.app_name),
+        subtitle = stringResource(R.string.menu_title),
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -42,13 +48,14 @@ fun MainMenuScreen(
             MenuCard(
                 title = stringResource(R.string.menu_compare),
                 subtitle = stringResource(R.string.menu_compare_subtitle),
-                icon = Icons.Default.Compare,
+                icon = Icons.AutoMirrored.Filled.FactCheck,
                 onClick = onCompare,
             )
             MenuCard(
                 title = stringResource(R.string.menu_new_scan),
                 subtitle = stringResource(R.string.menu_new_scan_subtitle),
                 icon = Icons.Default.QrCodeScanner,
+                emphasized = true,
                 onClick = onNewScan,
             )
         }

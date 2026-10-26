@@ -49,8 +49,12 @@
     <string name="folder_delete_confirm">Supprimer « %1$s » et ses %2$d élément(s) ? Cette action est définitive.</string>
     <string name="folder_detail_empty">Ce dossier est vide.</string>
     <string name="folder_detail_empty_hint">Reprends le scan pour l\'alimenter.</string>
-    <string name="folder_created_at">Créé le %1$s</string>
-    <string name="folder_last_mode">Dernier mode : %1$s</string>
+    <string name="folder_header_details">Créé le %1$s · %2$s</string>
+    <!-- Unite du compteur de l'en-tete d'un dossier -->
+    <plurals name="folder_item_label">
+        <item quantity="one">élément</item>
+        <item quantity="other">éléments</item>
+    </plurals>
     <string name="item_deleted">Ligne supprimée</string>
     <string name="item_copy">Copier la valeur</string>
     <string name="item_copied">Valeur copiée</string>
@@ -111,16 +115,20 @@
     <string name="settings_save">Enregistrer</string>
 
     <!-- Scan -->
-    <string name="scan_title">Scan</string>
     <string name="scan_permission_required">L\'accès à la caméra est nécessaire pour scanner.</string>
     <string name="scan_permission_grant">Autoriser la caméra</string>
     <string name="scan_duplicate">Déjà présent dans ce dossier</string>
     <string name="scan_torch_on">Allumer la lampe</string>
     <string name="scan_torch_off">Éteindre la lampe</string>
-    <string name="scan_captured">%1$d capture(s)</string>
+    <!-- Unite du compteur de l'en-tete, sous le nombre de captures -->
+    <plurals name="scan_capture_label">
+        <item quantity="one">capture</item>
+        <item quantity="other">captures</item>
+    </plurals>
     <string name="scan_saved">Enregistré : %1$s</string>
     <string name="scan_delete_item">Supprimer cette ligne</string>
-    <string name="scan_new_folder">Nouveau dossier à la première capture</string>
+    <string name="scan_new_folder_title">Nouveau dossier</string>
+    <string name="scan_subtitle_new_folder">%1$s · créé à la première capture</string>
 
     <!-- QR Code / Code-barres : filtre de conformité optionnel -->
     <string name="barcode_filter_label">Filtre regex (optionnel)</string>
@@ -240,5 +248,4 @@
     <string name="action_confirm">Valider</string>
     <string name="action_delete">Supprimer</string>
     <string name="action_close">Fermer</string>
-    <string name="wip_notice">Écran en place — fonctionnalité implémentée dans une phase ultérieure.</string>
 </resources>
