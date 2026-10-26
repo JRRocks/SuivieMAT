@@ -55,8 +55,11 @@ dans le scratchpad et Maven Central se contourne par un miroir en cas de `429` :
 vérifiée le 2026-09-24 dans `consignes/outils.md` § 6 ter.
 
 **L'utilisateur n'a pas toujours d'ordinateur** : l'APK de test se produit alors sur
-GitHub. Le push ne déclenche pas le workflow sur ce dépôt ; le lancer à la main
-(`actions_run_trigger`, `run_workflow`, `ref` = la branche). Il dépose l'APK dans
+GitHub. Le push déclenche le workflow depuis le 2026-10-10 (il ne le faisait pas
+avant) ; s'il ne part pas, le lancer à la main (`actions_run_trigger`, `run_workflow`,
+`ref` = la branche). Le 2026-10-26, GitHub a refusé les deux exécutions sans leur
+attribuer de machine (cause probable : quota ou facturation du compte, voir
+`outils.md` § 6 bis). Il dépose l'APK dans
 `release/` de la branche, signé par la clé de debug versionnée — voir `outils.md` § 6 bis.
 
 ### Commandes (poste local Windows avec Android Studio)

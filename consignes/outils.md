@@ -152,6 +152,18 @@ le 2026-09-15. Branches déclenchantes : `claude/init-xyw7gc` et, depuis le 2026
 > *Actions › Build debug APK › Run workflow* en choisissant la branche, ou depuis une
 > session cloud par l'outil GitHub `actions_run_trigger` (`run_workflow`, `ref` = la
 > branche). Actions n'est donc pas désactivé ; seul le déclenchement au push fait défaut.
+>
+> **Mise à jour du 2026-10-26** : le push déclenche désormais le workflow (exécutions
+> n° 8 du 2026-10-10 et n° 10 du 2026-10-26, `event: push`). Le 2026-10-26, cette
+> exécution **et** le lancement manuel fait juste après (n° 11) ont échoué en quelques
+> secondes **sans qu'aucune machine leur soit attribuée** (`runner_id` 0, aucune étape
+> exécutée, journaux introuvables). Cause probable : un blocage du compte GitHub
+> (quota de minutes ou de stockage Actions, facturation), pas le code — la même
+> compilation passe en session cloud. Dernière compilation réussie sur GitHub : n° 9 du
+> 2026-10-10. À vérifier par l'utilisateur dans les réglages de facturation de son
+> compte. En attendant, l'APK se compile en session cloud (§ 6 ter) avec
+> `-Papk.phoneOnly` : même signature (clé de debug versionnée), donc installable
+> par-dessus la version déjà présente sur le téléphone.
 
 **Dépôt de l'APK dans `release/`** (depuis le 2026-09-25, à la demande de l'utilisateur,
 qui n'a pas toujours d'ordinateur sous la main) : après tests et compilation, le
@@ -285,6 +297,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 | Vérification | Résultat | Date |
 |---|---|---|
 | `testDebugUnitTest` + `assembleDebug` (session cloud), générateur de formules (décision 25) | ✅ **180 tests, 0 échec** (27 nouveaux dans `RegexSuggesterTest`), sans avertissement ; APK debug 55 Mo, **aucune dépendance ajoutée** | 2026-10-26 |
+| CI GitHub (push puis lancement manuel) | ❌ exécutions n° 10 et 11 refusées sans machine (voir § 6 bis) ; APK de test arm64 compilé en session cloud et transmis directement à l'utilisateur, `release/` non mis à jour | 2026-10-26 |
 | Générateur de formules à l'écran | ⬜ **Non vérifié** — pas d'émulateur dans la session cloud (pas de `/dev/kvm`). Moteur entièrement couvert en test JVM ; panneau, bouton et application de la formule à contrôler sur le Galaxy S25 | 2026-10-26 |
 | `testDebugUnitTest` + `assembleDebug` (session cloud), après retrait de l'écran de test du badge | ✅ **153 tests, 0 échec**, sans avertissement ; `applicationId='com.suiviemat.app'`, `application-label:'SuivieMAT'` (`aapt2 dump badging`), signature inchangée | 2026-09-25 |
 | CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI | 2026-09-25 |
