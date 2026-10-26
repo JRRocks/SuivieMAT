@@ -69,17 +69,6 @@ sealed interface ScanEvent {
 }
 
 /**
- * Ce que la camera lit en ce moment, avant tout enregistrement.
- *
- * [rawText] est le texte brut reconnu : c'est lui qui permet a l'utilisateur d'ecrire
- * sa formule. [matches] est ce que la formule en retient.
- */
-data class OcrPreview(
-    val rawText: String = "",
-    val matches: List<String> = emptyList(),
-)
-
-/**
  * Orchestration du scan a la chaine, pour les quatre modes.
  *
  * Le chemin critique est court par construction : l'analyseur (ou le callback NFC)
@@ -180,9 +169,6 @@ class ScanViewModel @Inject constructor(
     private val validationState =
         MutableStateFlow<RegexRuleEngine.Validation>(RegexRuleEngine.Validation.Invalid(""))
     val validation: StateFlow<RegexRuleEngine.Validation> = validationState.asStateFlow()
-
-    private val previewState = MutableStateFlow(OcrPreview())
-    val preview: StateFlow<OcrPreview> = previewState.asStateFlow()
 
     /**
      * En OCR, la capture est armee explicitement.
@@ -344,19 +330,14 @@ class ScanViewModel @Inject constructor(
     /**
      * Appele depuis le thread d'analyse CameraX, a chaque texte reconnu.
      *
-     * L'apercu est alimente en permanence, meme capture desarmee : c'est ce qui permet
-     * de regler la formule en visant la vraie etiquette.
+     * Capture desarmee, rien n'est extrait : sans apercu en direct (decision 26), une
+     * extraction a chaque image ne servirait plus a rien sur ce thread critique.
      */
     private fun onTextRecognized(rawText: String) {
-        val regex = compiledRegex
-        val matches = if (regex == null) {
-            emptyList()
-        } else {
-            RegexRuleEngine.extract(rawText, regex, groupIndexState.value)
-        }
-        previewState.value = OcrPreview(rawText, matches)
-
-        if (!capturingState.value || matches.isEmpty()) return
+        if (!capturingState.value) return
+        val regex = compiledRegex ?: return
+        val matches = RegexRuleEngine.extract(rawText, regex, groupIndexState.value)
+        if (matches.isEmpty()) return
 
         if (isCompare) {
             val fresh = matches.filter { debouncer.accept(it) }

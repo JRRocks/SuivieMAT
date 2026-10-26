@@ -346,6 +346,7 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
+| 2026-10-26 | **Panneau de formule épuré (décision 26).** Demandé par l'utilisateur sur capture d'écran. `OcrControlPanel` : retrait de l'aperçu en direct, des correspondances et du texte lu ; le champ prend toute la largeur. Nouvelle rangée privée `RegexToolsRow` sous le champ, partagée avec `BarcodeFilterPanel` : trois `FilledTonalButton` de poids égal, icône + libellé (« Info », « Regex Auto », « Enregistré »), marges internes réduites à 4 dp pour que « Regex Auto » tienne sur un S25 (environ 112 dp par bouton). L'ancien bouton rond « ? » ne subsiste que dans l'en-tête de la bibliothèque ; `RegexGeneratorButton` (icône seule) supprimé. `ScanViewModel` : `OcrPreview` et son `StateFlow` supprimés, `onTextRecognized` sort immédiatement tant que la capture est désarmée. `ScanScreens` : le panneau OCR n'a plus de poids (40 % auparavant), il prend la hauteur de son contenu ; caméra et liste reprennent les poids du mode code-barres. Six chaînes devenues inutiles retirées. 180 tests, 0 échec, aucun avertissement. **Écran non vérifié sur émulateur** (session cloud sans KVM). | `contexte.md`, `workflow.md` |
 | 2026-10-26 | **Générateur de formules regex à partir d'exemples, sans IA (décision 25).** Demandé par l'utilisateur, après étude d'une IA locale écartée (S25 absent de la liste Gemini Nano, modèle embarqué de plusieurs centaines de Mo et peu fiable sur les regex). Nouvelle classe pure `domain/regex/RegexSuggester.kt` : découpage de l'exemple en blocs (chiffres, majuscules, minuscules, caractères fixes), fusion de plusieurs exemples (longueurs en plage, casse mélangée → `[A-Za-z]`, structures différentes → `Incompatible`), puis cinq variantes dans l'ordre : `STRICT` (`\b\d[A-Z]{2}\d{3}\b` pour `1GH546`), `ANY_CASE`, `SEPARATORS` (`[ -]?` entre les blocs, plus tout séparateur `/ . _` vu dans l'exemple), `FIXED_PREFIX` (tout fixe sauf le dernier bloc, seulement si commun à tous les exemples), `FLEXIBLE` (`+`). `\b` posé uniquement du côté où le format commence ou finit par un chiffre ou une lettre (`\b#` ne reconnaîtrait plus `#123`). Garde-fous : toute proposition qui ne reconnaît pas chaque exemple est écartée, les doublons aussi, et les valeurs d'illustration (« Accepte aussi » / « Refuse ») ne sont montrées que si le moteur confirme ce qu'elles illustrent. Aucun texte dans le moteur : titres, commentaires et description du format (pluriels) sont dans `strings.xml`. Interface : `ui/scan/RegexGeneratorSheet.kt`, ouvert par un bouton (icône baguette) à côté du champ de formule dans `OcrControlPanel` et `BarcodeFilterPanel` ; un appui sur une proposition appelle `setPattern`, comme une saisie manuelle. 27 tests (`RegexSuggesterTest`), 180 au total, 0 échec, aucun avertissement. **Écran non vérifié sur émulateur** : session cloud sans KVM — à contrôler sur le Galaxy S25. | `contexte.md`, `outils.md`, `workflow.md` |
 | 2026-10-10 | **Nettoyage automatique du stockage GitHub Actions.** Demandé par l'utilisateur, le compte JRRocks ayant atteint 100 % de ses 0,5 Go de stockage Actions (quota commun à tous ses dépôts, facturé à l'heure). Nouveau workflow `nettoyage-actions.yml` (purge des artefacts plus vieux que N heures, run en cours épargné), appelé après chaque compilation et planifié chaque nuit — la planification ne s'active qu'une fois le fichier sur `main`. L'APK n'est plus publié en artefact quand il est déposé dans `release/` (doublon de ~40 Mo par run pendant 7 jours), rétention des artefacts restants ramenée à 1 jour. Ce dépôt ne portait aucun artefact ce jour-là : le quota est consommé par d'autres dépôts du compte. Script vérifié en local contre un `gh` simulé, workflows validés par `actionlint`. Aucun code de l'application modifié. | `outils.md`, `workflow.md` |
 | 2026-09-25 | **SuivieMAT devient une application distincte de ScanList (décision 23).** L'utilisateur a précisé que ScanList est une application indépendante qu'il garde en l'état : sous l'`applicationId` et le nom hérités du projet d'origine, les deux se seraient superposées sur un même téléphone. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (`app_name`), nom du projet Gradle → « SuivieMAT » (cosmétique). Le *namespace* Kotlin du code source reste `com.scanlist.app` : seul l'`applicationId` détermine l'identité Android, le renommer n'aurait rien apporté pour un chantier mécanique sur tout le code. Conséquence assumée : à l'installation, c'est une **application neuve** pour Android, sans lien avec un test antérieur fait sous l'ancien identifiant. 220 tests, 0 échec, `aapt2 dump badging` vérifié (`package='com.suiviemat.app'`, `application-label:'SuivieMAT'`). | `contexte.md`, `outils.md`, `plan-suivimat.md` |
@@ -387,10 +388,12 @@ Ce qui est **réellement fonctionnel** dès maintenant :
   20)* : même bibliothèque de formules que l'OCR, mais correspondance totale de la valeur
   (`BarcodeFilterPanel`), pas d'extraction de fragment. Optionnel — formule vide accepte
   tout, comme avant cet ajout.
-- **Mode OCR** : formule regex écrite à la volée avec validation à chaque frappe, aperçu
-  en direct des correspondances sur le flux caméra, texte brut lu consultable, choix du
+- **Mode OCR** : formule regex écrite à la volée avec validation à chaque frappe, choix du
   groupe capturant, bibliothèque de formules nommées, rechargement automatique de la
   dernière formule utilisée. La capture est **armée explicitement** — voir ci-dessous.
+  L'aperçu en direct et le texte brut lu ont été **retirés le 2026-10-26** (décision 26) ;
+  sous le champ, trois boutons « Info », « Regex Auto », « Enregistré », communs avec le
+  filtre de conformité.
 - **Générateur de formules** *(2026-10-26, décision 25)* : à partir d'un ou plusieurs
   exemples de valeur, jusqu'à cinq formules commentées et vérifiées, sans IA
   (`RegexSuggester` + `RegexGeneratorSheet`), en OCR comme dans le filtre de conformité.
@@ -474,8 +477,9 @@ interrompu par une mise en veille). Deux pistes, **à arbitrer par l'utilisateur
 En QR et code-barres, un code décodé est forcément un code : la capture démarre armée.
 En OCR non — une formule en cours de frappe (`\d` par exemple) enregistrerait des dizaines
 de valeurs parasites avant même d'être terminée. L'écran OCR reste donc en **réglage** :
-l'aperçu tourne en continu, rien n'est écrit, et le bouton « Démarrer la capture » n'est
-actif que sur une formule valide. Toute modification de la formule **désarme** la capture.
+rien n'est écrit, et le bouton « Démarrer la capture » n'est actif que sur une formule
+valide. Toute modification de la formule **désarme** la capture. Depuis le retrait de
+l'aperçu (décision 26), aucune extraction n'est faite tant que la capture est désarmée.
 
 ### Vérification sur émulateur — méthode
 

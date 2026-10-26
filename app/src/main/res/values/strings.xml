@@ -130,12 +130,6 @@
     <!-- OCR : éditeur de formule regex -->
     <string name="ocr_pattern_label">Formule regex</string>
     <string name="ocr_pattern_hint">ex. BAT-\\d{4}</string>
-    <string name="ocr_preview">Aperçu en direct</string>
-    <string name="ocr_no_match">Aucune correspondance</string>
-    <string name="ocr_no_pattern">Saisis une formule pour filtrer le texte lu</string>
-    <string name="ocr_raw_text_show">Voir le texte lu</string>
-    <string name="ocr_raw_text_hide">Masquer le texte lu</string>
-    <string name="ocr_raw_text_empty">Rien de lisible pour l\'instant.</string>
     <string name="ocr_start">Démarrer la capture</string>
     <string name="ocr_stop">Arrêter la capture</string>
     <string name="ocr_group">Groupe capturé</string>
@@ -185,9 +179,14 @@
         <item>12.123456</item>
     </string-array>
 
+    <!-- Outils sous le champ de formule (OCR et filtre de conformité) : libellés
+         choisis par l'utilisateur -->
+    <string name="regex_tool_info">Info</string>
+    <string name="regex_tool_generator">Regex Auto</string>
+    <string name="regex_tool_library">Enregistré</string>
+
     <!-- Generateur de formules a partir d'exemples (RegexSuggester, sans IA), ouvert
-         depuis "Formule regex" (OCR) et "Filtre de conformité" (Code 2D, code-barres) -->
-    <string name="regex_generator_button">Générer une formule à partir d\'un exemple</string>
+         par le bouton "Regex Auto" -->
     <string name="regex_generator_title">Générer une formule</string>
     <string name="regex_generator_intro">Tape une valeur telle qu\'elle est imprimée sur l\'étiquette : plusieurs formules te sont proposées, de la plus stricte à la plus large. Touche celle qui te convient.</string>
     <string name="regex_generator_input_label">Exemple de valeur</string>

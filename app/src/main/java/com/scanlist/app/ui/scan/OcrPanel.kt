@@ -1,10 +1,12 @@
 package com.scanlist.app.ui.scan
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,19 +17,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -48,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -56,6 +61,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.scanlist.app.R
 import com.scanlist.app.data.db.entity.RegexRuleEntity
@@ -65,17 +71,17 @@ import com.scanlist.app.ui.theme.compareColors
 import kotlinx.coroutines.launch
 
 /**
- * Panneau de reglage de la formule OCR.
+ * Panneau de reglage de la formule OCR : le champ, ses outils, puis l'armement de la
+ * capture.
  *
- * Il tient sous la camera pendant le reglage : l'utilisateur vise l'etiquette reelle,
- * voit le texte que la camera en tire, ajuste sa formule, et ne demarre la capture
- * qu'une fois l'apercu satisfaisant.
+ * Ni apercu en direct ni texte brut lu : retires a la demande de l'utilisateur
+ * (decision 26). Le panneau n'a plus de hauteur imposee, il prend celle de son
+ * contenu et laisse le reste a la camera.
  */
 @Composable
 fun OcrControlPanel(
     pattern: String,
     validation: RegexRuleEngine.Validation,
-    preview: OcrPreview,
     capturing: Boolean,
     groupCount: Int,
     groupIndex: Int,
@@ -85,10 +91,6 @@ fun OcrControlPanel(
     onOpenLibrary: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showRawText by remember { mutableStateOf(false) }
-    var showHelp by remember { mutableStateOf(false) }
-    var showGenerator by remember { mutableStateOf(false) }
-    val colors = compareColors
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
 
     Column(
@@ -99,53 +101,31 @@ fun OcrControlPanel(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = pattern,
-                onValueChange = onPatternChange,
-                label = { Text(stringResource(R.string.ocr_pattern_label)) },
-                placeholder = { Text(stringResource(R.string.ocr_pattern_hint)) },
-                singleLine = true,
-                isError = pattern.isNotEmpty() && invalid != null,
-                supportingText = {
-                    if (pattern.isNotEmpty() && invalid != null && invalid.message.isNotBlank()) {
-                        Text(invalid.message)
-                    }
-                },
-                // Ni majuscule automatique ni correction : une regex n'est pas du texte.
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.None,
-                    autoCorrectEnabled = false,
-                    imeAction = ImeAction.Done,
-                ),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    fontFamily = FontFamily.Monospace,
-                ),
-                modifier = Modifier.weight(1f),
-            )
-            RegexHelpButton(
-                onClick = { showHelp = true },
-                modifier = Modifier.padding(start = 4.dp),
-            )
-            RegexGeneratorButton(onClick = { showGenerator = true })
-            IconButton(onClick = onOpenLibrary) {
-                Icon(
-                    Icons.Default.Bookmarks,
-                    contentDescription = stringResource(R.string.ocr_library),
-                )
-            }
-        }
+        OutlinedTextField(
+            value = pattern,
+            onValueChange = onPatternChange,
+            label = { Text(stringResource(R.string.ocr_pattern_label)) },
+            placeholder = { Text(stringResource(R.string.ocr_pattern_hint)) },
+            singleLine = true,
+            isError = pattern.isNotEmpty() && invalid != null,
+            supportingText = {
+                if (pattern.isNotEmpty() && invalid != null && invalid.message.isNotBlank()) {
+                    Text(invalid.message)
+                }
+            },
+            // Ni majuscule automatique ni correction : une regex n'est pas du texte.
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                autoCorrectEnabled = false,
+                imeAction = ImeAction.Done,
+            ),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                fontFamily = FontFamily.Monospace,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
 
-        if (showHelp) {
-            RegexHelpSheet(onDismiss = { showHelp = false })
-        }
-
-        if (showGenerator) {
-            RegexGeneratorSheet(
-                onApply = onPatternChange,
-                onDismiss = { showGenerator = false },
-            )
-        }
+        RegexToolsRow(onPatternChange = onPatternChange, onOpenLibrary = onOpenLibrary)
 
         // Le choix du groupe n'a de sens que si la formule en contient.
         if (groupCount > 0) {
@@ -171,60 +151,6 @@ fun OcrControlPanel(
                     )
                 }
             }
-        }
-
-        Text(
-            stringResource(R.string.ocr_preview),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        when {
-            pattern.isBlank() -> PreviewHint(stringResource(R.string.ocr_no_pattern))
-            preview.matches.isEmpty() -> PreviewHint(stringResource(R.string.ocr_no_match))
-            else -> Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // Meme vert que la fonction Comparer : un seul vocabulaire visuel.
-                preview.matches.forEach { match ->
-                    AssistChip(
-                        onClick = {},
-                        enabled = false,
-                        label = { Text(match, fontFamily = FontFamily.Monospace) },
-                        colors = androidx.compose.material3.AssistChipDefaults.assistChipColors(
-                            disabledContainerColor = colors.found,
-                            disabledLabelColor = colors.onFound,
-                        ),
-                    )
-                }
-            }
-        }
-
-        TextButton(
-            onClick = { showRawText = !showRawText },
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-        ) {
-            Text(
-                stringResource(
-                    if (showRawText) R.string.ocr_raw_text_hide else R.string.ocr_raw_text_show,
-                ),
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-
-        if (showRawText) {
-            Text(
-                preview.rawText.ifBlank { stringResource(R.string.ocr_raw_text_empty) },
-                style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 120.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(8.dp),
-            )
         }
 
         Button(
@@ -269,21 +195,13 @@ fun BarcodeFilterPanel(
     modifier: Modifier = Modifier,
 ) {
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
-    var showGenerator by remember { mutableStateOf(false) }
 
-    if (showGenerator) {
-        RegexGeneratorSheet(
-            onApply = onPatternChange,
-            onDismiss = { showGenerator = false },
-        )
-    }
-
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         OutlinedTextField(
             value = pattern,
@@ -308,25 +226,82 @@ fun BarcodeFilterPanel(
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 fontFamily = FontFamily.Monospace,
             ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        RegexToolsRow(onPatternChange = onPatternChange, onOpenLibrary = onOpenLibrary)
+    }
+}
+
+/**
+ * Les trois outils de formule, sous le champ et non plus a cote : a cote, chaque
+ * icone retrecissait le champ, et une icone sans libelle ne dit pas ce qu'elle fait.
+ * Partages par l'OCR et le filtre de conformite, qui offrent donc les memes outils.
+ */
+@Composable
+private fun RegexToolsRow(onPatternChange: (String) -> Unit, onOpenLibrary: () -> Unit) {
+    var showHelp by remember { mutableStateOf(false) }
+    var showGenerator by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RegexToolButton(
+            icon = Icons.Default.Info,
+            label = R.string.regex_tool_info,
+            onClick = { showHelp = true },
             modifier = Modifier.weight(1f),
         )
-        RegexGeneratorButton(onClick = { showGenerator = true })
-        IconButton(onClick = onOpenLibrary) {
-            Icon(
-                Icons.Default.Bookmarks,
-                contentDescription = stringResource(R.string.ocr_library),
-            )
-        }
+        RegexToolButton(
+            icon = Icons.Default.AutoFixHigh,
+            label = R.string.regex_tool_generator,
+            onClick = { showGenerator = true },
+            modifier = Modifier.weight(1f),
+        )
+        RegexToolButton(
+            icon = Icons.Default.Bookmarks,
+            label = R.string.regex_tool_library,
+            onClick = onOpenLibrary,
+            modifier = Modifier.weight(1f),
+        )
+    }
+
+    if (showHelp) {
+        RegexHelpSheet(onDismiss = { showHelp = false })
+    }
+
+    if (showGenerator) {
+        RegexGeneratorSheet(
+            onApply = onPatternChange,
+            onDismiss = { showGenerator = false },
+        )
     }
 }
 
 @Composable
-private fun PreviewHint(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun RegexToolButton(
+    icon: ImageVector,
+    @StringRes label: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        // Marges reduites au minimum : sur le S25 (environ 384 dp de large), chaque
+        // bouton dispose d'environ 112 dp, et "Regex Auto" en occupe environ 74 a lui
+        // seul. Avec les 24 dp de marge par defaut, le libelle serait tronque.
+        contentPadding = PaddingValues(horizontal = 4.dp),
+        modifier = modifier,
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+        Text(
+            stringResource(label),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 6.dp),
+        )
+    }
 }
 
 /**

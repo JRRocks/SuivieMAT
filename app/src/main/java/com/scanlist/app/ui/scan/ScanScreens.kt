@@ -118,7 +118,6 @@ fun ScanScreen(
 
     val pattern by viewModel.pattern.collectAsStateWithLifecycle()
     val validation by viewModel.validation.collectAsStateWithLifecycle()
-    val preview by viewModel.preview.collectAsStateWithLifecycle()
     val capturing by viewModel.capturing.collectAsStateWithLifecycle()
     val groupCount by viewModel.groupCount.collectAsStateWithLifecycle()
     val groupIndex by viewModel.groupIndex.collectAsStateWithLifecycle()
@@ -168,13 +167,14 @@ fun ScanScreen(
             // vient s'afficher par-dessus la liste des captures. Sans objet en NFC,
             // qui partage cette meme zone avec une surface statique.
             //
-            // En OCR la camera cede de la place au panneau de reglage : l'utilisateur
-            // a besoin de voir sa formule et son apercu autant que l'etiquette.
+            // Les panneaux de formule (OCR, filtre de conformite) n'ont pas de poids :
+            // ils prennent la hauteur de leur contenu, la camera et la liste se
+            // partagent le reste. Depuis le retrait de l'apercu OCR (decision 26), un
+            // poids fixe ne laisserait qu'un vide sous le bouton de capture.
             Box(
                 modifier = Modifier
                     .weight(
                         when {
-                            isOcr -> 0.32f
                             isNfc || isCompare -> 0.55f
                             else -> 0.50f
                         },
@@ -216,7 +216,6 @@ fun ScanScreen(
                 OcrControlPanel(
                     pattern = pattern,
                     validation = validation,
-                    preview = preview,
                     capturing = capturing,
                     groupCount = groupCount,
                     groupIndex = groupIndex,
@@ -224,7 +223,6 @@ fun ScanScreen(
                     onGroupIndexChange = viewModel::setGroupIndex,
                     onToggleCapture = viewModel::toggleCapture,
                     onOpenLibrary = { libraryOpen = true },
-                    modifier = Modifier.weight(0.40f),
                 )
             } else if (!isNfc && !isCompare) {
                 // Filtre de conformite optionnel, meme bibliotheque de formules que
@@ -253,7 +251,6 @@ fun ScanScreen(
                 modifier = Modifier
                     .weight(
                         when {
-                            isOcr -> 0.28f
                             isNfc || isCompare -> 0.45f
                             else -> 0.38f
                         },
