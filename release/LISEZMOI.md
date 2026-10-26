@@ -2,7 +2,9 @@
 
 Ce dossier reçoit l'APK de **debug** compilé par GitHub Actions
 (`.github/workflows/build-debug-apk.yml`), pour pouvoir l'installer depuis le
-téléphone, sans ordinateur.
+téléphone, sans ordinateur. Faute de minutes GitHub Actions (jusqu'au 1er novembre
+2026), il est aussi déposé directement par une session cloud, compilé de la même façon
+(arm64, même clé de debug).
 
 | Fichier | Contenu |
 |---|---|
