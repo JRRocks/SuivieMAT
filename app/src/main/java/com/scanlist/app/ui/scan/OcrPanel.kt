@@ -87,6 +87,7 @@ fun OcrControlPanel(
 ) {
     var showRawText by remember { mutableStateOf(false) }
     var showHelp by remember { mutableStateOf(false) }
+    var showGenerator by remember { mutableStateOf(false) }
     val colors = compareColors
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
 
@@ -126,6 +127,7 @@ fun OcrControlPanel(
                 onClick = { showHelp = true },
                 modifier = Modifier.padding(start = 4.dp),
             )
+            RegexGeneratorButton(onClick = { showGenerator = true })
             IconButton(onClick = onOpenLibrary) {
                 Icon(
                     Icons.Default.Bookmarks,
@@ -136,6 +138,13 @@ fun OcrControlPanel(
 
         if (showHelp) {
             RegexHelpSheet(onDismiss = { showHelp = false })
+        }
+
+        if (showGenerator) {
+            RegexGeneratorSheet(
+                onApply = onPatternChange,
+                onDismiss = { showGenerator = false },
+            )
         }
 
         // Le choix du groupe n'a de sens que si la formule en contient.
@@ -260,6 +269,14 @@ fun BarcodeFilterPanel(
     modifier: Modifier = Modifier,
 ) {
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
+    var showGenerator by remember { mutableStateOf(false) }
+
+    if (showGenerator) {
+        RegexGeneratorSheet(
+            onApply = onPatternChange,
+            onDismiss = { showGenerator = false },
+        )
+    }
 
     Row(
         modifier = modifier
@@ -293,6 +310,7 @@ fun BarcodeFilterPanel(
             ),
             modifier = Modifier.weight(1f),
         )
+        RegexGeneratorButton(onClick = { showGenerator = true })
         IconButton(onClick = onOpenLibrary) {
             Icon(
                 Icons.Default.Bookmarks,

@@ -284,6 +284,8 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug` (session cloud), générateur de formules (décision 25) | ✅ **180 tests, 0 échec** (27 nouveaux dans `RegexSuggesterTest`), sans avertissement ; APK debug 55 Mo, **aucune dépendance ajoutée** | 2026-10-26 |
+| Générateur de formules à l'écran | ⬜ **Non vérifié** — pas d'émulateur dans la session cloud (pas de `/dev/kvm`). Moteur entièrement couvert en test JVM ; panneau, bouton et application de la formule à contrôler sur le Galaxy S25 | 2026-10-26 |
 | `testDebugUnitTest` + `assembleDebug` (session cloud), après retrait de l'écran de test du badge | ✅ **153 tests, 0 échec**, sans avertissement ; `applicationId='com.suiviemat.app'`, `application-label:'SuivieMAT'` (`aapt2 dump badging`), signature inchangée | 2026-09-25 |
 | CI GitHub, lancement manuel | ✅ tests + APK arm64 déposé dans `release/` par la CI | 2026-09-25 |
 | `testDebugUnitTest` | ✅ **149 tests, 0 échec** (`BarcodeFormatsTest` : 8 tests sur les masques de symbologies et leur disjonction) | 2026-09-15 |

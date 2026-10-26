@@ -53,7 +53,8 @@ com.scanlist.app
 ├── domain
 │   ├── model       (Enums : ScanMode, FolderKind, MatchState… + ScanValue)
 │   ├── compare     (CompareEngine, CompareOutcome)
-│   ├── regex       (RegexRuleEngine : validation, extraction)
+│   ├── regex       (RegexRuleEngine : validation, extraction ;
+│   │                RegexSuggester : formules déduites d'exemples)      ✅ 2026-10-26
 │   ├── search      (FolderSearch : filtre casse + accents)              ✅ phase 6
 │   └── nfc         (NfcValue : choix NDEF/UID, decodage RTD_TEXT — pur, testable)
 ├── di              (AppModule : Room + DAO)
@@ -74,7 +75,8 @@ com.scanlist.app
 │   ├── scan        (CameraPreview [réticule à remplissage progressif],
 │   │                CameraPermissionGate, ScanViewModel, ScanScreens,
 │   │                OcrPanel [OcrControlPanel + BarcodeFilterPanel +
-│   │                RegexLibrarySheet, partagée], NfcScanSurface)       ✅ phases 4-5
+│   │                RegexLibrarySheet, partagée], RegexGeneratorSheet,
+│   │                NfcScanSurface)                                     ✅ phases 4-5
 │   ├── compare     (source, session, CompareSections partagées,
 │   │                CompareStartViewModel, CompareSessionViewModel)   ✅ phase 8
 │   └── settings    (EmailPrefsScreen)
@@ -344,6 +346,7 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
+| 2026-10-26 | **Générateur de formules regex à partir d'exemples, sans IA (décision 25).** Demandé par l'utilisateur, après étude d'une IA locale écartée (S25 absent de la liste Gemini Nano, modèle embarqué de plusieurs centaines de Mo et peu fiable sur les regex). Nouvelle classe pure `domain/regex/RegexSuggester.kt` : découpage de l'exemple en blocs (chiffres, majuscules, minuscules, caractères fixes), fusion de plusieurs exemples (longueurs en plage, casse mélangée → `[A-Za-z]`, structures différentes → `Incompatible`), puis cinq variantes dans l'ordre : `STRICT` (`\b\d[A-Z]{2}\d{3}\b` pour `1GH546`), `ANY_CASE`, `SEPARATORS` (`[ -]?` entre les blocs, plus tout séparateur `/ . _` vu dans l'exemple), `FIXED_PREFIX` (tout fixe sauf le dernier bloc, seulement si commun à tous les exemples), `FLEXIBLE` (`+`). `\b` posé uniquement du côté où le format commence ou finit par un chiffre ou une lettre (`\b#` ne reconnaîtrait plus `#123`). Garde-fous : toute proposition qui ne reconnaît pas chaque exemple est écartée, les doublons aussi, et les valeurs d'illustration (« Accepte aussi » / « Refuse ») ne sont montrées que si le moteur confirme ce qu'elles illustrent. Aucun texte dans le moteur : titres, commentaires et description du format (pluriels) sont dans `strings.xml`. Interface : `ui/scan/RegexGeneratorSheet.kt`, ouvert par un bouton (icône baguette) à côté du champ de formule dans `OcrControlPanel` et `BarcodeFilterPanel` ; un appui sur une proposition appelle `setPattern`, comme une saisie manuelle. 27 tests (`RegexSuggesterTest`), 180 au total, 0 échec, aucun avertissement. **Écran non vérifié sur émulateur** : session cloud sans KVM — à contrôler sur le Galaxy S25. | `contexte.md`, `outils.md`, `workflow.md` |
 | 2026-10-10 | **Nettoyage automatique du stockage GitHub Actions.** Demandé par l'utilisateur, le compte JRRocks ayant atteint 100 % de ses 0,5 Go de stockage Actions (quota commun à tous ses dépôts, facturé à l'heure). Nouveau workflow `nettoyage-actions.yml` (purge des artefacts plus vieux que N heures, run en cours épargné), appelé après chaque compilation et planifié chaque nuit — la planification ne s'active qu'une fois le fichier sur `main`. L'APK n'est plus publié en artefact quand il est déposé dans `release/` (doublon de ~40 Mo par run pendant 7 jours), rétention des artefacts restants ramenée à 1 jour. Ce dépôt ne portait aucun artefact ce jour-là : le quota est consommé par d'autres dépôts du compte. Script vérifié en local contre un `gh` simulé, workflows validés par `actionlint`. Aucun code de l'application modifié. | `outils.md`, `workflow.md` |
 | 2026-09-25 | **SuivieMAT devient une application distincte de ScanList (décision 23).** L'utilisateur a précisé que ScanList est une application indépendante qu'il garde en l'état : sous l'`applicationId` et le nom hérités du projet d'origine, les deux se seraient superposées sur un même téléphone. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (`app_name`), nom du projet Gradle → « SuivieMAT » (cosmétique). Le *namespace* Kotlin du code source reste `com.scanlist.app` : seul l'`applicationId` détermine l'identité Android, le renommer n'aurait rien apporté pour un chantier mécanique sur tout le code. Conséquence assumée : à l'installation, c'est une **application neuve** pour Android, sans lien avec un test antérieur fait sous l'ancien identifiant. 220 tests, 0 échec, `aapt2 dump badging` vérifié (`package='com.suiviemat.app'`, `application-label:'SuivieMAT'`). | `contexte.md`, `outils.md`, `plan-suivimat.md` |
 | 2026-09-25 | **APK de test compilé sur GitHub et déposé dans `release/`.** Demandé par l'utilisateur, sans ordinateur sous la main. Le push ne déclenche pas le workflow sur ce dépôt, mais le lancement manuel fonctionne (y compris depuis une session cloud). Le workflow dépose désormais l'APK dans `release/SuivieMAT-debug.apk` de la branche, avec commit source, date et SHA-256 (`release/SuivieMAT-debug.txt`), en arm64 seul (`-Papk.phoneOnly`) pour limiter le poids de l'historique. **Clé de debug versionnée** (`app/debug.keystore`) : sans elle, chaque runner signait avec une clé jetable et chaque APK de test aurait imposé une désinstallation, donc la perte des dossiers du téléphone. Passage unique : l'application installée avant depuis Android Studio doit être désinstallée une fois. Mode d'emploi : `release/LISEZMOI.md`. 205 tests, 0 échec, en local avant le push. | `outils.md`, `plan-suivimat.md` |
@@ -388,6 +391,9 @@ Ce qui est **réellement fonctionnel** dès maintenant :
   en direct des correspondances sur le flux caméra, texte brut lu consultable, choix du
   groupe capturant, bibliothèque de formules nommées, rechargement automatique de la
   dernière formule utilisée. La capture est **armée explicitement** — voir ci-dessous.
+- **Générateur de formules** *(2026-10-26, décision 25)* : à partir d'un ou plusieurs
+  exemples de valeur, jusqu'à cinq formules commentées et vérifiées, sans IA
+  (`RegexSuggester` + `RegexGeneratorSheet`), en OCR comme dans le filtre de conformité.
 - **Mode NFC/RFID** : lecture évènementielle via `NfcAdapter.enableReaderMode`, armée et
   désarmée sur le cycle de vie de l'écran, contenu NDEF texte préféré à l'UID matériel
   quand il existe, message de repli si l'appareil n'a pas de puce NFC ou si elle est
@@ -406,9 +412,9 @@ Ce qui est **réellement fonctionnel** dès maintenant :
   direct, génération dans le cache, envoi par Intent avec pièce jointe et destinataire
   pré-rempli, purge automatique des exports de plus de 24 h.
 - Écran de préférences d'envoi (destinataire, objet, message) persisté en DataStore.
-- `CsvCodec`, `RegexRuleEngine`, `CompareEngine`, `CompareCsvBuilder`, `ScanCsvBuilder`,
-  `ScanDebouncer`, `ScanConsensus`, `FolderSearch`, `ExportFileName` : **141 tests
-  unitaires, 0 échec**, `assembleDebug` sans avertissement.
+- `CsvCodec`, `RegexRuleEngine`, `RegexSuggester`, `CompareEngine`, `CompareCsvBuilder`,
+  `ScanCsvBuilder`, `ScanDebouncer`, `ScanConsensus`, `FolderSearch`, `ExportFileName` :
+  **180 tests unitaires, 0 échec** (2026-10-26), `assembleDebug` sans avertissement.
 
 > **Plus aucune coquille dans l'application.** Tous les écrans de la hiérarchie imposée
 > sont fonctionnels.

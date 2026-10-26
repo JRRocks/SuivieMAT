@@ -96,7 +96,8 @@ Installer sur un appareil branché :
 ```
 ui/          Compose : un écran = un composable + un ViewModel Hilt
 domain/      logique pure, testable sans Android (CompareEngine, RegexRuleEngine,
-             ScanValue, FolderSearch, NfcValue) — c'est là que vivent les tests
+             RegexSuggester, ScanValue, FolderSearch, NfcValue) — c'est là que
+             vivent les tests
 data/        Room (entités = modèles métier), DataStore, CsvCodec, repositories
 scanner/     CameraX + ML Kit + NFC, aucune dépendance à l'UI
 export/      écriture du .csv en cache + Intent de partage
@@ -211,9 +212,10 @@ simulés). Cette validation ne peut se faire que sur le Galaxy S25.
 
 Phases 0 à 8 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC/RFID
 ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre de conformité
-QR/code-barres), vérification par consensus contre les erreurs optiques, dossiers, export
-`.csv` par mail, fonction Comparer complète. **153 tests, 0 échec, aucun avertissement de
-compilation** (vérifié le 2026-09-25). Aucune coquille ne subsiste dans l'application.
+QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
+25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
+mail, fonction Comparer complète. **180 tests, 0 échec, aucun avertissement de
+compilation** (vérifié le 2026-10-26). Aucune coquille ne subsiste dans l'application.
 
 Restent les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
 `consignes/workflow.md`, qui fait foi.

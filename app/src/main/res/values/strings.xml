@@ -185,6 +185,56 @@
         <item>12.123456</item>
     </string-array>
 
+    <!-- Generateur de formules a partir d'exemples (RegexSuggester, sans IA), ouvert
+         depuis "Formule regex" (OCR) et "Filtre de conformité" (Code 2D, code-barres) -->
+    <string name="regex_generator_button">Générer une formule à partir d\'un exemple</string>
+    <string name="regex_generator_title">Générer une formule</string>
+    <string name="regex_generator_intro">Tape une valeur telle qu\'elle est imprimée sur l\'étiquette : plusieurs formules te sont proposées, de la plus stricte à la plus large. Touche celle qui te convient.</string>
+    <string name="regex_generator_input_label">Exemple de valeur</string>
+    <string name="regex_generator_input_hint">ex. 1GH546</string>
+    <string name="regex_generator_input_support">Plusieurs exemples ? Sépare-les par une virgule.</string>
+    <string name="regex_generator_incompatible">Ces exemples n\'ont pas le même format : aucune formule commune possible. Essaie avec un seul exemple.</string>
+    <string name="regex_generator_detected">Format détecté : %1$s</string>
+    <string name="regex_generator_also_accepts">Accepte aussi : %1$s</string>
+    <string name="regex_generator_rejects">Refuse : %1$s</string>
+
+    <string name="regex_generator_strict_title">Format exact</string>
+    <string name="regex_generator_strict_comment">Exactement ce format, rien de plus. Le choix le plus sûr contre les faux positifs.</string>
+    <string name="regex_generator_any_case_title">Majuscules ou minuscules</string>
+    <string name="regex_generator_any_case_comment">Même format, sans vérifier la casse des lettres. Utile si la lecture confond majuscules et minuscules.</string>
+    <string name="regex_generator_separators_title">Séparateurs tolérés</string>
+    <string name="regex_generator_separators_comment">Accepte entre les blocs un séparateur (espace, tiret…) ou rien du tout.</string>
+    <string name="regex_generator_fixed_prefix_title">Début fixe</string>
+    <string name="regex_generator_fixed_prefix_comment">Commence toujours par « %1$s » : seule la fin varie.</string>
+    <string name="regex_generator_flexible_title">Longueurs libres</string>
+    <string name="regex_generator_flexible_comment">Même enchaînement de blocs, quelle que soit leur longueur. Très large : risque de faux positifs.</string>
+
+    <!-- Description d'un bloc du format detecte, jointe par regex_generator_block_joiner -->
+    <plurals name="regex_generator_block_digit">
+        <item quantity="one">%d chiffre</item>
+        <item quantity="other">%d chiffres</item>
+    </plurals>
+    <plurals name="regex_generator_block_upper">
+        <item quantity="one">%d majuscule</item>
+        <item quantity="other">%d majuscules</item>
+    </plurals>
+    <plurals name="regex_generator_block_lower">
+        <item quantity="one">%d minuscule</item>
+        <item quantity="other">%d minuscules</item>
+    </plurals>
+    <plurals name="regex_generator_block_letter">
+        <item quantity="one">%d lettre</item>
+        <item quantity="other">%d lettres</item>
+    </plurals>
+    <string name="regex_generator_block_digit_range">%1$d à %2$d chiffres</string>
+    <string name="regex_generator_block_upper_range">%1$d à %2$d majuscules</string>
+    <string name="regex_generator_block_lower_range">%1$d à %2$d minuscules</string>
+    <string name="regex_generator_block_letter_range">%1$d à %2$d lettres</string>
+    <string name="regex_generator_block_literal">« %1$s »</string>
+    <string name="regex_generator_block_space">un espace</string>
+    <!-- Guillemets obligatoires : sans eux, l'espace de bord serait supprime. -->
+    <string name="regex_generator_block_joiner">", "</string>
+
     <!-- Communs -->
     <string name="action_back">Retour</string>
     <string name="action_cancel">Annuler</string>
