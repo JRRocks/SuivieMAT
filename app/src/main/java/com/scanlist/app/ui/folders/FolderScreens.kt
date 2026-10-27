@@ -1,28 +1,36 @@
 package com.scanlist.app.ui.folders
 
 import android.content.ActivityNotFoundException
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Compare
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.IosShare
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -33,6 +41,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,16 +53,25 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.scanlist.app.R
+import com.scanlist.app.data.db.entity.FolderSummary
 import com.scanlist.app.data.db.entity.ScanItemEntity
+import com.scanlist.app.domain.folders.ActivityMoment
+import com.scanlist.app.domain.folders.FolderPeriod
+import com.scanlist.app.domain.folders.FolderTimeline
 import com.scanlist.app.domain.model.FolderKind
 import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.ui.common.EmptyState
@@ -63,14 +81,22 @@ import com.scanlist.app.ui.common.MenuCard
 import com.scanlist.app.ui.common.PrimaryButton
 import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
+import com.scanlist.app.ui.common.SecondaryButton
+import com.scanlist.app.ui.common.SectionTitle
+import com.scanlist.app.ui.common.icon
 import com.scanlist.app.ui.theme.ScanValueTextStyle
 import java.text.SimpleDateFormat
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 
 private val ITEM_TIME_FORMAT = SimpleDateFormat("dd/MM HH:mm:ss", Locale.FRANCE)
 private val DAY_FORMAT = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
+private val DAY_MONTH_FORMAT = DateTimeFormatter.ofPattern("dd/MM", Locale.FRANCE)
+private val FULL_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.FRANCE)
 
 /**
  * Liste des dossiers existants, filtrable.
@@ -124,24 +150,44 @@ fun FolderListScreen(
                     title = stringResource(R.string.folders_no_match),
                 )
 
-                else -> LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    items(folders, key = { it.id }) { folder ->
-                        MenuCard(
-                            title = folder.name,
-                            subtitle = buildString {
-                                append(stringResource(R.string.folder_item_count, folder.itemCount))
-                                if (folder.kind == FolderKind.COMPARISON) {
-                                    append(" — ")
-                                    append(stringResource(R.string.folder_kind_comparison))
-                                }
-                            },
-                            icon = Icons.Default.Folder,
-                            onClick = { onFolderSelected(folder.id) },
-                        )
+                else -> {
+                    // Fige a chaque changement de la liste : un ecran reste ouvert sur
+                    // quelques minutes, pas sur un changement de jour.
+                    val now = remember(folders) { System.currentTimeMillis() }
+                    val zone = remember { ZoneId.systemDefault() }
+                    val groups = remember(folders, now) {
+                        FolderTimeline.group(folders, { it.updatedAt }, now, zone)
+                    }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    ) {
+                        groups.forEach { (period, inPeriod) ->
+                            item(key = "periode-" + period.name) {
+                                SectionTitle(
+                                    text = stringResource(period.label),
+                                    modifier = Modifier.padding(
+                                        start = 4.dp,
+                                        top = 20.dp,
+                                        bottom = 8.dp,
+                                    ),
+                                )
+                            }
+                            itemsIndexed(
+                                inPeriod,
+                                key = { _, folder -> folder.id },
+                            ) { index, folder ->
+                                FolderRow(
+                                    folder = folder,
+                                    moment = momentLabel(
+                                        FolderTimeline.momentOf(folder.updatedAt, now, zone),
+                                    ),
+                                    isFirst = index == 0,
+                                    isLast = index == inPeriod.lastIndex,
+                                    onClick = { onFolderSelected(folder.id) },
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -150,11 +196,120 @@ fun FolderListScreen(
 }
 
 /**
- * Actions disponibles sur un dossier : les trois entrees de la specification,
- * Consulter / Exporter en .csv / Reprendre le scan.
+ * Une ligne de la liste des dossiers : le mode en pictogramme, le nom, le mode et le
+ * moment de la derniere activite, le nombre d'elements a droite. Les lignes d'une meme
+ * periode forment une seule carte, arrondie a ses deux bouts.
+ */
+@Composable
+private fun FolderRow(
+    folder: FolderSummary,
+    moment: String,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onClick: () -> Unit,
+) {
+    val top = if (isFirst) 20.dp else 0.dp
+    val bottom = if (isLast) 20.dp else 0.dp
+    val shape = RoundedCornerShape(
+        topStart = top,
+        topEnd = top,
+        bottomStart = bottom,
+        bottomEnd = bottom,
+    )
+    val isComparison = folder.kind == FolderKind.COMPARISON
+    val countDescription = pluralStringResource(
+        R.plurals.folder_item_label,
+        folder.itemCount,
+    ).let { "${folder.itemCount} $it" }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 68.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                if (isComparison) {
+                    Icons.AutoMirrored.Filled.FactCheck
+                } else {
+                    folder.defaultScanMode.icon
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(26.dp),
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    folder.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    stringResource(
+                        R.string.folder_row_meta,
+                        if (isComparison) {
+                            stringResource(R.string.folder_kind_comparison_title)
+                        } else {
+                            folder.defaultScanMode.label
+                        },
+                        moment,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                folder.itemCount.toString(),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.semantics { contentDescription = countDescription },
+            )
+        }
+        if (!isLast) {
+            HorizontalDivider(
+                modifier = Modifier.padding(start = 56.dp),
+                color = MaterialTheme.colorScheme.outlineVariant,
+            )
+        }
+    }
+}
+
+private val FolderPeriod.label: Int
+    get() = when (this) {
+        FolderPeriod.TODAY -> R.string.folders_period_today
+        FolderPeriod.THIS_WEEK -> R.string.folders_period_week
+        FolderPeriod.OLDER -> R.string.folders_period_older
+    }
+
+@Composable
+private fun momentLabel(moment: ActivityMoment): String = when (moment) {
+    is ActivityMoment.Time -> stringResource(R.string.folder_when_time, moment.hour, moment.minute)
+    ActivityMoment.Yesterday -> stringResource(R.string.folder_when_yesterday)
+    is ActivityMoment.Weekday -> moment.day.getDisplayName(TextStyle.FULL, Locale.FRANCE)
+    is ActivityMoment.Day -> DAY_MONTH_FORMAT.format(moment.date)
+    is ActivityMoment.DayOfOtherYear -> FULL_DATE_FORMAT.format(moment.date)
+}
+
+/**
+ * Fiche d'un dossier : les trois entrees de la specification, Consulter / Exporter en
+ * .csv / Reprendre le scan, puis un apercu des dernieres valeurs.
  *
- * Renommer et supprimer sont relegues au menu de la barre : ce sont des operations
- * de maintenance, pas des etapes du flux de travail decrit dans la specification.
+ * Reprendre le scan est le bouton principal (etape 5 de la refonte, choix de
+ * l'utilisateur) : c'est le geste le plus frequent sur un dossier existant. Renommer et
+ * supprimer sont relegues au menu de la barre : ce sont des operations de maintenance,
+ * pas des etapes du flux de travail decrit dans la specification.
  */
 @Composable
 fun FolderActionsScreen(
@@ -166,6 +321,7 @@ fun FolderActionsScreen(
 ) {
     val folder by viewModel.folder.collectAsStateWithLifecycle()
     val count by viewModel.itemCount.collectAsStateWithLifecycle()
+    val items by viewModel.items.collectAsStateWithLifecycle()
 
     var renaming by remember { mutableStateOf(false) }
     var confirmingDelete by remember { mutableStateOf(false) }
@@ -194,26 +350,57 @@ fun FolderActionsScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            MenuCard(
-                title = stringResource(R.string.folder_action_consult),
-                subtitle = stringResource(R.string.folder_action_consult_desc),
-                icon = Icons.Default.Visibility,
-                onClick = onConsult,
-            )
-            MenuCard(
-                title = stringResource(R.string.folder_action_export),
-                subtitle = stringResource(R.string.folder_action_export_desc),
-                icon = Icons.Default.IosShare,
-                onClick = onExport,
-            )
-            MenuCard(
-                title = stringResource(R.string.folder_action_resume),
-                subtitle = stringResource(R.string.folder_action_resume_desc),
+            PrimaryButton(
+                text = stringResource(R.string.folder_action_resume),
                 icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                 onClick = onResume,
+                modifier = Modifier.fillMaxWidth(),
             )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Marges reduites : "Exporter en .csv" et son icone doivent tenir dans
+                // une demi-largeur de S25 sans etre tronques.
+                SecondaryButton(
+                    text = stringResource(R.string.folder_action_consult),
+                    icon = Icons.Default.Visibility,
+                    onClick = onConsult,
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.weight(1f),
+                )
+                SecondaryButton(
+                    text = stringResource(R.string.folder_action_export),
+                    icon = Icons.Default.IosShare,
+                    onClick = onExport,
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            if (items.isEmpty()) {
+                EmptyState(
+                    title = stringResource(R.string.folder_detail_empty),
+                    hint = stringResource(R.string.folder_detail_empty_hint),
+                )
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    SectionTitle(
+                        text = stringResource(R.string.folder_recent_values),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 4.dp),
+                    )
+                    TextButton(onClick = onConsult) {
+                        Text(stringResource(R.string.folder_see_all))
+                    }
+                }
+                RecentValues(items.take(RECENT_VALUES))
+            }
         }
     }
 
@@ -239,6 +426,41 @@ fun FolderActionsScreen(
             },
             onDismiss = { confirmingDelete = false },
         )
+    }
+}
+
+/** Nombre de valeurs montrees sur la fiche ; le reste est dans Consulter. */
+private const val RECENT_VALUES = 5
+
+/** Apercu des dernieres valeurs lues, la plus recente en tete, en lecture seule. */
+@Composable
+private fun RecentValues(items: List<ScanItemEntity>) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 1.dp,
+    ) {
+        Column {
+            items.forEachIndexed { index, item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp)
+                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(item.value, style = ScanValueTextStyle, modifier = Modifier.weight(1f))
+                    Text(
+                        ITEM_TIME_FORMAT.format(Date(item.scannedAt)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (index < items.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                }
+            }
+        }
     }
 }
 

@@ -32,15 +32,20 @@
     <string name="folders_empty">Aucun dossier pour le moment.</string>
     <string name="folders_empty_hint">Lance un nouveau scan pour créer ta première liste.</string>
     <string name="folder_action_consult">Consulter</string>
-    <string name="folder_action_consult_desc">Voir le détail de la liste</string>
     <string name="folder_action_export">Exporter en .csv</string>
-    <string name="folder_action_export_desc">Nom du fichier et préférences d\'envoi</string>
     <string name="folder_action_resume">Reprendre le scan</string>
-    <string name="folder_action_resume_desc">Incrémenter cette liste existante</string>
     <string name="folder_launch_compare">Lancer la fonction Comparer</string>
-    <string name="folder_item_count">%1$d élément(s)</string>
-    <string name="folder_kind_comparison">comparaison</string>
     <string name="folders_search">Rechercher un dossier</string>
+    <!-- Liste rangée par période d'activité (étape 5 de la refonte) -->
+    <string name="folders_period_today">Aujourd\'hui</string>
+    <string name="folders_period_week">Cette semaine</string>
+    <string name="folders_period_older">Plus ancien</string>
+    <string name="folder_row_meta">%1$s · %2$s</string>
+    <string name="folder_kind_comparison_title">Comparaison</string>
+    <string name="folder_when_time">%1$02d:%2$02d</string>
+    <string name="folder_when_yesterday">hier</string>
+    <string name="folder_recent_values">Dernières valeurs</string>
+    <string name="folder_see_all">Tout voir</string>
     <string name="folders_no_match">Aucun dossier ne correspond à cette recherche.</string>
     <string name="folder_rename">Renommer le dossier</string>
     <string name="folder_new_name">Nouveau nom</string>
