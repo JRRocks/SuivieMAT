@@ -146,6 +146,8 @@
     <!-- Scan -->
     <string name="scan_permission_required">L\'accès à la caméra est nécessaire pour scanner.</string>
     <string name="scan_permission_grant">Autoriser la caméra</string>
+    <string name="scan_permission_blocked">L\'accès à la caméra a été refusé. Autorise-le dans les réglages de l\'application, rubrique Autorisations.</string>
+    <string name="scan_permission_settings">Ouvrir les réglages</string>
     <string name="scan_duplicate">Déjà présent dans ce dossier</string>
     <string name="scan_torch_on">Allumer la lampe</string>
     <string name="scan_torch_off">Éteindre la lampe</string>

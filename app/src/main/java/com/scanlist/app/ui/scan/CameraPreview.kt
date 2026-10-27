@@ -1,6 +1,8 @@
 package com.scanlist.app.ui.scan
 
 import android.util.Size
+import android.view.OrientationEventListener
+import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -17,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -30,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.common.util.concurrent.ListenableFuture
 import com.scanlist.app.domain.model.ScanMode
+import com.scanlist.app.scanner.AnalysisRotation
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -88,6 +92,8 @@ fun CameraPreview(
     }
     val executor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
     var camera by remember { mutableStateOf<Camera?>(null) }
+    var imageAnalysis by remember { mutableStateOf<ImageAnalysis?>(null) }
+    var analysisRotation by remember { mutableIntStateOf(Surface.ROTATION_0) }
     // Conserve pour la liberation : appeler getInstance().get() depuis onDispose
     // bloquerait le thread principal si l'ecran est quitte avant l'ouverture.
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
@@ -114,11 +120,13 @@ fun CameraPreview(
         val preview = Preview.Builder().build()
         preview.setSurfaceProvider(previewView.surfaceProvider)
 
-        val imageAnalysis = ImageAnalysis.Builder()
+        val analysis = ImageAnalysis.Builder()
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setResolutionSelector(resolution)
+            .setTargetRotation(analysisRotation)
             .build()
-        imageAnalysis.setAnalyzer(executor, analyzer)
+        analysis.setAnalyzer(executor, analyzer)
+        imageAnalysis = analysis
 
         try {
             provider.unbindAll()
@@ -126,11 +134,30 @@ fun CameraPreview(
                 lifecycleOwner,
                 CameraSelector.DEFAULT_BACK_CAMERA,
                 preview,
-                imageAnalysis,
+                analysis,
             )
         } catch (e: Exception) {
             onError(e.message ?: "Impossible d'ouvrir la camera")
         }
+    }
+
+    // L'ecran reste en portrait, mais l'operateur tourne le telephone pour lire une
+    // etiquette en long (numero grave le long d'une carcasse, etiquette de rayonnage) :
+    // sans l'orientation physique, ML Kit recoit un texte couche et l'OCR ne lit rien.
+    // Seule l'analyse suit le telephone ; l'apercu, lui, reste celui de l'ecran.
+    DisposableEffect(context) {
+        val listener = object : OrientationEventListener(context) {
+            override fun onOrientationChanged(orientation: Int) {
+                if (orientation == ORIENTATION_UNKNOWN) return
+                analysisRotation = AnalysisRotation.fromOrientation(orientation)
+            }
+        }
+        listener.enable()
+        onDispose { listener.disable() }
+    }
+
+    LaunchedEffect(imageAnalysis, analysisRotation) {
+        imageAnalysis?.targetRotation = analysisRotation
     }
 
     LaunchedEffect(camera, torchEnabled) {

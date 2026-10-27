@@ -242,11 +242,13 @@ simulés). Cette validation ne peut se faire que sur le Galaxy S25.
 
 ## État d'avancement
 
-Phases 0 à 8 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC/RFID
+Phases 0 à 9 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC/RFID
 ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre de conformité
 QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
 25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
-mail, fonction Comparer complète. **199 tests, 0 échec, aucun avertissement de
+mail, fonction Comparer complète, finitions de la phase 9 (permission caméra bloquée,
+rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **204 tests,
+0 échec, aucun avertissement de
 compilation** (vérifié le 2026-10-27). Aucune coquille ne subsiste dans l'application.
 
 **Refonte de l'interface terminée** (décision 27, phase 11 de `workflow.md`, non vérifiée
@@ -267,7 +269,7 @@ l'en-tête (`headerTrailing` / `headerBottom`), boutons via `PrimaryButton` /
 `SecondaryButton`, valeurs en `ScanValueTextStyle`, formules en `PatternTextStyle`,
 feuilles via `SheetHeader` / `SheetActionBar` / `ChoiceRow` (`ui/scan/FormulaSheetParts.kt`).
 
-Restent aussi les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
+Reste la phase 10 (test terrain sur le S25) — voir le tableau § 6 de
 `consignes/workflow.md`, qui fait foi.
 
 > **Avant toute distribution aux magasiniers**, dérouler la liste du § 0 de

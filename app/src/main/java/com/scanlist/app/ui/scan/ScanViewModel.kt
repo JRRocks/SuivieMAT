@@ -234,7 +234,7 @@ class ScanViewModel @Inject constructor(
      * (voir `NfcScanSurface`, pilote par `NfcAdapter.enableReaderMode`).
      */
     val analyzer: ImageAnalysis.Analyzer? = when (mode) {
-        ScanMode.OCR -> OcrAnalyzer(::onTextRecognized)
+        ScanMode.OCR -> OcrAnalyzer(isActive = { capturingState.value }, ::onTextRecognized)
         ScanMode.QR_CODE, ScanMode.BARCODE -> BarcodeAnalyzer(mode, ::onCodesDetected)
         ScanMode.NFC -> null
     }

@@ -13,16 +13,19 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
  * Reconnaissance de texte sur le flux camera.
  *
  * L'analyseur ne fait que lire : il remonte le texte brut et laisse l'appelant lui
- * appliquer la formule regex active. Deux raisons a ce decoupage :
+ * appliquer la formule regex active. La formule change pendant que la camera tourne —
+ * l'utilisateur la tape en direct ; la garder hors de l'analyseur evite de le
+ * reconstruire a chaque frappe.
  *
- * 1. La formule change pendant que la camera tourne — l'utilisateur la tape en direct.
- *    La garder hors de l'analyseur evite de le reconstruire a chaque frappe.
- * 2. Le texte brut est necessaire a l'ecran de reglage : sans lui, impossible de savoir
- *    quoi ecrire dans la formule.
+ * Tant que [isActive] est faux (capture desarmee, decision 12), aucune image n'est
+ * lue : le texte serait jete (plus d'apercu en direct depuis la decision 26), et la
+ * reconnaissance sur chaque image chauffe le telephone et vide la batterie pendant
+ * qu'on tape la formule ou qu'on se deplace entre deux etageres.
  *
  * Modele latin embarque dans l'APK : aucun telechargement, fonctionne hors-ligne.
  */
 class OcrAnalyzer(
+    private val isActive: () -> Boolean,
     private val onTextRecognized: (String) -> Unit,
 ) : ImageAnalysis.Analyzer {
 
@@ -32,7 +35,7 @@ class OcrAnalyzer(
     @OptIn(ExperimentalGetImage::class)
     override fun analyze(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image
-        if (mediaImage == null) {
+        if (mediaImage == null || !isActive()) {
             imageProxy.close()
             return
         }
