@@ -311,6 +311,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), barre de navigation (décision 28) | ✅ **180 tests, 0 échec**, sans avertissement ; `versionName` 1.2 ; APK arm64 déposé dans `release/` par la session | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), refonte style « Bleu de travail » (décision 27) | ✅ **180 tests, 0 échec**, sans avertissement ; `versionName` 1.1 ; APK arm64 38 Mo **déposé dans `release/` par la session** (la CI n'a plus de minutes jusqu'au 1er novembre) | 2026-10-26 |
 | Nouvelle interface à l'écran | ⬜ **Non vérifiée** — pas d'émulateur dans la session cloud (pas de `/dev/kvm`). À contrôler sur le Galaxy S25, thème clair et sombre | 2026-10-26 |
 | `testDebugUnitTest` + `assembleDebug` (session cloud), générateur de formules (décision 25) | ✅ **180 tests, 0 échec** (27 nouveaux dans `RegexSuggesterTest`), sans avertissement ; APK debug 55 Mo, **aucune dépendance ajoutée** | 2026-10-26 |

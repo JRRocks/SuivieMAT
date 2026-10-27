@@ -2,18 +2,28 @@ package com.scanlist.app.ui.navigation
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.scanlist.app.R
 import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.ui.common.LocalSnackbarHostState
 import com.scanlist.app.ui.compare.CompareScanModeScreen
@@ -25,39 +35,74 @@ import com.scanlist.app.ui.folders.FolderDetailScreen
 import com.scanlist.app.ui.folders.FolderExportScreen
 import com.scanlist.app.ui.folders.FolderListScreen
 import com.scanlist.app.ui.folders.FolderResumeModeScreen
-import com.scanlist.app.ui.menu.MainMenuScreen
 import com.scanlist.app.ui.scan.NewScanModeScreen
 import com.scanlist.app.ui.scan.ScanScreen
 import com.scanlist.app.ui.settings.EmailPrefsScreen
 
 /**
- * Graphe de navigation.
+ * Graphe de navigation, sous la barre de navigation du bas.
  *
- * Chaque destination correspond a une entree exacte de la hierarchie de menus
- * specifiee ; voir [Routes] pour la correspondance ligne a ligne.
+ * Depuis la decision 28, les trois branches du menu principal sont des onglets et
+ * l'application s'ouvre sur Nouveau scan.
  */
 @Composable
 fun ScanListNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentTab = TopLevelDestination.fromRoute(backStackEntry?.destination?.route)
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                // La barre absorbe deja la hauteur de la barre systeme : sans cela,
+                // chaque ecran racine la compterait une seconde fois au-dessus d'elle.
+                .then(
+                    if (currentTab != null) {
+                        Modifier.consumeWindowInsets(WindowInsets.navigationBars)
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            ScanListGraph(navController)
+        }
+
+        if (currentTab != null) {
+            MainNavigationBar(
+                current = currentTab,
+                onSelect = { destination ->
+                    // Comportement standard d'Android : un onglet n'empile pas d'ecrans,
+                    // le retour systeme ramene a Nouveau scan puis quitte l'application.
+                    navController.navigate(destination.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+            )
+        }
+    }
+}
+
+/**
+ * Les destinations, une par entree de la hierarchie de menus ; voir [Routes] pour la
+ * correspondance ligne a ligne.
+ */
+@Composable
+private fun ScanListGraph(navController: NavHostController) {
     // Fourni par MainActivity : un seul hote de snackbar pour tout le graphe.
     val snackbarHostState = LocalSnackbarHostState.current
 
-    NavHost(navController = navController, startDestination = Routes.MENU) {
-
-        // ------------------------------------------------------- Menu principal
-        composable(Routes.MENU) {
-            MainMenuScreen(
-                onFolders = { navController.navigate(Routes.FOLDERS) },
-                onCompare = { navController.navigate(Routes.COMPARE_SOURCE) },
-                onNewScan = { navController.navigate(Routes.NEW_SCAN_MODE) },
-            )
-        }
+    NavHost(navController = navController, startDestination = Routes.NEW_SCAN_MODE) {
 
         // ----------------------------------------------------- Branche Dossiers
         composable(Routes.FOLDERS) {
             FolderListScreen(
-                onBack = navController::popBackStack,
+                subtitle = stringResource(R.string.menu_folders_subtitle),
                 onFolderSelected = { navController.navigate(Routes.folderActions(it)) },
             )
         }
@@ -141,7 +186,6 @@ fun ScanListNavHost(
             }
 
             CompareSourceScreen(
-                onBack = navController::popBackStack,
                 onFromFolder = { navController.navigate(Routes.COMPARE_PICK_FOLDER) },
                 onFromCsv = {
                     // text/comma-separated-values et text/plain couvrent les exports
@@ -156,6 +200,7 @@ fun ScanListNavHost(
         composable(Routes.COMPARE_PICK_FOLDER) {
             val viewModel: CompareStartViewModel = hiltViewModel()
             FolderListScreen(
+                subtitle = stringResource(R.string.compare_source_folder_desc),
                 onBack = navController::popBackStack,
                 onFolderSelected = { folderId ->
                     viewModel.createFromFolder(folderId) { sessionId ->
@@ -189,10 +234,9 @@ fun ScanListNavHost(
             )
         }
 
-        // ------------------------------------------------- Branche Nouveau scan
+        // ------------------------------- Branche Nouveau scan (ecran d'ouverture)
         composable(Routes.NEW_SCAN_MODE) {
             NewScanModeScreen(
-                onBack = navController::popBackStack,
                 onModeSelected = { mode -> navController.navigate(Routes.scanNew(mode)) },
             )
         }

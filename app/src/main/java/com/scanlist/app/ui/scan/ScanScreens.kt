@@ -67,16 +67,19 @@ private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
  */
 private const val BANNER_DURATION_MS = 0L
 
-/** Nouveau scan : choix OCR / Code 2D / Code-barres / NFC. */
+/**
+ * Onglet Nouveau scan : choix OCR / Code 2D / Code-barres / NFC.
+ *
+ * C'est l'ecran d'ouverture de l'application (decision 28) : le geste de tous les jours
+ * est a un appui du lancement.
+ */
 @Composable
 fun NewScanModeScreen(
-    onBack: () -> Unit,
     onModeSelected: (ScanMode) -> Unit,
 ) {
     ScanListScaffold(
         title = stringResource(R.string.menu_new_scan),
         subtitle = stringResource(R.string.choose_scan_mode),
-        onBack = onBack,
     ) { padding ->
         ScanModePicker(
             onModeSelected = onModeSelected,

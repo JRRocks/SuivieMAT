@@ -72,18 +72,28 @@ import kotlinx.coroutines.launch
 private val ITEM_TIME_FORMAT = SimpleDateFormat("dd/MM HH:mm:ss", Locale.FRANCE)
 private val DAY_FORMAT = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
 
-/** Menu Dossiers : liste des dossiers existants, filtrable. */
+/**
+ * Liste des dossiers existants, filtrable.
+ *
+ * Deux usages : l'onglet Dossiers de la barre de navigation, sans fleche de retour, et
+ * le choix de la liste de reference d'une comparaison, qui en a une.
+ */
 @Composable
 fun FolderListScreen(
-    onBack: () -> Unit,
+    subtitle: String,
     onFolderSelected: (Long) -> Unit,
+    onBack: (() -> Unit)? = null,
     viewModel: FolderListViewModel = hiltViewModel(),
 ) {
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
     val hasAnyFolder by viewModel.hasAnyFolder.collectAsStateWithLifecycle()
 
-    ScanListScaffold(title = stringResource(R.string.folders_title), onBack = onBack) { padding ->
+    ScanListScaffold(
+        title = stringResource(R.string.folders_title),
+        subtitle = subtitle,
+        onBack = onBack,
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()

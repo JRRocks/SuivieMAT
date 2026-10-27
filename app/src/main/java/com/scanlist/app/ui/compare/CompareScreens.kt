@@ -39,17 +39,15 @@ import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
 import com.scanlist.app.ui.common.SecondaryButton
 
-/** Comparer : choix de la source de la liste de reference. */
+/** Onglet Comparer : choix de la source de la liste de reference. */
 @Composable
 fun CompareSourceScreen(
-    onBack: () -> Unit,
     onFromFolder: () -> Unit,
     onFromCsv: () -> Unit,
 ) {
     ScanListScaffold(
         title = stringResource(R.string.compare_title),
         subtitle = stringResource(R.string.compare_source),
-        onBack = onBack,
     ) { padding ->
         Column(
             modifier = Modifier

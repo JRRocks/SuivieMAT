@@ -5,24 +5,24 @@ import com.scanlist.app.domain.model.ScanMode
 /**
  * Routes de navigation.
  *
- * Transcription stricte de la hierarchie de menus specifiee par l'utilisateur :
+ * Transcription de la hierarchie de menus specifiee par l'utilisateur. Depuis la
+ * decision 28, le niveau MENU PRINCIPAL est porte par la barre de navigation du bas :
+ * ses trois branches en sont les onglets, et l'application s'ouvre sur Nouveau scan.
  *
  * ```
- * MENU PRINCIPAL
+ * BARRE DE NAVIGATION
  * |- DOSSIERS (liste deroulante)
  * |   |- Consulter -> Lancer la fonction Comparer
  * |   |- Exporter en .csv -> nom du fichier / preferences d'envoi
  * |   |- Reprendre le scan -> OCR | Code 2D | Code-barres | NFC/RFID
  * |- COMPARER
- * |   |- Depuis un dossier local -> Lancer le scan (OCR | QR | Code-barres | NFC/RFID)
- * |   |- Depuis un import .csv   -> Lancer le scan (OCR | QR | Code-barres | NFC/RFID)
- * |- NOUVEAU SCAN
+ * |   |- Depuis un dossier local -> Lancer le scan (OCR | Code 2D | Code-barres | NFC/RFID)
+ * |   |- Depuis un import .csv   -> Lancer le scan (OCR | Code 2D | Code-barres | NFC/RFID)
+ * |- NOUVEAU SCAN (ecran d'ouverture)
  *     |- OCR | Code 2D | Code-barres | NFC/RFID
  * ```
  */
 object Routes {
-
-    const val MENU = "menu"
 
     // --- Branche Dossiers ---
     const val FOLDERS = "folders"

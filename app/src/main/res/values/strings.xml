@@ -2,14 +2,11 @@
 <resources>
     <string name="app_name">SuivieMAT</string>
 
-    <!-- Menu principal -->
-    <string name="menu_title">Menu principal</string>
+    <!-- Onglets de la barre de navigation (décision 28 : ils remplacent le menu principal) -->
     <string name="menu_folders">Dossiers</string>
     <string name="menu_folders_subtitle">Consulter, exporter ou reprendre un scan</string>
     <string name="menu_compare">Comparer</string>
-    <string name="menu_compare_subtitle">Contrôler le matériel face à une liste de référence</string>
     <string name="menu_new_scan">Nouveau scan</string>
-    <string name="menu_new_scan_subtitle">Démarrer une nouvelle liste</string>
 
     <!-- Modes de scan -->
     <string name="mode_ocr">OCR</string>
