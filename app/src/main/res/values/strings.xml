@@ -135,6 +135,9 @@
 
     <!-- Préférences d'envoi -->
     <string name="settings_email_title">Préférences d\'envoi</string>
+    <!-- Objet et message proposes tant que l'utilisateur n'en a pas enregistre d'autres -->
+    <string name="export_default_subject">Export SuivieMAT</string>
+    <string name="export_default_body">Liste exportée depuis SuivieMAT.</string>
     <string name="settings_email_recipient">Destinataire par défaut</string>
     <string name="settings_email_subject">Objet par défaut</string>
     <string name="settings_email_body">Message par défaut</string>
@@ -187,6 +190,8 @@
     <string name="ocr_library_hint">Enregistre ta formule pour la retrouver au prochain inventaire.</string>
     <string name="ocr_save">Enregistrer cette formule</string>
     <string name="ocr_save_name">Nom de la formule</string>
+    <string name="ocr_save_current">Enregistrer la formule actuelle</string>
+    <string name="ocr_apply">Appliquer</string>
     <string name="ocr_delete_rule">Supprimer la formule</string>
     <string name="ocr_active">Active</string>
     <string name="ocr_saved_notice">Formule enregistrée</string>
@@ -244,6 +249,7 @@
     <string name="regex_generator_detected">Format détecté : %1$s</string>
     <string name="regex_generator_also_accepts">Accepte aussi : %1$s</string>
     <string name="regex_generator_rejects">Refuse : %1$s</string>
+    <string name="regex_generator_use">Utiliser cette formule</string>
 
     <string name="regex_generator_strict_title">Format exact</string>
     <string name="regex_generator_strict_comment">Exactement ce format, rien de plus. Le choix le plus sûr contre les faux positifs.</string>

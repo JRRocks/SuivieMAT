@@ -249,7 +249,8 @@ QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA
 mail, fonction Comparer complète. **199 tests, 0 échec, aucun avertissement de
 compilation** (vérifié le 2026-10-27). Aucune coquille ne subsiste dans l'application.
 
-**Refonte de l'interface en cours** (décision 27, phase 11 de `workflow.md`) : style
+**Refonte de l'interface terminée** (décision 27, phase 11 de `workflow.md`, non vérifiée
+sur téléphone) : style
 « Bleu de travail » appliqué à tous les écrans (étape 1/7), puis le menu principal
 remplacé par une **barre de navigation** en bas (Dossiers · Comparer · Nouveau scan),
 l'application s'ouvrant sur Nouveau scan (étape 2/7, décision 28), et le choix du
@@ -257,11 +258,14 @@ mode présenté par échantillon d'étiquette dessiné (étape 3/7), et l'écran
 caméra pleine hauteur avec tiroir des résultats et formule en pastille (étape 4/7,
 décision 29), puis les dossiers rangés par date avec une fiche centrée sur « Reprendre
 le scan » (étape 5/7), et l'onglet Comparer en liste par date portant l'avancement des
-comparaisons, enfin reprenables (étape 6/7, décision 30). Chaque étape propose cinq
-variantes à l'utilisateur sur le canevas de maquettes. Conventions du
+comparaisons, enfin reprenables (étape 6/7, décision 30), enfin les fenêtres de
+formules où l'on coche avant de valider par un seul bouton (étape 7/7, décision 31).
+Chaque étape a proposé cinq variantes à l'utilisateur sur le canevas de maquettes.
+Conventions du
 style : en-tête bleu via `ScanListScaffold` (jamais de `TopAppBar`), compteur dans
 l'en-tête (`headerTrailing` / `headerBottom`), boutons via `PrimaryButton` /
-`SecondaryButton`, valeurs en `ScanValueTextStyle`, formules en `PatternTextStyle`.
+`SecondaryButton`, valeurs en `ScanValueTextStyle`, formules en `PatternTextStyle`,
+feuilles via `SheetHeader` / `SheetActionBar` / `ChoiceRow` (`ui/scan/FormulaSheetParts.kt`).
 
 Restent aussi les phases 9 (finitions) et 10 (test terrain sur le S25) — voir le tableau § 6 de
 `consignes/workflow.md`, qui fait foi.

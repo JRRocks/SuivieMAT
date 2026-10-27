@@ -6,22 +6,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,6 +36,7 @@ import com.scanlist.app.R
 import com.scanlist.app.domain.regex.RegexSuggester
 import com.scanlist.app.domain.regex.RegexSuggester.BlockType
 import com.scanlist.app.domain.regex.RegexSuggester.Kind
+import com.scanlist.app.ui.common.PrimaryButton
 import com.scanlist.app.ui.theme.PatternTextStyle
 import com.scanlist.app.ui.theme.ValueFontFamily
 import com.scanlist.app.ui.theme.compareColors
@@ -44,35 +45,39 @@ import com.scanlist.app.ui.theme.compareColors
  * Generateur de formules a partir d'exemples ([RegexSuggester], sans IA).
  *
  * Le calcul est instantane : il est refait a chaque frappe, sans ViewModel ni
- * coroutine. La formule choisie suit le meme chemin qu'une formule tapee a la main
- * ([onApply] = `setPattern`) : en OCR, elle desarme donc la capture comme toute
- * modification (decision 12).
+ * coroutine. On coche une proposition, son detail se deplie, puis « Utiliser cette
+ * formule » l'applique (etape 7 de la refonte, variante C). La formule choisie suit le
+ * meme chemin qu'une formule tapee a la main ([onApply] = `setPattern`) : en OCR, elle
+ * desarme donc la capture comme toute modification (decision 12).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegexGeneratorSheet(onApply: (String) -> Unit, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val close = sheetCloser(sheetState, onDismiss)
     var input by remember { mutableStateOf("") }
     val result = remember(input) { RegexSuggester.suggest(input) }
+    // Une nouvelle saisie change les propositions : la plus stricte redevient le choix.
+    var selected by remember(result) { mutableIntStateOf(0) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        SheetHeader(title = stringResource(R.string.regex_generator_title), onClose = close)
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 560.dp)
+                .weight(1f, fill = false)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
+                .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                stringResource(R.string.regex_generator_title),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                stringResource(R.string.regex_generator_intro),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            // Le mode d'emploi s'efface des la premiere frappe : les propositions ont
+            // besoin de la place.
+            if (result is RegexSuggester.Result.Empty) {
+                Text(
+                    stringResource(R.string.regex_generator_intro),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
 
             OutlinedTextField(
                 value = input,
@@ -104,65 +109,79 @@ fun RegexGeneratorSheet(onApply: (String) -> Unit, onDismiss: () -> Unit) {
 
                 is RegexSuggester.Result.Found -> {
                     Text(
-                        stringResource(R.string.regex_generator_detected, formatDescription(result.blocks)),
+                        stringResource(
+                            R.string.regex_generator_detected,
+                            formatDescription(result.blocks),
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    result.suggestions.forEach { suggestion ->
-                        SuggestionCard(
-                            suggestion = suggestion,
-                            onClick = {
-                                onApply(suggestion.pattern)
-                                onDismiss()
-                            },
-                        )
+                    ChoiceList {
+                        result.suggestions.forEachIndexed { index, suggestion ->
+                            if (index > 0) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            }
+                            SuggestionRow(
+                                suggestion = suggestion,
+                                selected = index == selected,
+                                onSelect = { selected = index },
+                            )
+                        }
                     }
                 }
             }
+        }
 
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_close))
+        if (result is RegexSuggester.Result.Found) {
+            SheetActionBar {
+                PrimaryButton(
+                    text = stringResource(R.string.regex_generator_use),
+                    icon = Icons.Default.Check,
+                    onClick = {
+                        result.suggestions.getOrNull(selected)?.let { onApply(it.pattern) }
+                        close()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
 }
 
 /**
- * Une proposition : son nom, la formule, ce qu'elle fait, puis une valeur concrete
- * qu'elle accepte ou refuse en plus de la formule stricte. Meme vert et meme rouge
- * que l'aide-memoire, eux-memes repris de la fonction Comparer.
+ * Une proposition : son nom et la formule ; une fois cochee, ce qu'elle fait et une
+ * valeur concrete qu'elle accepte ou refuse en plus de la formule stricte. Meme vert et
+ * meme rouge que l'aide-memoire, eux-memes repris de la fonction Comparer.
  */
 @Composable
-private fun SuggestionCard(suggestion: RegexSuggester.Suggestion, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                stringResource(titleOf(suggestion.kind)),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                suggestion.pattern,
-                style = MaterialTheme.typography.bodyMedium,
-                fontFamily = ValueFontFamily,
-                color = MaterialTheme.colorScheme.primary,
-            )
+private fun SuggestionRow(
+    suggestion: RegexSuggester.Suggestion,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    ChoiceRow(selected = selected, onSelect = onSelect) {
+        Text(
+            stringResource(titleOf(suggestion.kind)),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            suggestion.pattern,
+            style = MaterialTheme.typography.bodyMedium,
+            fontFamily = ValueFontFamily,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        if (selected) {
             Text(
                 commentOf(suggestion),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             suggestion.alsoAccepts?.let {
-                IllustrationLine(stringResource(R.string.regex_generator_also_accepts, it), accepted = true)
+                IllustrationLine(
+                    stringResource(R.string.regex_generator_also_accepts, it),
+                    accepted = true,
+                )
             }
             suggestion.rejects?.let {
                 IllustrationLine(stringResource(R.string.regex_generator_rejects, it), accepted = false)

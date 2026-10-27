@@ -2,9 +2,11 @@ package com.scanlist.app.ui.scan
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -17,29 +19,32 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.Bookmarks
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -74,6 +79,7 @@ import com.scanlist.app.data.db.entity.RegexRuleEntity
 import com.scanlist.app.domain.regex.RegexRuleEngine
 import com.scanlist.app.ui.common.LocalSnackbarHostState
 import com.scanlist.app.ui.common.PrimaryButton
+import com.scanlist.app.ui.common.SecondaryButton
 import com.scanlist.app.ui.theme.PatternTextStyle
 import com.scanlist.app.ui.theme.ValueFontFamily
 import com.scanlist.app.ui.theme.compareColors
@@ -420,7 +426,11 @@ private fun RegexToolButton(
  * Bibliotheque des formules enregistrees.
  *
  * Triee par usage recent : la formule du dernier inventaire est en tete, ce qui est
- * presque toujours celle qu'on veut reprendre.
+ * presque toujours celle qu'on veut reprendre. On coche, puis « Appliquer » (etape 7 de
+ * la refonte, variante C) ; la formule en service est cochee d'office, et la reappliquer
+ * ne ferait que desarmer la capture : le bouton reste grise tant qu'on n'en a pas
+ * coche une autre. La suppression passe par le menu de la ligne, a l'abri d'un appui
+ * de travers.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -435,30 +445,29 @@ fun RegexLibrarySheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var name by remember { mutableStateOf("") }
+    val close = sheetCloser(sheetState, onDismiss)
+    var selectedId by remember { mutableStateOf(activeRuleId) }
     var showHelp by remember { mutableStateOf(false) }
+    var naming by remember { mutableStateOf(false) }
+    val selected = rules.firstOrNull { it.id == selectedId }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        SheetHeader(title = stringResource(R.string.ocr_library), onClose = close) {
+            IconButton(onClick = { showHelp = true }) {
+                Icon(
+                    Icons.AutoMirrored.Filled.HelpOutline,
+                    contentDescription = stringResource(R.string.regex_help_button),
+                )
+            }
+        }
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp),
+                .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    stringResource(R.string.ocr_library),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                RegexHelpButton(onClick = { showHelp = true })
-            }
-
-            if (showHelp) {
-                RegexHelpSheet(onDismiss = { showHelp = false })
-            }
-
             if (rules.isEmpty()) {
                 Text(
                     stringResource(R.string.ocr_library_empty),
@@ -471,104 +480,151 @@ fun RegexLibrarySheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
-                rules.forEach { rule ->
-                    ListItem(
-                        headlineContent = { Text(rule.name) },
-                        supportingContent = {
-                            Text(rule.pattern, fontFamily = ValueFontFamily)
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (rule.id == activeRuleId) {
-                                    Text(
-                                        stringResource(R.string.ocr_active),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
-                                }
-                                IconButton(onClick = { onDelete(rule) }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = stringResource(
-                                            R.string.ocr_delete_rule,
-                                        ),
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onApply(rule)
-                                onDismiss()
+                ChoiceList {
+                    rules.forEachIndexed { index, rule ->
+                        if (index > 0) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                        ChoiceRow(
+                            selected = rule.id == selectedId,
+                            onSelect = { selectedId = rule.id },
+                            trailing = {
+                                if (rule.id == activeRuleId) ActiveBadge()
+                                RuleMenu(onDelete = { onDelete(rule) })
                             },
-                    )
-                    HorizontalDivider()
+                        ) {
+                            Text(
+                                rule.name,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                rule.pattern,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontFamily = ValueFontFamily,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                 }
             }
 
             if (canSave) {
-                Text(
-                    stringResource(R.string.ocr_save),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = 8.dp),
+                SecondaryButton(
+                    text = stringResource(R.string.ocr_save_current),
+                    icon = Icons.Default.BookmarkAdd,
+                    onClick = { naming = true },
+                    modifier = Modifier.fillMaxWidth(),
                 )
+            }
+        }
+
+        if (rules.isNotEmpty()) {
+            SheetActionBar {
+                PrimaryButton(
+                    text = stringResource(R.string.ocr_apply),
+                    icon = Icons.Default.Check,
+                    onClick = {
+                        selected?.let(onApply)
+                        close()
+                    },
+                    enabled = selected != null && selected.id != activeRuleId,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+    }
+
+    if (showHelp) {
+        RegexHelpSheet(onDismiss = { showHelp = false })
+    }
+
+    if (naming) {
+        SaveRuleDialog(
+            pattern = currentPattern,
+            onConfirm = { name ->
+                naming = false
+                onSave(name)
+                close()
+            },
+            onDismiss = { naming = false },
+        )
+    }
+}
+
+/** La formule en service : liseree plutot que teinte, la ligne cochee l'etant deja. */
+@Composable
+private fun ActiveBadge() {
+    Text(
+        stringResource(R.string.ocr_active),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraSmall)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
+}
+
+@Composable
+private fun RuleMenu(onDelete: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.action_more))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.ocr_delete_rule)) },
+                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null) },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                },
+            )
+        }
+    }
+}
+
+/** Nommer la formule en cours avant de l'enregistrer ; elle est rappelee au-dessus. */
+@Composable
+private fun SaveRuleDialog(
+    pattern: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ocr_save)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    currentPattern,
-                    style = MaterialTheme.typography.bodySmall,
+                    pattern,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontFamily = ValueFontFamily,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.primary,
                 )
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.ocr_save_name)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                PrimaryButton(
-                    text = stringResource(R.string.ocr_save),
-                    onClick = {
-                        onSave(name)
-                        name = ""
-                        onDismiss()
-                    },
-                    enabled = name.isNotBlank(),
+                    shape = MaterialTheme.shapes.medium,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
-
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_close))
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(name) }, enabled = name.isNotBlank()) {
+                Text(stringResource(R.string.settings_save))
             }
-        }
-    }
-}
-
-/**
- * Petit bouton rond "?" ouvrant l'aide-memoire regex (RegexHelpSheet).
- *
- * Partage entre le champ "Formule regex" et la bibliotheque "Formules enregistrees" :
- * un seul contenu d'aide, deux points d'entree la ou l'utilisateur ecrit ou relit
- * une formule.
- */
-@Composable
-private fun RegexHelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    FilledIconButton(
-        onClick = onClick,
-        shape = CircleShape,
-        modifier = modifier.size(30.dp),
-        colors = IconButtonDefaults.filledIconButtonColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        ),
-    ) {
-        Icon(
-            Icons.Default.QuestionMark,
-            contentDescription = stringResource(R.string.regex_help_button),
-            modifier = Modifier.size(16.dp),
-        )
-    }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 /**
@@ -582,20 +638,18 @@ private fun RegexHelpSheet(onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        SheetHeader(
+            title = stringResource(R.string.regex_help_title),
+            onClose = sheetCloser(sheetState, onDismiss),
+        )
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 520.dp)
+                .weight(1f, fill = false)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                stringResource(R.string.regex_help_title),
-                style = MaterialTheme.typography.titleMedium,
-            )
-
             Text(
                 stringResource(R.string.regex_help_intro),
                 style = MaterialTheme.typography.bodyMedium,
@@ -613,10 +667,6 @@ private fun RegexHelpSheet(onDismiss: () -> Unit) {
                     stringResource(R.string.regex_help_example_pattern),
                 ),
             )
-
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.action_close))
-            }
         }
     }
 }

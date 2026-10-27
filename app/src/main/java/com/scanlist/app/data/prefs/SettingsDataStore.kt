@@ -1,6 +1,7 @@
 package com.scanlist.app.data.prefs
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -8,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.scanlist.app.R
 import com.scanlist.app.domain.model.ScanMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -40,10 +42,25 @@ class SettingsDataStore @Inject constructor(
     val emailPrefs: Flow<EmailPrefs> = context.dataStore.data.map { prefs ->
         EmailPrefs(
             recipient = prefs[Keys.EMAIL_RECIPIENT].orEmpty(),
-            subject = prefs[Keys.EMAIL_SUBJECT] ?: DEFAULT_SUBJECT,
-            body = prefs[Keys.EMAIL_BODY] ?: DEFAULT_BODY,
+            subject = prefs[Keys.EMAIL_SUBJECT].orDefault(
+                legacy = LEGACY_SUBJECT,
+                default = R.string.export_default_subject,
+            ),
+            body = prefs[Keys.EMAIL_BODY].orDefault(
+                legacy = LEGACY_BODY,
+                default = R.string.export_default_body,
+            ),
         )
     }
+
+    /**
+     * Valeur enregistree, ou celle par defaut. L'ancien defaut (au nom de ScanList, une
+     * autre application) est traite comme absent : il a ete enregistre tel quel par
+     * quiconque a valide l'ecran Preferences sans y toucher, et ne doit pas survivre au
+     * changement de nom.
+     */
+    private fun String?.orDefault(legacy: String, @StringRes default: Int): String =
+        this?.takeUnless { it == legacy } ?: context.getString(default)
 
     val lastScanMode: Flow<ScanMode> = context.dataStore.data.map { prefs ->
         ScanMode.fromNameOrNull(prefs[Keys.LAST_SCAN_MODE]) ?: ScanMode.QR_CODE
@@ -80,15 +97,20 @@ class SettingsDataStore @Inject constructor(
         context.dataStore.edit { it[Keys.REGEX_DEFAULTS_SEEDED] = true }
     }
 
-    companion object {
-        const val DEFAULT_SUBJECT = "Export ScanList"
-        const val DEFAULT_BODY = "Liste exportee depuis ScanList."
+    private companion object {
+        // Defauts des premieres versions, du temps du nom d'origine (decision 23).
+        const val LEGACY_SUBJECT = "Export ScanList"
+        const val LEGACY_BODY = "Liste exportee depuis ScanList."
     }
 }
 
-/** Valeurs pre-remplies dans l'Intent d'envoi de l'export .csv. */
+/**
+ * Valeurs pre-remplies dans l'Intent d'envoi de l'export .csv. Les defauts reels
+ * viennent des ressources, via [SettingsDataStore.emailPrefs] ; ceux-ci ne servent que
+ * de valeur d'attente, le temps d'une lecture.
+ */
 data class EmailPrefs(
     val recipient: String = "",
-    val subject: String = SettingsDataStore.DEFAULT_SUBJECT,
-    val body: String = SettingsDataStore.DEFAULT_BODY,
+    val subject: String = "",
+    val body: String = "",
 )
