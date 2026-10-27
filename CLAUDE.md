@@ -252,7 +252,8 @@ compilation** (vérifié le 2026-10-26). Aucune coquille ne subsiste dans l'appl
 **Refonte de l'interface en cours** (décision 27, phase 11 de `workflow.md`) : style
 « Bleu de travail » appliqué à tous les écrans (étape 1/7), puis le menu principal
 remplacé par une **barre de navigation** en bas (Dossiers · Comparer · Nouveau scan),
-l'application s'ouvrant sur Nouveau scan (étape 2/7, décision 28). Chaque étape
+l'application s'ouvrant sur Nouveau scan (étape 2/7, décision 28), et le choix du
+mode présenté par échantillon d'étiquette dessiné (étape 3/7). Chaque étape
 propose cinq variantes à l'utilisateur sur le canevas de maquettes. Conventions du
 style : en-tête bleu via `ScanListScaffold` (jamais de `TopAppBar`), compteur dans
 l'en-tête (`headerTrailing` / `headerBottom`), boutons via `PrimaryButton` /

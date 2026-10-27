@@ -8,16 +8,18 @@
     <string name="menu_compare">Comparer</string>
     <string name="menu_new_scan">Nouveau scan</string>
 
-    <!-- Modes de scan -->
+    <!-- Modes de scan : nom, puis ce que l'on voit sur l'étiquette (sélecteur par échantillon) -->
     <string name="mode_ocr">OCR</string>
     <string name="mode_qr">Code 2D</string>
     <string name="mode_barcode">Code-barres</string>
-    <string name="mode_ocr_desc">Lecture de texte imprimé, filtrée par formule regex</string>
-    <string name="mode_qr_desc">QR Code, PDF417 (empilé), Data Matrix, Aztec</string>
-    <string name="mode_barcode_desc">Codes 1D uniquement, une seule rangée (EAN, UPC, Code 128…)</string>
+    <string name="mode_ocr_desc">Un numéro imprimé en clair</string>
+    <string name="mode_qr_desc">Un carré à motif (QR Code, Data Matrix, Aztec) ou un PDF417</string>
+    <string name="mode_barcode_desc">Des barres sur une seule rangée</string>
     <string name="mode_nfc">NFC/RFID</string>
-    <string name="mode_nfc_desc">Puce ou étiquette sans contact</string>
-    <string name="choose_scan_mode">Choisir le mode de scan</string>
+    <string name="mode_nfc_desc">Une puce sans contact, à approcher du téléphone</string>
+    <string name="choose_scan_mode">Quelle étiquette lis-tu ?</string>
+    <!-- Valeur dessinée sur l'échantillon d'étiquette du mode OCR : un exemple, pas un texte -->
+    <string name="mode_sample_ocr" translatable="false">1GH546</string>
 
     <!-- Scan NFC -->
     <string name="nfc_instruction">Approche le tag NFC/RFID du dos du téléphone</string>

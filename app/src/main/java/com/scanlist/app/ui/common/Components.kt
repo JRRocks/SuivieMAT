@@ -23,10 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Nfc
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
@@ -51,7 +47,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.scanlist.app.R
-import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.ui.theme.shellColors
 
 /**
@@ -225,7 +220,11 @@ fun MenuCard(
     val shell = shellColors
     val container = if (emphasized) shell.container else MaterialTheme.colorScheme.surface
     val content = if (emphasized) shell.content else MaterialTheme.colorScheme.onSurface
-    val secondary = if (emphasized) shell.contentVariant else MaterialTheme.colorScheme.onSurfaceVariant
+    val secondary = if (emphasized) {
+        shell.contentVariant
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     val accent = if (emphasized) shell.content else MaterialTheme.colorScheme.primary
 
     Card(
@@ -340,56 +339,6 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
-}
-
-/**
- * Selecteur de mode de scan.
- *
- * Reutilise par "Nouveau scan", "Reprendre le scan" et "Lancer le scan" d'une
- * comparaison : les trois sous-menus de la specification pointent sur ce composant,
- * ce qui garantit qu'ils proposent exactement les memes options.
- *
- * [highlighted] met en avant le mode du dernier scan, teint du bleu de l'en-tete.
- */
-@Composable
-fun ScanModePicker(
-    onModeSelected: (ScanMode) -> Unit,
-    modifier: Modifier = Modifier,
-    highlighted: ScanMode? = null,
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        MenuCard(
-            title = stringResource(R.string.mode_ocr),
-            subtitle = stringResource(R.string.mode_ocr_desc),
-            icon = Icons.Default.TextFields,
-            emphasized = highlighted == ScanMode.OCR,
-            onClick = { onModeSelected(ScanMode.OCR) },
-        )
-        MenuCard(
-            title = stringResource(R.string.mode_qr),
-            subtitle = stringResource(R.string.mode_qr_desc),
-            icon = Icons.Default.QrCode,
-            emphasized = highlighted == ScanMode.QR_CODE,
-            onClick = { onModeSelected(ScanMode.QR_CODE) },
-        )
-        MenuCard(
-            title = stringResource(R.string.mode_barcode),
-            subtitle = stringResource(R.string.mode_barcode_desc),
-            icon = Icons.Default.QrCodeScanner,
-            emphasized = highlighted == ScanMode.BARCODE,
-            onClick = { onModeSelected(ScanMode.BARCODE) },
-        )
-        MenuCard(
-            title = stringResource(R.string.mode_nfc),
-            subtitle = stringResource(R.string.mode_nfc_desc),
-            icon = Icons.Default.Nfc,
-            emphasized = highlighted == ScanMode.NFC,
-            onClick = { onModeSelected(ScanMode.NFC) },
-        )
-    }
 }
 
 /** Etat vide d'une liste. */
