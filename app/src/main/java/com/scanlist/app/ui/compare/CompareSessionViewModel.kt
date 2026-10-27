@@ -122,6 +122,12 @@ class CompareSessionViewModel @Inject constructor(
         )
     }
 
+    /** Supprime la session ; [onDone] quitte l'ecran qui la decrivait. */
+    fun deleteSession(onDone: () -> Unit) = viewModelScope.launch {
+        compareRepository.deleteSession(sessionId)
+        onDone()
+    }
+
     fun reportNoApp(@StringRes messageRes: Int = R.string.export_no_app) {
         messageState.value = messageRes
     }

@@ -311,6 +311,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), onglet Comparer par date (décision 30) | ✅ **199 tests, 0 échec** (9 nouveaux dans `CompareOverviewTest`), sans avertissement ; `versionName` 1.6 ; APK arm64 déposé dans `release/` par la session | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), dossiers rangés par date | ✅ **190 tests, 0 échec** (10 nouveaux dans `FolderTimelineTest`), sans avertissement ; `versionName` 1.5 ; APK arm64 déposé dans `release/` par la session | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), écran de scan caméra pleine + tiroir (décision 29) | ✅ **180 tests, 0 échec**, sans avertissement ; `versionName` 1.4 ; APK arm64 déposé dans `release/` par la session | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), sélecteur de mode par échantillon | ✅ **180 tests, 0 échec**, sans avertissement ; `versionName` 1.3 ; APK arm64 déposé dans `release/` par la session | 2026-10-27 |

@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** À relire en priorité après un `/clear` ou au démarrage
 > d'une nouvelle session. À mettre à jour à chaque évolution majeure du périmètre fonctionnel.
 >
-> Dernière mise à jour : 2026-10-27 — *Écran de scan à caméra pleine hauteur, résultats
-> dans un tiroir, formule repliée en pastille (décision 29)*
+> Dernière mise à jour : 2026-10-27 — *Onglet Comparer : dossiers et imports par date,
+> avec l'avancement des comparaisons (décision 30)*
 
 ---
 
@@ -184,6 +184,13 @@ MENU PRINCIPAL
 > les trois branches est inchangé. Choix de l'utilisateur parmi cinq variantes, en
 > connaissance de cause : c'est une modification de la hiérarchie imposée ci-dessus.
 
+> **Depuis le 2026-10-27 (décision 30), l'onglet COMPARER montre directement les dossiers
+> et les imports `.csv`**, rangés par date, sous un bouton « Importer un fichier .csv » :
+> « Depuis un Dossier local » et « Depuis un Import .csv » ne sont plus un écran à part,
+> ils sont fondus dans cette liste. Chaque ligne déjà comparée porte l'avancement de sa
+> dernière comparaison et « Reprendre ». « Lancer le Scan » et le choix du mode sont
+> inchangés. Choix de l'utilisateur, ici encore en connaissance de cause.
+
 ## 5. Décisions validées avec l'utilisateur
 
 | # | Question | Décision retenue | Date |
@@ -218,6 +225,7 @@ MENU PRINCIPAL
 | 27 | **Refonte de l'interface : style « Bleu de travail »** | Demandé par l'utilisateur : revoir toute l'interface en s'appuyant sur les guides *impeccable* (`github.com/pbakaus/impeccable`, mode « Operate » et règles Android), avec **un style uniforme**, **cinq variantes proposées à chaque changement** et le choix demandé **par notification**. Étape 1 (style global) : cinq directions présentées sur un canevas de maquettes, mêmes trois écrans à contenu réaliste — A Kraft & acier, B Étiquette thermique, C Bleu de travail, D Signalétique d'entrepôt, E Material You natif. **Choix de l'utilisateur : C.** En-tête de chaque écran teint du bleu des tenues de travail (`#22386F`, plus sombre en thème nuit) avec grand titre blanc ; contenu clair sur fond gris bleuté, cartes blanches arrondies ; grands caractères (**Source Sans 3**) et valeurs en **Source Code Pro**, polices **embarquées** (application hors-ligne) ; **le compteur qui compte vit dans l'en-tête** (captures d'un scan, éléments d'un dossier, avancement d'une comparaison). « Nouveau scan » et le dernier mode utilisé sont teints du bleu de l'en-tête. **Inchangés** : le code rouge / vert de Comparer (décision 14), le gris réservé aux bandeaux passagers, la hiérarchie des menus (§ 4). Étapes suivantes, chacune en cinq variantes soumises à l'utilisateur : menu principal, choix du mode, écran de scan, dossiers, comparer, export et fenêtres de formules. | 2026-10-26 |
 | 28 | **Le menu principal devient une barre de navigation** *(modifie le § 4)* | Étape 2 de la refonte (décision 27) : cinq organisations du menu principal présentées sur le canevas — trois cartes, « Nouveau scan » d'abord, entrées à portée de pouce, reprise rapide du dernier dossier, barre de navigation Android. **Choix de l'utilisateur : la barre de navigation**, sachant qu'elle modifie la hiérarchie imposée. L'écran « Menu principal » disparaît ; ses trois branches deviennent les onglets d'une barre en bas de l'écran (Dossiers · Comparer · Nouveau scan, dans l'ordre du menu qu'ils remplacent), affichée **sur les trois écrans racines seulement** (les écrans plus profonds gardent leur flèche de retour, l'écran de scan garde toute sa hauteur pour la caméra). L'application **s'ouvre sur Nouveau scan** : un appui de moins pour lancer un inventaire. Retour système : d'un onglet vers Nouveau scan, puis sortie de l'application (comportement standard d'Android). Rien ne change sous les trois branches. | 2026-10-27 |
 | 29 | **Écran de scan : caméra pleine hauteur, tiroir, formule en pastille** *(révise la disposition de la décision 26)* | Étape 4 de la refonte (décision 27) : cinq dispositions de l'écran de scan présentées sur le canevas, en Code 2D et en OCR. **Choix de l'utilisateur : « Caméra pleine + tiroir ».** La caméra occupe toute la hauteur sous l'en-tête ; les résultats (captures, ou liste de référence en comparaison) vivent dans un **tiroir** qui montre les deux dernières lignes et se déplie d'un appui ou d'un glissement. La formule se replie en une **pastille** posée sur l'image ; un appui ouvre une feuille d'édition qui garde **le champ, les trois outils dessous (« Info », « Regex Auto », « Enregistré ») et le groupe capturé** — la décision 26 est respectée dans cette feuille. Ce qui change par rapport à la décision 26 : le bouton « Démarrer / Arrêter la capture » n'est plus sous le champ mais **flottant au bas de l'image**, sous le pouce. Armement explicite de la capture OCR (décision 12) et bandeau de dernière lecture à durée 0 inchangés. | 2026-10-27 |
+| 30 | **Onglet Comparer : dossiers et imports par date, avec l'avancement des comparaisons** *(modifie le § 4)* | Étape 6 de la refonte (décision 27) : cinq présentations de l'onglet et de la session sur le canevas, puis, à la demande de l'utilisateur, cinq mélanges de deux d'entre elles (« l'affichage de C avec la barre d'avancement de B »). **Choix de l'utilisateur : G, « avancement dans la liste ».** L'onglet Comparer montre directement les dossiers, rangés par date comme l'onglet Dossiers, sous un bouton « Importer un fichier .csv » : l'écran intermédiaire « Depuis un dossier local / Depuis un import .csv » disparaît. Un dossier déjà utilisé par une comparaison porte, sous sa ligne, l'avancement de la **dernière** (reste à valider, compte, barre verte sur fond rouge) et « Reprendre » ; un import `.csv` prend place à sa date avec son avancement. Les sessions deviennent ainsi **reprenables** : auparavant, une session quittée ne se retrouvait plus. Un appui sur un dossier déjà comparé demande s'il faut reprendre ou repartir d'une nouvelle comparaison (sinon l'avancement disparaîtrait derrière une liste toute rouge). Écran de session : le reste à valider en grand dans l'en-tête avec la barre, un sélecteur « À valider / Validés », « Lancer le scan » fixé en bas ; « Enregistrer dans un dossier » et « Exporter » passent en icônes dans l'en-tête, avec « Supprimer la comparaison » dans le menu — choix du développeur : les sessions étant désormais visibles, il faut pouvoir les retirer. Code rouge / vert (décision 14) inchangé. | 2026-10-27 |
 
 ## 6. Hors périmètre (non demandé)
 

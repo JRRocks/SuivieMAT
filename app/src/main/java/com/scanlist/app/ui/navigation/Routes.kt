@@ -8,6 +8,8 @@ import com.scanlist.app.domain.model.ScanMode
  * Transcription de la hierarchie de menus specifiee par l'utilisateur. Depuis la
  * decision 28, le niveau MENU PRINCIPAL est porte par la barre de navigation du bas :
  * ses trois branches en sont les onglets, et l'application s'ouvre sur Nouveau scan.
+ * Depuis la decision 30, l'onglet COMPARER montre directement les dossiers et les
+ * imports .csv par date, chacun avec l'avancement de sa derniere comparaison.
  *
  * ```
  * BARRE DE NAVIGATION
@@ -15,9 +17,10 @@ import com.scanlist.app.domain.model.ScanMode
  * |   |- Consulter -> Lancer la fonction Comparer
  * |   |- Exporter en .csv -> nom du fichier / preferences d'envoi
  * |   |- Reprendre le scan -> OCR | Code 2D | Code-barres | NFC/RFID
- * |- COMPARER
- * |   |- Depuis un dossier local -> Lancer le scan (OCR | Code 2D | Code-barres | NFC/RFID)
- * |   |- Depuis un import .csv   -> Lancer le scan (OCR | Code 2D | Code-barres | NFC/RFID)
+ * |- COMPARER (dossiers et imports .csv ranges par date)
+ * |   |- Importer un fichier .csv -> Lancer le scan (OCR | Code 2D | Code-barres | NFC/RFID)
+ * |   |- un dossier               -> Lancer le scan (OCR | Code 2D | Code-barres | NFC/RFID)
+ * |   |- Reprendre (sous une ligne deja comparee) -> la session, ou elle en etait
  * |- NOUVEAU SCAN (ecran d'ouverture)
  *     |- OCR | Code 2D | Code-barres | NFC/RFID
  * ```
@@ -33,7 +36,6 @@ object Routes {
 
     // --- Branche Comparer ---
     const val COMPARE_SOURCE = "compare/source"
-    const val COMPARE_PICK_FOLDER = "compare/source/folder"
     const val COMPARE_SESSION = "compare/{sessionId}/session"
     const val COMPARE_SCAN_MODE = "compare/{sessionId}/mode"
 

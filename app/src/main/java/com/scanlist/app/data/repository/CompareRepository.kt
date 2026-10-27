@@ -9,6 +9,7 @@ import com.scanlist.app.data.db.entity.ReferenceEntryEntity
 import com.scanlist.app.data.db.entity.ScanItemEntity
 import com.scanlist.app.domain.compare.CompareEngine
 import com.scanlist.app.domain.compare.CompareOutcome
+import com.scanlist.app.domain.compare.SessionProgress
 import com.scanlist.app.domain.model.CompareSourceKind
 import com.scanlist.app.domain.model.FolderKind
 import com.scanlist.app.domain.model.ReferenceState
@@ -43,7 +44,17 @@ class CompareRepository @Inject constructor(
 
     fun observeSessions(): Flow<List<ComparisonSessionEntity>> = comparisonDao.observeSessions()
 
+    fun observeSessionProgress(): Flow<List<SessionProgress>> =
+        comparisonDao.observeSessionProgress()
+
     fun observeSession(id: Long): Flow<ComparisonSessionEntity?> = comparisonDao.observeSession(id)
+
+    /**
+     * Supprime une session et, par cascade, sa liste de reference. Ni le dossier
+     * d'origine ni le dossier de resultat ne sont touches : ce sont des dossiers a part
+     * entiere, que l'onglet Dossiers gere.
+     */
+    suspend fun deleteSession(id: Long) = comparisonDao.deleteSession(id)
 
     fun observeReferences(sessionId: Long): Flow<List<ReferenceEntryEntity>> =
         comparisonDao.observeReferences(sessionId)

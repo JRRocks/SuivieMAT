@@ -63,6 +63,9 @@ val LocalSnackbarHostState = staticCompositionLocalOf { SnackbarHostState() }
  * [headerTrailing] place un compteur a droite du titre, [headerBottom] une bande sous
  * le titre (les compteurs de comparaison) : c'est la signature du style, le chiffre
  * qui compte vit dans l'en-tete et reste visible quoi qu'il arrive en dessous.
+ *
+ * [bottomBar] fixe une action sous le pouce ; passee au Scaffold plutot que posee dans
+ * le contenu, pour que les messages s'affichent au-dessus d'elle et non par-dessus.
  */
 @Composable
 fun ScanListScaffold(
@@ -72,10 +75,12 @@ fun ScanListScaffold(
     actions: (@Composable RowScope.() -> Unit)? = null,
     headerTrailing: (@Composable () -> Unit)? = null,
     headerBottom: (@Composable ColumnScope.() -> Unit)? = null,
+    bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(LocalSnackbarHostState.current) },
+        bottomBar = bottomBar,
         topBar = {
             ShellHeader(
                 title = title,

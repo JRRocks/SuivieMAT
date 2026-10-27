@@ -67,16 +67,36 @@
 
     <!-- Comparer -->
     <string name="compare_title">Comparer</string>
-    <string name="compare_source">Source de la liste de référence</string>
-    <string name="compare_source_folder">Depuis un dossier local</string>
-    <string name="compare_source_folder_desc">Utiliser une liste déjà scannée</string>
-    <string name="compare_source_csv">Depuis un import .csv</string>
-    <string name="compare_source_csv_desc">Charger un fichier depuis le téléphone</string>
+    <!-- Onglet Comparer : dossiers et imports .csv ranges par date, avec l'avancement
+         de leur comparaison (etape 6 de la refonte, decision 30). -->
+    <string name="compare_subtitle">Quelle liste contrôler ?</string>
+    <string name="compare_import_csv">Importer un fichier .csv</string>
+    <string name="compare_kind_csv">Fichier .csv importé</string>
+    <string name="compare_empty">Aucune liste à contrôler pour le moment.</string>
+    <string name="compare_empty_hint">Scanne d\'abord une liste dans Nouveau scan, ou importe un fichier .csv.</string>
+    <string name="compare_progress_ratio">%1$d / %2$d</string>
+    <string name="compare_progress_complete">Complète</string>
+    <string name="compare_resume">Reprendre</string>
+    <string name="compare_open">Ouvrir</string>
+    <string name="compare_existing_title">Comparaison déjà commencée</string>
+    <string name="compare_existing_text">« %1$s » a déjà une comparaison : %2$d sur %3$d validés. Une nouvelle repartirait tout en rouge.</string>
+    <string name="compare_existing_new">Nouvelle comparaison</string>
     <string name="compare_launch_scan">Lancer le scan</string>
     <string name="compare_launch_scan_desc">OCR, Code 2D, Code-barres ou NFC/RFID</string>
     <!-- Code couleur imposé : rouge = à valider, vert = présence confirmée.
          Une valeur lue hors de la liste de référence n\'est pas prise en compte. -->
     <string name="compare_count_missing">%1$d à valider</string>
+    <!-- Suit le grand chiffre de l'en-tete d'une session : « 9 restent à valider sur 47 » -->
+    <plurals name="compare_remaining_of">
+        <item quantity="one">reste à valider sur %1$d</item>
+        <item quantity="other">restent à valider sur %1$d</item>
+    </plurals>
+    <string name="compare_filter_missing">À valider · %1$d</string>
+    <string name="compare_filter_found">Validés · %1$d</string>
+    <string name="compare_all_found">Toute la liste est validée.</string>
+    <string name="compare_all_found_hint">Enregistre la session dans un dossier ou exporte-la depuis l\'en-tête.</string>
+    <string name="compare_none_found">Aucun élément validé pour l\'instant.</string>
+    <string name="compare_none_found_hint">Lance le scan : chaque lecture fait passer une référence au vert.</string>
     <string name="compare_count_found">%1$d / %2$d validés</string>
     <string name="compare_section_missing">À valider (%1$d)</string>
     <string name="compare_section_found">Validés (%1$d)</string>
@@ -84,11 +104,13 @@
     <string name="compare_matched">Validé : %1$s</string>
     <string name="compare_already_matched">Déjà validé : %1$s</string>
     <string name="compare_out_of_list">Hors liste, non pris en compte : %1$s</string>
-    <string name="compare_save_session">Enregistrer</string>
+    <string name="compare_save_session">Enregistrer dans un dossier</string>
     <string name="compare_saved">Session enregistrée dans un dossier</string>
     <string name="compare_saved_in">Enregistrée dans « %1$s »</string>
     <string name="compare_save_failed">Impossible d\'enregistrer cette session.</string>
     <string name="compare_export">Exporter</string>
+    <string name="compare_delete">Supprimer la comparaison</string>
+    <string name="compare_delete_confirm">Supprimer « %1$s » et son avancement ? Les dossiers ne sont pas touchés. Cette action est définitive.</string>
     <string name="compare_export_empty">Cette session n\'a aucune référence à exporter.</string>
     <string name="compare_reference_empty">Cette liste de référence est vide.</string>
     <string name="compare_reference_empty_hint">Choisis un dossier ou un fichier .csv contenant les éléments à contrôler.</string>

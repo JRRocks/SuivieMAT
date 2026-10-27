@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.scanlist.app.data.db.entity.ComparisonSessionEntity
 import com.scanlist.app.data.db.entity.ReferenceEntryEntity
+import com.scanlist.app.domain.compare.SessionProgress
 import com.scanlist.app.domain.model.ReferenceState
 import kotlinx.coroutines.flow.Flow
 
@@ -19,6 +20,31 @@ interface ComparisonDao {
 
     @Query("SELECT * FROM comparison_sessions WHERE id = :id")
     suspend fun getSession(id: Long): ComparisonSessionEntity?
+
+    /**
+     * Avancement de chaque session, pour l'onglet Comparer.
+     *
+     * Compte en SQL plutot qu'en chargeant les listes : une liste de reference fait
+     * plusieurs centaines de lignes, l'onglet n'a besoin que de deux nombres. La requete
+     * lit reference_entries, donc chaque validation pendant un scan rafraichit l'onglet.
+     */
+    @Query(
+        """
+        SELECT s.id AS sessionId, s.name AS name, s.sourceKind AS sourceKind,
+               s.sourceRef AS sourceRef,
+               CASE WHEN s.sourceKind = 'LOCAL_FOLDER' THEN CAST(s.sourceRef AS INTEGER) END
+                   AS sourceFolderId,
+               s.createdAt AS createdAt,
+               COALESCE(SUM(CASE WHEN r.state = 'FOUND' THEN 1 ELSE 0 END), 0) AS found,
+               COUNT(r.id) AS total,
+               MAX(s.createdAt, COALESCE(MAX(r.matchedAt), 0)) AS lastActivity
+        FROM comparison_sessions s
+        LEFT JOIN reference_entries r ON r.sessionId = s.id
+        GROUP BY s.id
+        ORDER BY s.createdAt DESC
+        """,
+    )
+    fun observeSessionProgress(): Flow<List<SessionProgress>>
 
     /** Observe la session : le rattachement a un dossier doit se voir sans recharger. */
     @Query("SELECT * FROM comparison_sessions WHERE id = :id")

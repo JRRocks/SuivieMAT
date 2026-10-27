@@ -1,31 +1,46 @@
 package com.scanlist.app.ui.compare
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.scanlist.app.R
 import com.scanlist.app.data.db.entity.ReferenceEntryEntity
+import com.scanlist.app.domain.compare.SessionProgress
+import com.scanlist.app.domain.model.ReferenceState
 import com.scanlist.app.ui.common.SectionTitle
 import com.scanlist.app.ui.theme.ScanValueTextStyle
 import com.scanlist.app.ui.theme.compareColors
+import com.scanlist.app.ui.theme.shellColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -81,15 +96,7 @@ fun CompareCounterBar(
             )
         }
         if (total > 0) {
-            LinearProgressIndicator(
-                progress = { found.toFloat() / total },
-                color = colors.progress,
-                trackColor = colors.missing,
-                strokeCap = StrokeCap.Round,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-            )
+            ProgressBar(found = found, total = total, height = 8.dp)
         }
     }
 }
@@ -114,6 +121,120 @@ private fun CountChip(
 }
 
 /**
+ * Avancement d'une session, dans l'en-tete de son ecran : le nombre restant a valider
+ * en grand, puis la barre. C'est le chiffre sur lequel l'operateur agit ; le total
+ * vient en second (etape 6 de la refonte).
+ */
+@Composable
+fun CompareProgressHeader(
+    found: Int,
+    total: Int,
+    modifier: Modifier = Modifier,
+) {
+    val missing = total - found
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                missing.toString(),
+                style = MaterialTheme.typography.displaySmall,
+                modifier = Modifier.alignByBaseline(),
+            )
+            Text(
+                pluralStringResource(R.plurals.compare_remaining_of, missing, total),
+                style = MaterialTheme.typography.bodyLarge,
+                color = shellColors.contentVariant,
+                modifier = Modifier.alignByBaseline(),
+            )
+        }
+        ProgressBar(found = found, total = total, height = 8.dp)
+    }
+}
+
+/**
+ * Avancement d'une comparaison sous la ligne de son dossier, dans l'onglet Comparer :
+ * ce qui reste a valider, le compte, et de quoi la rouvrir. Un bloc a part, pose sous
+ * la ligne : un appui sur la ligne elle-meme lance une nouvelle comparaison.
+ */
+@Composable
+fun SessionProgressStrip(
+    progress: SessionProgress,
+    onOpen: () -> Unit,
+) {
+    val colors = compareColors
+    Column(
+        modifier = Modifier
+            .padding(start = 56.dp, end = 16.dp, bottom = 12.dp)
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .background(MaterialTheme.colorScheme.background)
+            .clickable(role = Role.Button, onClick = onOpen)
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (progress.isComplete) {
+                Text(
+                    stringResource(R.string.compare_progress_complete),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.onFound,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                Text(
+                    stringResource(R.string.compare_count_missing, progress.missing),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.onMissing,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Text(
+                stringResource(R.string.compare_progress_ratio, progress.found, progress.total),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                stringResource(
+                    if (progress.isComplete) R.string.compare_open else R.string.compare_resume,
+                ),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        ProgressBar(found = progress.found, total = progress.total, height = 6.dp)
+    }
+}
+
+/** Barre verte sur fond rouge : la meme lecture que la liste qu'elle resume. */
+@Composable
+private fun ProgressBar(found: Int, total: Int, height: Dp) {
+    val colors = compareColors
+    LinearProgressIndicator(
+        progress = { if (total > 0) found.toFloat() / total else 0f },
+        color = colors.progress,
+        trackColor = colors.missing,
+        strokeCap = StrokeCap.Round,
+        // Sans quoi Material 3 dessine un point et un espace en bout de barre, qui se
+        // liraient comme un element a part.
+        gapSize = 0.dp,
+        drawStopIndicator = {},
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height),
+    )
+}
+
+/**
  * La liste de reference, rouge puis verte.
  *
  * Les entrees a confirmer en tete : ce sont les seules sur lesquelles il reste a
@@ -128,29 +249,31 @@ fun LazyListScope.compareSections(
         item(key = "head-missing") {
             SectionHeader(stringResource(R.string.compare_section_missing, missing.size))
         }
-        items(missing, key = { "missing-" + it.id }) { entry ->
-            CompareRow(
-                value = entry.value,
-                label = entry.label,
-                background = compareColors.missing,
-                foreground = compareColors.onMissing,
-            )
-        }
+        compareRows(missing)
     }
 
     if (found.isNotEmpty()) {
         item(key = "head-found") {
             SectionHeader(stringResource(R.string.compare_section_found, found.size))
         }
-        items(found, key = { "found-" + it.id }) { entry ->
-            CompareRow(
-                value = entry.value,
-                label = entry.label,
-                background = compareColors.found,
-                foreground = compareColors.onFound,
-                trailing = entry.matchedAt?.let { TIME_FORMAT.format(Date(it)) },
-            )
-        }
+        compareRows(found)
+    }
+}
+
+/**
+ * Les entrees d'un seul etat, sans intitule : l'ecran de session les filtre par
+ * « A valider / Valides », le selecteur tient lieu de titre.
+ */
+fun LazyListScope.compareRows(entries: List<ReferenceEntryEntity>) {
+    items(entries, key = { it.state.name + "-" + it.id }) { entry ->
+        val isFound = entry.state == ReferenceState.FOUND
+        CompareRow(
+            value = entry.value,
+            label = entry.label,
+            background = if (isFound) compareColors.found else compareColors.missing,
+            foreground = if (isFound) compareColors.onFound else compareColors.onMissing,
+            trailing = entry.matchedAt?.takeIf { isFound }?.let { TIME_FORMAT.format(Date(it)) },
+        )
     }
 }
 

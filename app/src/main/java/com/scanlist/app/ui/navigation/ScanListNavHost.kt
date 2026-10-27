@@ -26,9 +26,9 @@ import androidx.navigation.navArgument
 import com.scanlist.app.R
 import com.scanlist.app.domain.model.ScanMode
 import com.scanlist.app.ui.common.LocalSnackbarHostState
+import com.scanlist.app.ui.compare.CompareHomeScreen
 import com.scanlist.app.ui.compare.CompareScanModeScreen
 import com.scanlist.app.ui.compare.CompareSessionScreen
-import com.scanlist.app.ui.compare.CompareSourceScreen
 import com.scanlist.app.ui.compare.CompareStartViewModel
 import com.scanlist.app.ui.folders.FolderActionsScreen
 import com.scanlist.app.ui.folders.FolderDetailScreen
@@ -185,27 +185,21 @@ private fun ScanListGraph(navController: NavHostController) {
                 }
             }
 
-            CompareSourceScreen(
-                onFromFolder = { navController.navigate(Routes.COMPARE_PICK_FOLDER) },
-                onFromCsv = {
+            CompareHomeScreen(
+                onImportCsv = {
                     // text/comma-separated-values et text/plain couvrent les exports
                     // de tableurs qui ne declarent pas text/csv.
                     pickCsv.launch(
                         arrayOf("text/csv", "text/comma-separated-values", "text/plain", "*/*"),
                     )
                 },
-            )
-        }
-
-        composable(Routes.COMPARE_PICK_FOLDER) {
-            val viewModel: CompareStartViewModel = hiltViewModel()
-            FolderListScreen(
-                subtitle = stringResource(R.string.compare_source_folder_desc),
-                onBack = navController::popBackStack,
-                onFolderSelected = { folderId ->
+                onNewFromFolder = { folderId ->
                     viewModel.createFromFolder(folderId) { sessionId ->
                         navController.navigate(Routes.compareSession(sessionId))
                     }
+                },
+                onOpenSession = { sessionId ->
+                    navController.navigate(Routes.compareSession(sessionId))
                 },
             )
         }

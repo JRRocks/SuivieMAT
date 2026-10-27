@@ -128,8 +128,8 @@ Installer sur un appareil branché :
 ```
 ui/          Compose : un écran = un composable + un ViewModel Hilt
 domain/      logique pure, testable sans Android (CompareEngine, RegexRuleEngine,
-             RegexSuggester, ScanValue, FolderSearch, FolderTimeline, NfcValue) —
-             c'est là que vivent les tests
+             RegexSuggester, ScanValue, FolderSearch, FolderTimeline, CompareOverview,
+             NfcValue) — c'est là que vivent les tests
 data/        Room (entités = modèles métier), DataStore, CsvCodec, repositories
 scanner/     CameraX + ML Kit + NFC, aucune dépendance à l'UI
 export/      écriture du .csv en cache + Intent de partage
@@ -246,7 +246,7 @@ Phases 0 à 8 terminées : scan des quatre modes (OCR, QR Code, code-barres, NFC
 ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre de conformité
 QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
 25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
-mail, fonction Comparer complète. **190 tests, 0 échec, aucun avertissement de
+mail, fonction Comparer complète. **199 tests, 0 échec, aucun avertissement de
 compilation** (vérifié le 2026-10-27). Aucune coquille ne subsiste dans l'application.
 
 **Refonte de l'interface en cours** (décision 27, phase 11 de `workflow.md`) : style
@@ -256,8 +256,9 @@ l'application s'ouvrant sur Nouveau scan (étape 2/7, décision 28), et le choix
 mode présenté par échantillon d'étiquette dessiné (étape 3/7), et l'écran de scan à
 caméra pleine hauteur avec tiroir des résultats et formule en pastille (étape 4/7,
 décision 29), puis les dossiers rangés par date avec une fiche centrée sur « Reprendre
-le scan » (étape 5/7). Chaque étape
-propose cinq variantes à l'utilisateur sur le canevas de maquettes. Conventions du
+le scan » (étape 5/7), et l'onglet Comparer en liste par date portant l'avancement des
+comparaisons, enfin reprenables (étape 6/7, décision 30). Chaque étape propose cinq
+variantes à l'utilisateur sur le canevas de maquettes. Conventions du
 style : en-tête bleu via `ScanListScaffold` (jamais de `TopAppBar`), compteur dans
 l'en-tête (`headerTrailing` / `headerBottom`), boutons via `PrimaryButton` /
 `SecondaryButton`, valeurs en `ScanValueTextStyle`, formules en `PatternTextStyle`.

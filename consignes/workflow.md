@@ -4,8 +4,8 @@
 > **Règle absolue :** mettre à jour le tableau d'avancement (§ 6) et le journal (§ 7)
 > à chaque évolution majeure, et systématiquement avant/après un `/clear`.
 >
-> Dernière mise à jour : 2026-10-27 — *Refonte de l'interface, étape 5 : dossiers
-> rangés par date, fiche centrée sur « Reprendre le scan »*
+> Dernière mise à jour : 2026-10-27 — *Refonte de l'interface, étape 6 : onglet Comparer
+> par date, avec l'avancement des comparaisons (décision 30)*
 
 ---
 
@@ -52,7 +52,8 @@ com.scanlist.app
 │   └── repository  (Folder / Scan / RegexRule / Compare)
 ├── domain
 │   ├── model       (Enums : ScanMode, FolderKind, MatchState… + ScanValue)
-│   ├── compare     (CompareEngine, CompareOutcome)
+│   ├── compare     (CompareEngine, CompareOutcome ; CompareOverview :
+│   │                dossiers et sessions par date — pur, testable)      ✅ 2026-10-27
 │   ├── regex       (RegexRuleEngine : validation, extraction ;
 │   │                RegexSuggester : formules déduites d'exemples)      ✅ 2026-10-26
 │   ├── search      (FolderSearch : filtre casse + accents)              ✅ phase 6
@@ -77,7 +78,8 @@ com.scanlist.app
 │   ├── common      (ScanListScaffold [en-tête bleu, compteur à droite du titre,
 │   │                bande de comparaison dessous], HeaderCounter, MenuCard,
 │   │                PrimaryButton, SecondaryButton ; ScanModePicker dans son
-│   │                propre fichier, avec les échantillons d'étiquette dessinés)
+│   │                propre fichier, avec les échantillons d'étiquette dessinés ;
+│   │                TimelineRow, lignes des listes par date de Dossiers et Comparer)
 │   ├── folders     (liste filtrable, actions, détail, export + VM)      ✅ phase 6
 │   ├── scan        (CameraPreview [réticule à remplissage progressif],
 │   │                CameraPermissionGate, ScanViewModel, ScanScreens,
@@ -85,7 +87,8 @@ com.scanlist.app
 │   │                PatternEditorSheet + RegexLibrarySheet, partagée,
 │   │                étape 4 de la refonte], RegexGeneratorSheet,
 │   │                NfcScanSurface)                                     ✅ phases 4-5
-│   ├── compare     (source, session, CompareSections partagées,
+│   ├── compare     (onglet [CompareHomeScreen + CompareHomeViewModel],
+│   │                session, CompareSections partagées,
 │   │                CompareStartViewModel, CompareSessionViewModel)   ✅ phase 8
 │   └── settings    (EmailPrefsScreen)
 └── export          (ExportManager, ExportFileName)                     ✅ phase 7
@@ -306,8 +309,9 @@ Chargement référence (dossier local OU CSV importé)
 | Verdict en mémoire | `domain/compare/CompareEngine.kt` | tranche sans requête SQL |
 | Persistance | `data/repository/CompareRepository.kt` | crée la session, écrit le vert, construit le résultat |
 | Scan branché | `ui/scan/ScanViewModel.kt` (`isCompare`) | même pipeline caméra, autre destination |
-| Affichage partagé | `ui/compare/CompareSections.kt` | compteurs + sections, utilisés par l'écran de scan **et** l'écran de session |
-| Écran de session | `ui/compare/CompareSessionScreen` + `CompareSessionViewModel` | résultat, enregistrement, export |
+| Affichage partagé | `ui/compare/CompareSections.kt` | compteurs, barres, sections et lignes d'un seul état, utilisés par l'écran de scan **et** l'écran de session |
+| Écran de session | `ui/compare/CompareSessionScreen` + `CompareSessionViewModel` | résultat, enregistrement, export, suppression |
+| Onglet Comparer | `domain/compare/CompareOverview.kt` + `ui/compare/CompareHomeViewModel.kt` | dossiers et imports par date, avancement de la dernière session (`ComparisonDao.observeSessionProgress`) |
 
 ## 5. Format CSV
 
@@ -349,12 +353,13 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 | 8 | **Comparer** | Import CSV / dossier local, `CompareEngine` branché au scan, liste de référence rouge → verte, compteurs et barre d'avancement, enregistrement en dossier, export `.csv` à colonne `etat` | ✅ Fait |
 | 9 | **Finitions** | Permissions, torche, rotation, écran allumé, gestion mémoire, icône | ⬜ À faire |
 | 10 | **Build & test terrain** | APK debug, installation sur Galaxy S25, test sur 10 batteries | ⬜ À faire |
-| 11 | **Refonte de l'interface** (décision 27) | Style uniforme en 7 étapes, 5 variantes par étape soumises à l'utilisateur sur le canevas de maquettes : 1 style global ✅ (C, « Bleu de travail ») · 2 menu principal ✅ (E, barre de navigation, décision 28) · 3 choix du mode ✅ (E, échantillons d'étiquette) · 4 écran de scan ✅ (B, caméra pleine et tiroir, décision 29) · 5 dossiers ✅ (B, liste par date et boutons) · 6 comparer · 7 export et fenêtres de formules | 🟡 En cours (étape 5/7) |
+| 11 | **Refonte de l'interface** (décision 27) | Style uniforme en 7 étapes, 5 variantes par étape soumises à l'utilisateur sur le canevas de maquettes : 1 style global ✅ (C, « Bleu de travail ») · 2 menu principal ✅ (E, barre de navigation, décision 28) · 3 choix du mode ✅ (E, échantillons d'étiquette) · 4 écran de scan ✅ (B, caméra pleine et tiroir, décision 29) · 5 dossiers ✅ (B, liste par date et boutons) · 6 comparer ✅ (G, mélange de B et C : avancement dans la liste, décision 30) · 7 export et fenêtres de formules | 🟡 En cours (étape 6/7) |
 
 ## 7. Journal des évolutions
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
+| 2026-10-27 | **Refonte de l'interface, étape 6 : onglet Comparer par date, avec l'avancement des comparaisons (décision 30).** Cinq présentations sur le canevas (page « 6 · Comparer »), puis cinq mélanges de B et C à la demande de l'utilisateur (page « 6 bis ») ; **G retenue**. Constat en préparant les maquettes : une session quittée ne se rouvrait plus (`observeSessions` n'était lu nulle part). Nouvelle requête `ComparisonDao.observeSessionProgress` : une ligne par session, comptes et dernière validation calculés en SQL (`LEFT JOIN` + `GROUP BY`, vérifiée sur une base SQLite d'essai), relue à chaque validation. Nouvelle classe pure `domain/compare/CompareOverview.kt` (`SessionProgress`, `CompareEntry`) : fusionne dossiers et sessions en une liste par date ; un dossier porte sa **dernière** session et remonte à la date de sa dernière validation ; un import `.csv`, ou la session d'un dossier supprimé depuis, devient une ligne à part. **9 tests** (`CompareOverviewTest`). Onglet (`CompareHomeScreen` + `CompareHomeViewModel`, qui remplacent `CompareSourceScreen` et la route `COMPARE_PICK_FOLDER`) : « Importer un fichier .csv », puis les périodes de `FolderTimeline` ; sous une ligne comparée, `SessionProgressStrip` (reste à valider ou « Complète », compte, « Reprendre » / « Ouvrir », barre) ; un appui sur un dossier déjà comparé ouvre « Comparaison déjà commencée » (Reprendre / Nouvelle comparaison). Lignes partagées avec l'onglet Dossiers dans `ui/common/TimelineRows.kt` (`TimelineRow`, `momentLabel`, `FolderPeriod.label`). Session (`CompareSessionScreen`) : `CompareProgressHeader` (reste à valider en grand, barre) dans l'en-tête, sélecteur « À valider / Validés » teint de la couleur des lignes qu'il montre, `compareRows` (lignes d'un seul état), « Lancer le scan » dans le nouvel emplacement `bottomBar` de `ScanListScaffold` (les messages s'affichent au-dessus) ; Enregistrer et Exporter en icônes d'en-tête, « Supprimer la comparaison » au menu (`CompareRepository.deleteSession`, les dossiers ne sont pas touchés). Barres d'avancement sans point ni espace de fin (`gapSize = 0`, `drawStopIndicator` vide). Chaînes `compare_source*` retirées. `versionName` 1.6 (`versionCode` 7). **199 tests, 0 échec**, aucun avertissement ; APK déposé dans `release/`. **Non vérifié sur téléphone.** | `contexte.md`, `outils.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-10-27 | **Refonte de l'interface, étape 5 : dossiers rangés par date, fiche centrée sur « Reprendre le scan ».** Cinq organisations présentées sur le canevas (page « 5 · Dossiers », liste et fiche) ; **B retenue** par l'utilisateur. Nouvelle classe pure `domain/folders/FolderTimeline.kt` : `periodOf` range un dossier selon sa dernière activité (`updatedAt`, mis à jour à chaque capture) en **Aujourd'hui / Cette semaine / Plus ancien** — semaine **du lundi**, comme au calendrier français, et non fenêtre glissante qui rangerait le jeudi précédent dans « Cette semaine » le lundi matin ; date future (horloge recalée) gardée en tête ; jour jugé dans le fuseau du téléphone. `momentOf` dit le moment de la façon la plus courte : heure, « hier », jour de la semaine, date, date avec année. `group` conserve l'ordre de la base dans chaque période et omet les périodes vides. **10 tests** (`FolderTimelineTest`). `FolderListScreen` : intitulé de période, puis lignes compactes formant une carte par période (pictogramme du mode — ou de la comparaison —, nom, « mode · moment », nombre d'éléments à droite, annoncé « 47 éléments » au lecteur d'écran). Pictogrammes par mode dans `ui/common/ScanModeIcons.kt`, dont un code-barres dessiné (Material Icons n'en a pas). Fiche (`FolderActionsScreen`) : « Reprendre le scan » en bouton principal, « Consulter » et « Exporter en .csv » côte à côte, puis les cinq dernières valeurs et « Tout voir » (vers Consulter) ; les trois entrées de la spécification restent, seule leur présentation change. Chaînes `folder_action_*_desc`, `folder_item_count`, `folder_kind_comparison` retirées. `versionName` 1.5 (`versionCode` 6). **190 tests, 0 échec**, aucun avertissement ; APK déposé dans `release/`. **Non vérifié sur téléphone.** | `outils.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-10-27 | **Refonte de l'interface, étape 4 : écran de scan à caméra pleine hauteur et tiroir (décision 29).** Cinq dispositions présentées sur le canevas (page « 4 · Écran de scan », chacune en Code 2D et en OCR) ; **B retenue** par l'utilisateur. `ScanScreen` : la `Column` caméra / panneau / liste devient un `BottomSheetScaffold` ; la caméra (ou la surface NFC) occupe toute la hauteur jusqu'au bord du tiroir replié, qui montre sa poignée, un en-tête et les deux dernières lignes (`DRAWER_PEEK` 208 dp + barre système) et descend sous la barre de navigation système. L'en-tête du tiroir le déplie ou le replie **d'un appui** (« Tout voir » / « Replier ») : le glisser n'est pas le seul geste, on scanne parfois ganté. Tiroir jamais plus court que sa hauteur repliée (sinon le fond noir apparaît dessous), message « Vise une étiquette… » quand il est vide ; en comparaison, il porte la liste de référence rouge / verte. `OcrControlPanel` et `BarcodeFilterPanel` remplacés par trois pièces (`OcrPanel.kt`) : `PatternPill`, pastille translucide en haut de l'image (formule, « aucun filtre », ou « invalide ») ; `PatternEditorSheet`, feuille d'édition ouverte d'un appui sur la pastille, qui garde le champ, les trois outils dessous (décision 26) et le groupe capturé, clavier ouvert d'office seulement si la formule est vide ; `CaptureToggleButton`, bouton flottant au bas de l'image en OCR, qui ouvre l'édition au lieu de rester grisé tant que la formule n'est pas valide (un bouton grisé ne se lit pas sur l'image sombre). Commandes sur l'image en couleurs fixes (fond sombre translucide, texte clair), quel que soit le thème. Le bandeau de dernière lecture reste à durée 0, comme décidé. `versionName` 1.4 (`versionCode` 5). 180 tests, 0 échec, aucun avertissement ; APK déposé dans `release/`. **Non vérifié sur téléphone** : position du réticule, geste du tiroir, clavier dans la feuille, thème sombre. | `contexte.md`, `outils.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-10-27 | **Refonte de l'interface, étape 3 : choix du mode par échantillon d'étiquette.** Cinq présentations du sélecteur de mode sur le canevas (page « 3 · Choix du mode ») ; **E retenue** par l'utilisateur. `ScanModePicker` quitte `Components.kt` pour `ui/common/ScanModePicker.kt` : chaque carte montre, dans une vignette de 96 × 72 dp, un petit dessin de ce que le mode lit — numéro imprimé (OCR), QR Code stylisé sur 25 modules (Code 2D), une rangée de barres (Code-barres), tag sans contact avec antenne et puce (NFC/RFID) — dessinés en `Canvas`, en blanc et encre fixes (une étiquette reste blanche en thème sombre). Le choix explicite du mode, exigence anti-erreur, est inchangé : le dessin le rend seulement plus sûr. Descriptions réécrites en « ce que l'on voit » (`mode_*_desc`) ; pour le Code 2D, « un carré à motif (QR Code, Data Matrix, Aztec) ou un PDF417 », et non « un code en plusieurs étages » qu'utilisait la maquette : c'est le mot de l'utilisateur pour les codes empilés que l'application **ne sait pas** lire (décision 21). Sous-titre de Nouveau scan : « Quelle étiquette lis-tu ? ». Les mêmes cartes servent à Reprendre le scan (dernier mode teint en bleu, vignette éclaircie) et à Lancer le scan d'une comparaison. `versionName` 1.3 (`versionCode` 4). 180 tests, 0 échec, aucun avertissement ; APK déposé dans `release/`. **Non vérifié sur téléphone** : netteté des dessins, thème sombre. | `outils.md`, `workflow.md`, `CLAUDE.md` |

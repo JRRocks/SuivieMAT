@@ -1,24 +1,18 @@
 package com.scanlist.app.ui.folders
 
 import android.content.ActivityNotFoundException
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FactCheck
@@ -53,24 +47,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.scanlist.app.R
 import com.scanlist.app.data.db.entity.FolderSummary
 import com.scanlist.app.data.db.entity.ScanItemEntity
-import com.scanlist.app.domain.folders.ActivityMoment
-import com.scanlist.app.domain.folders.FolderPeriod
 import com.scanlist.app.domain.folders.FolderTimeline
 import com.scanlist.app.domain.model.FolderKind
 import com.scanlist.app.domain.model.ScanMode
@@ -83,32 +70,30 @@ import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
 import com.scanlist.app.ui.common.SecondaryButton
 import com.scanlist.app.ui.common.SectionTitle
+import com.scanlist.app.ui.common.TimelineRow
 import com.scanlist.app.ui.common.icon
+import com.scanlist.app.ui.common.label
+import com.scanlist.app.ui.common.momentLabel
 import com.scanlist.app.ui.theme.ScanValueTextStyle
 import java.text.SimpleDateFormat
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.launch
 
 private val ITEM_TIME_FORMAT = SimpleDateFormat("dd/MM HH:mm:ss", Locale.FRANCE)
 private val DAY_FORMAT = SimpleDateFormat("dd/MM/yyyy 'à' HH'h'mm", Locale.FRANCE)
-private val DAY_MONTH_FORMAT = DateTimeFormatter.ofPattern("dd/MM", Locale.FRANCE)
-private val FULL_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.FRANCE)
 
 /**
- * Liste des dossiers existants, filtrable.
+ * Onglet Dossiers : la liste des dossiers existants, rangee par date et filtrable.
  *
- * Deux usages : l'onglet Dossiers de la barre de navigation, sans fleche de retour, et
- * le choix de la liste de reference d'une comparaison, qui en a une.
+ * L'onglet Comparer reprend les memes lignes ([TimelineRow]) sans reprendre cet ecran :
+ * il y ajoute l'avancement des comparaisons et les imports .csv (decision 30).
  */
 @Composable
 fun FolderListScreen(
     subtitle: String,
     onFolderSelected: (Long) -> Unit,
-    onBack: (() -> Unit)? = null,
     viewModel: FolderListViewModel = hiltViewModel(),
 ) {
     val folders by viewModel.folders.collectAsStateWithLifecycle()
@@ -118,7 +103,6 @@ fun FolderListScreen(
     ScanListScaffold(
         title = stringResource(R.string.folders_title),
         subtitle = subtitle,
-        onBack = onBack,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -195,11 +179,7 @@ fun FolderListScreen(
     }
 }
 
-/**
- * Une ligne de la liste des dossiers : le mode en pictogramme, le nom, le mode et le
- * moment de la derniere activite, le nombre d'elements a droite. Les lignes d'une meme
- * periode forment une seule carte, arrondie a ses deux bouts.
- */
+/** Une ligne de la liste des dossiers : le mode du dossier, ou une comparaison. */
 @Composable
 private fun FolderRow(
     folder: FolderSummary,
@@ -208,98 +188,28 @@ private fun FolderRow(
     isLast: Boolean,
     onClick: () -> Unit,
 ) {
-    val top = if (isFirst) 20.dp else 0.dp
-    val bottom = if (isLast) 20.dp else 0.dp
-    val shape = RoundedCornerShape(
-        topStart = top,
-        topEnd = top,
-        bottomStart = bottom,
-        bottomEnd = bottom,
-    )
     val isComparison = folder.kind == FolderKind.COMPARISON
-    val countDescription = pluralStringResource(
-        R.plurals.folder_item_label,
-        folder.itemCount,
-    ).let { "${folder.itemCount} $it" }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 68.dp)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                if (isComparison) {
-                    Icons.AutoMirrored.Filled.FactCheck
-                } else {
-                    folder.defaultScanMode.icon
-                },
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(26.dp),
-            )
-            Spacer(Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    folder.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    stringResource(
-                        R.string.folder_row_meta,
-                        if (isComparison) {
-                            stringResource(R.string.folder_kind_comparison_title)
-                        } else {
-                            folder.defaultScanMode.label
-                        },
-                        moment,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Text(
-                folder.itemCount.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.semantics { contentDescription = countDescription },
-            )
-        }
-        if (!isLast) {
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 56.dp),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-        }
-    }
-}
-
-private val FolderPeriod.label: Int
-    get() = when (this) {
-        FolderPeriod.TODAY -> R.string.folders_period_today
-        FolderPeriod.THIS_WEEK -> R.string.folders_period_week
-        FolderPeriod.OLDER -> R.string.folders_period_older
-    }
-
-@Composable
-private fun momentLabel(moment: ActivityMoment): String = when (moment) {
-    is ActivityMoment.Time -> stringResource(R.string.folder_when_time, moment.hour, moment.minute)
-    ActivityMoment.Yesterday -> stringResource(R.string.folder_when_yesterday)
-    is ActivityMoment.Weekday -> moment.day.getDisplayName(TextStyle.FULL, Locale.FRANCE)
-    is ActivityMoment.Day -> DAY_MONTH_FORMAT.format(moment.date)
-    is ActivityMoment.DayOfOtherYear -> FULL_DATE_FORMAT.format(moment.date)
+    TimelineRow(
+        icon = if (isComparison) {
+            Icons.AutoMirrored.Filled.FactCheck
+        } else {
+            folder.defaultScanMode.icon
+        },
+        title = folder.name,
+        meta = stringResource(
+            R.string.folder_row_meta,
+            if (isComparison) {
+                stringResource(R.string.folder_kind_comparison_title)
+            } else {
+                folder.defaultScanMode.label
+            },
+            moment,
+        ),
+        count = folder.itemCount,
+        isFirst = isFirst,
+        isLast = isLast,
+        onClick = onClick,
+    )
 }
 
 /**
