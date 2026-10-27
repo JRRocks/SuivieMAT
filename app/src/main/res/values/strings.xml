@@ -126,6 +126,19 @@
     </plurals>
     <string name="scan_saved">Enregistré : %1$s</string>
     <string name="scan_delete_item">Supprimer cette ligne</string>
+    <!-- Tiroir des résultats, sous la caméra (étape 4 de la refonte) -->
+    <string name="scan_drawer_captures">Dernières captures</string>
+    <string name="scan_drawer_reference">Liste de référence</string>
+    <string name="scan_drawer_expand">Tout voir</string>
+    <string name="scan_drawer_collapse">Replier</string>
+    <string name="scan_drawer_empty">Vise une étiquette : chaque lecture s\'ajoute ici.</string>
+    <!-- Pastille de formule posée sur l'image de la caméra -->
+    <string name="scan_pattern_pill_ocr">Formule</string>
+    <string name="scan_pattern_pill_filter">Filtre</string>
+    <string name="scan_pattern_none_ocr">aucune, touche pour en saisir une</string>
+    <string name="scan_pattern_none_filter">aucun, tous les codes sont acceptés</string>
+    <string name="scan_pattern_invalid">invalide</string>
+    <string name="scan_pattern_edit">Modifier</string>
     <string name="scan_new_folder_title">Nouveau dossier</string>
     <string name="scan_subtitle_new_folder">%1$s · créé à la première capture</string>
 
@@ -139,6 +152,7 @@
     <string name="ocr_pattern_hint">ex. BAT-\\d{4}</string>
     <string name="ocr_start">Démarrer la capture</string>
     <string name="ocr_stop">Arrêter la capture</string>
+    <string name="ocr_enter_pattern">Saisir une formule</string>
     <string name="ocr_group">Groupe capturé</string>
     <string name="ocr_group_full">Tout</string>
     <string name="ocr_library">Formules enregistrées</string>

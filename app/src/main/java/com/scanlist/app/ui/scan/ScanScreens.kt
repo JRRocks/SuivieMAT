@@ -2,40 +2,59 @@ package com.scanlist.app.ui.scan
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.FlashOn
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +66,7 @@ import com.scanlist.app.domain.regex.RegexRuleEngine
 import com.scanlist.app.ui.common.HeaderCounter
 import com.scanlist.app.ui.common.ScanListScaffold
 import com.scanlist.app.ui.common.ScanModePicker
+import com.scanlist.app.ui.common.SectionTitle
 import com.scanlist.app.ui.compare.CompareCounterBar
 import com.scanlist.app.ui.compare.compareSections
 import com.scanlist.app.ui.theme.ScanValueTextStyle
@@ -55,6 +75,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
 
@@ -95,14 +116,16 @@ fun NewScanModeScreen(
 /**
  * Ecran de scan, pour les deux contextes.
  *
- * Source de capture en haut (camera pour OCR/QR/code-barres, surface d'attente pour
- * NFC), resultat en dessous : l'utilisateur voit sa lecture prise en compte sans
- * quitter des yeux la zone de detection. Aucune validation, aucune boite de dialogue —
- * le retour se fait par vibration et par bip.
+ * Etape 4 de la refonte (variante B, choix de l'utilisateur) : la source de capture
+ * (camera pour OCR/QR/code-barres, surface d'attente pour NFC) occupe toute la hauteur
+ * sous l'en-tete ; les resultats vivent dans un tiroir qui montre les dernieres lignes et
+ * se deplie d'un appui. La formule se replie en pastille sur l'image. Aucune validation,
+ * aucune boite de dialogue pendant le scan — le retour se fait par vibration et par bip.
  *
- * En scan de dossier, le bas de l'ecran est la liste des captures qui s'allonge. En
+ * En scan de dossier, le tiroir porte les captures, la plus recente en tete. En
  * comparaison, c'est la liste de reference qui se vide de son rouge.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScanScreen(
     mode: ScanMode,
@@ -131,6 +154,19 @@ fun ScanScreen(
     val activeRuleId by viewModel.activeRuleId.collectAsStateWithLifecycle()
 
     var libraryOpen by remember { mutableStateOf(false) }
+    var editorOpen by remember { mutableStateOf(false) }
+    // Filtre de conformite optionnel en QR Code et code-barres, formule obligatoire en
+    // OCR ; sans objet en NFC et en comparaison, ou la reference fait deja le tri.
+    val hasPattern = isOcr || (!isNfc && !isCompare)
+
+    val drawerState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(skipHiddenState = true),
+    )
+    val drawerExpanded = drawerState.bottomSheetState.targetValue == SheetValue.Expanded
+    val scope = rememberCoroutineScope()
+    // Le tiroir passe sous la barre de navigation systeme : sa hauteur repliee la compte.
+    val navigationInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val drawerPeek = DRAWER_PEEK + navigationInset
 
     KeepScreenOn()
 
@@ -189,29 +225,62 @@ fun ScanScreen(
             }
         },
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+        BottomSheetScaffold(
+            scaffoldState = drawerState,
+            sheetPeekHeight = drawerPeek,
+            sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+            sheetContainerColor = MaterialTheme.colorScheme.surface,
+            sheetShadowElevation = 8.dp,
+            sheetDragHandle = { DrawerHandle() },
+            sheetContent = {
+                ScanDrawer(
+                    title = stringResource(
+                        if (isCompare) {
+                            R.string.scan_drawer_reference
+                        } else {
+                            R.string.scan_drawer_captures
+                        },
+                    ),
+                    expanded = drawerExpanded,
+                    onToggle = {
+                        scope.launch {
+                            if (drawerExpanded) {
+                                drawerState.bottomSheetState.partialExpand()
+                            } else {
+                                drawerState.bottomSheetState.expand()
+                            }
+                        }
+                    },
+                    bottomInset = navigationInset,
+                    minHeight = drawerPeek,
+                ) {
+                    if (isCompare) {
+                        // Les entrees encore rouges en tete : c'est ce qu'il reste a
+                        // trouver, et donc ce que l'utilisateur doit voir sans deplier.
+                        compareSections(missing = missing, found = found)
+                    } else if (items.isEmpty()) {
+                        item(key = "empty") { DrawerEmptyHint() }
+                    } else {
+                        items(items, key = { it.id }) { item ->
+                            CapturedRow(item = item, onDelete = { viewModel.deleteItem(item) })
+                            HorizontalDivider()
+                        }
+                    }
+                }
+            },
+            containerColor = if (isNfc) MaterialTheme.colorScheme.background else Color.Black,
+            // Seul le haut est pris a l'en-tete : le tiroir descend jusqu'au bord de
+            // l'ecran, sous la barre de navigation systeme.
+            modifier = Modifier.padding(top = padding.calculateTopPadding()),
         ) {
             // clipToBounds obligatoire : PreviewView met son rendu a l'echelle par une
             // transformation de matrice, qui deborde de ses limites sans decoupe et
-            // vient s'afficher par-dessus la liste des captures. Sans objet en NFC,
-            // qui partage cette meme zone avec une surface statique.
-            //
-            // Les panneaux de formule (OCR, filtre de conformite) n'ont pas de poids :
-            // ils prennent la hauteur de leur contenu, la camera et la liste se
-            // partagent le reste. Depuis le retrait de l'apercu OCR (decision 26), un
-            // poids fixe ne laisserait qu'un vide sous le bouton de capture.
+            // viendrait s'afficher sous le tiroir. La zone s'arrete au bord du tiroir
+            // replie, pour que le reticule reste centre dans ce qui est visible.
             Box(
                 modifier = Modifier
-                    .weight(
-                        when {
-                            isNfc || isCompare -> 0.55f
-                            else -> 0.50f
-                        },
-                    )
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .padding(bottom = drawerPeek)
                     .clipToBounds(),
             ) {
                 if (isNfc) {
@@ -220,78 +289,74 @@ fun ScanScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
                 } else if (analyzer != null) {
-                    CameraPermissionGate {
-                        CameraPreview(
-                            analyzer = analyzer,
-                            torchEnabled = torch,
-                            modifier = Modifier.fillMaxSize(),
-                            // Les codes 2D (PDF417, Data Matrix) ont des modules bien
-                            // plus fins : ils demandent plus de pixels que le 1D.
-                            analysisResolution = analysisResolutionFor(mode),
-                            // Comparaison : le consensus ne s'y applique pas (portee
-                            // validee), le reticule reste dans son etat d'origine.
-                            consensusProgress = if (isCompare) 0f else consensusProgress,
-                            onError = viewModel::onCameraError,
-                        )
+                    // Fond noir de la camera : le message d'autorisation, s'il apparait,
+                    // doit s'y lire en clair.
+                    CompositionLocalProvider(LocalContentColor provides Color.White) {
+                        CameraPermissionGate {
+                            CameraPreview(
+                                analyzer = analyzer,
+                                torchEnabled = torch,
+                                modifier = Modifier.fillMaxSize(),
+                                // Les codes 2D (PDF417, Data Matrix) ont des modules bien
+                                // plus fins : ils demandent plus de pixels que le 1D.
+                                analysisResolution = analysisResolutionFor(mode),
+                                // Comparaison : le consensus ne s'y applique pas (portee
+                                // validee), le reticule reste dans son etat d'origine.
+                                consensusProgress = if (isCompare) 0f else consensusProgress,
+                                onError = viewModel::onCameraError,
+                            )
+                        }
                     }
                 }
+
+                if (hasPattern) {
+                    PatternPill(
+                        isOcr = isOcr,
+                        pattern = pattern,
+                        validation = validation,
+                        onClick = { editorOpen = true },
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                    )
+                }
+
                 LastEventBanner(
                     event = event,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(12.dp),
+                        // En OCR, le bouton de capture occupe deja le bas de l'image.
+                        .padding(bottom = if (isOcr) 88.dp else 12.dp),
                 )
-            }
 
-            if (isOcr) {
-                HorizontalDivider()
-                OcrControlPanel(
-                    pattern = pattern,
-                    validation = validation,
-                    capturing = capturing,
-                    groupCount = groupCount,
-                    groupIndex = groupIndex,
-                    onPatternChange = viewModel::setPattern,
-                    onGroupIndexChange = viewModel::setGroupIndex,
-                    onToggleCapture = viewModel::toggleCapture,
-                    onOpenLibrary = { libraryOpen = true },
-                )
-            } else if (!isNfc && !isCompare) {
-                // Filtre de conformite optionnel, meme bibliotheque de formules que
-                // l'OCR. Sans objet en comparaison : la reference fait deja le tri.
-                HorizontalDivider()
-                BarcodeFilterPanel(
-                    pattern = pattern,
-                    validation = validation,
-                    onPatternChange = viewModel::setPattern,
-                    onOpenLibrary = { libraryOpen = true },
-                )
-            }
-
-            HorizontalDivider()
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(
-                        when {
-                            isNfc || isCompare -> 0.45f
-                            else -> 0.38f
-                        },
+                if (isOcr) {
+                    CaptureToggleButton(
+                        capturing = capturing,
+                        canCapture = validation is RegexRuleEngine.Validation.Valid,
+                        onToggleCapture = viewModel::toggleCapture,
+                        onEditPattern = { editorOpen = true },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 16.dp),
                     )
-                    .fillMaxWidth(),
-            ) {
-                if (isCompare) {
-                    // Les entrees encore rouges en tete : c'est ce qu'il reste a
-                    // trouver, et donc ce que l'utilisateur doit voir sans defiler.
-                    compareSections(missing = missing, found = found)
-                } else {
-                    items(items, key = { it.id }) { item ->
-                        CapturedRow(item = item, onDelete = { viewModel.deleteItem(item) })
-                        HorizontalDivider()
-                    }
                 }
             }
         }
+    }
+
+    if (editorOpen) {
+        PatternEditorSheet(
+            isOcr = isOcr,
+            pattern = pattern,
+            validation = validation,
+            groupCount = groupCount,
+            groupIndex = groupIndex,
+            onPatternChange = viewModel::setPattern,
+            onGroupIndexChange = viewModel::setGroupIndex,
+            onOpenLibrary = { libraryOpen = true },
+            onDismiss = { editorOpen = false },
+        )
     }
 
     if (libraryOpen) {
@@ -404,6 +469,79 @@ private fun CapturedRow(item: ScanItemEntity, onDelete: () -> Unit) {
             )
         }
     }
+}
+
+/**
+ * Hauteur du tiroir replie, hors barre de navigation systeme : sa poignee, son en-tete
+ * et les deux dernieres lignes. Assez pour voir la lecture qu'on vient de faire, sans
+ * prendre a la camera plus que necessaire.
+ */
+private val DRAWER_PEEK = 208.dp
+
+/** Poignee du tiroir, plus fine que celle de Material pour laisser la place aux lignes. */
+@Composable
+private fun DrawerHandle() {
+    Box(
+        modifier = Modifier
+            .padding(top = 10.dp, bottom = 6.dp)
+            .size(width = 36.dp, height = 4.dp)
+            .background(MaterialTheme.colorScheme.outline, CircleShape),
+    )
+}
+
+/**
+ * Contenu du tiroir : un en-tete qui le deplie ou le replie d'un appui — le glisser
+ * n'est pas le seul geste, on scanne parfois avec des gants — puis la liste.
+ */
+@Composable
+private fun ScanDrawer(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    bottomInset: Dp,
+    minHeight: Dp,
+    content: LazyListScope.() -> Unit,
+) {
+    // Jamais plus court que sa hauteur repliee : un tiroir presque vide laisserait voir
+    // le fond noir de la camera sous lui.
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = minHeight),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionTitle(text = title, modifier = Modifier.weight(1f))
+            Text(
+                stringResource(
+                    if (expanded) R.string.scan_drawer_collapse else R.string.scan_drawer_expand,
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = bottomInset),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun DrawerEmptyHint() {
+    Text(
+        stringResource(R.string.scan_drawer_empty),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+    )
 }
 
 /** Garde l'ecran allume : un scan a la chaine ne doit pas s'interrompre en veille. */

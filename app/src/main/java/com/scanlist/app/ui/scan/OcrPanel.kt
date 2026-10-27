@@ -21,10 +21,13 @@ import androidx.compose.material.icons.filled.AutoFixHigh
 import androidx.compose.material.icons.filled.Bookmarks
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +55,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringArrayResource
@@ -71,157 +79,265 @@ import com.scanlist.app.ui.theme.ValueFontFamily
 import com.scanlist.app.ui.theme.compareColors
 import kotlinx.coroutines.launch
 
+/*
+ * Etape 4 de la refonte (variante B, choix de l'utilisateur) : la camera occupe toute la
+ * hauteur, la formule se replie en une pastille posee sur l'image et s'edite dans une
+ * feuille. La feuille garde le contenu des anciens panneaux : le champ, les outils sous
+ * le champ (decision 26) et, en OCR, le choix du groupe capture.
+ */
+
+// Commandes posees sur l'image de la camera : fond sombre translucide et texte clair
+// quel que soit le theme, l'image derriere est toujours celle du capteur.
+private val OverlayScrim = Color(0xC70D1120)
+private val OverlayContent = Color.White
+private val OverlayContentVariant = Color(0xFFC9D3EE)
+private val OverlayError = Color(0xFFFFB4AB)
+
 /**
- * Panneau de reglage de la formule OCR : le champ, ses outils, puis l'armement de la
- * capture.
- *
- * Ni apercu en direct ni texte brut lu : retires a la demande de l'utilisateur
- * (decision 26). Le panneau n'a plus de hauteur imposee, il prend celle de son
- * contenu et laisse le reste a la camera.
+ * Pastille de la formule, en haut de l'image : la formule active reste visible sans
+ * prendre de place a la camera, un appui ouvre son edition.
  */
 @Composable
-fun OcrControlPanel(
+fun PatternPill(
+    isOcr: Boolean,
     pattern: String,
     validation: RegexRuleEngine.Validation,
-    capturing: Boolean,
-    groupCount: Int,
-    groupIndex: Int,
-    onPatternChange: (String) -> Unit,
-    onGroupIndexChange: (Int) -> Unit,
-    onToggleCapture: () -> Unit,
-    onOpenLibrary: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val invalid = validation as? RegexRuleEngine.Validation.Invalid
+    val invalid = pattern.isNotEmpty() && validation is RegexRuleEngine.Validation.Invalid
+    val editLabel = stringResource(R.string.scan_pattern_edit)
 
-    Column(
+    Row(
         modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .heightIn(min = 48.dp)
+            .clip(CircleShape)
+            .background(OverlayScrim)
+            .clickable(onClickLabel = editLabel, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedTextField(
-            value = pattern,
-            onValueChange = onPatternChange,
-            label = { Text(stringResource(R.string.ocr_pattern_label)) },
-            placeholder = { Text(stringResource(R.string.ocr_pattern_hint)) },
-            singleLine = true,
-            isError = pattern.isNotEmpty() && invalid != null,
-            supportingText = {
-                if (pattern.isNotEmpty() && invalid != null && invalid.message.isNotBlank()) {
-                    Text(invalid.message)
-                }
-            },
-            // Ni majuscule automatique ni correction : une regex n'est pas du texte.
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                autoCorrectEnabled = false,
-                imeAction = ImeAction.Done,
-            ),
-            textStyle = PatternTextStyle,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth(),
+        Icon(
+            if (isOcr) Icons.Default.Edit else Icons.Default.FilterAlt,
+            contentDescription = null,
+            tint = OverlayContent,
+            modifier = Modifier.size(18.dp),
         )
-
-        RegexToolsRow(onPatternChange = onPatternChange, onOpenLibrary = onOpenLibrary)
-
-        // Le choix du groupe n'a de sens que si la formule en contient.
-        if (groupCount > 0) {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        Text(
+            stringResource(
+                if (isOcr) R.string.scan_pattern_pill_ocr else R.string.scan_pattern_pill_filter,
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = OverlayContent,
+        )
+        if (pattern.isBlank()) {
+            Text(
+                stringResource(
+                    if (isOcr) {
+                        R.string.scan_pattern_none_ocr
+                    } else {
+                        R.string.scan_pattern_none_filter
+                    },
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = OverlayContentVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        } else {
+            Text(
+                pattern,
+                style = PatternTextStyle,
+                color = if (invalid) OverlayError else OverlayContent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            if (invalid) {
                 Text(
-                    stringResource(R.string.ocr_group),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    stringResource(R.string.scan_pattern_invalid),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = OverlayError,
                 )
-                (0..groupCount).forEach { index ->
-                    FilterChip(
-                        selected = groupIndex == index,
-                        onClick = { onGroupIndexChange(index) },
-                        label = {
-                            Text(
-                                if (index == 0) stringResource(R.string.ocr_group_full) else "$index",
-                            )
-                        },
-                    )
-                }
             }
         }
-
-        PrimaryButton(
-            text = stringResource(if (capturing) R.string.ocr_stop else R.string.ocr_start),
-            icon = if (capturing) Icons.Default.Stop else Icons.Default.PlayArrow,
-            onClick = onToggleCapture,
-            enabled = validation is RegexRuleEngine.Validation.Valid,
-            colors = if (capturing) {
-                ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                )
-            } else {
-                ButtonDefaults.buttonColors()
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Text(editLabel, style = MaterialTheme.typography.labelLarge, color = OverlayContentVariant)
     }
 }
 
 /**
- * Filtre de conformite pour QR Code et code-barres.
+ * Armement de la capture OCR (decision 12), en bouton flottant au bas de l'image : il
+ * reste sous le pouce, la ou l'ancien panneau le placait au milieu de l'ecran.
  *
- * A la difference de l'OCR, il ne s'agit pas d'isoler un fragment dans du texte
- * libre : le code est deja une valeur delimitee, la formule le valide ou le rejette
- * en totalite. Ni choix de groupe capturant ni armement de la capture : ces deux
- * notions n'ont pas de sens ici, un code decode est deja une valeur complete.
+ * Sans formule valide, il ne reste pas grise (illisible sur l'image sombre) : il ouvre
+ * l'edition de la formule, seul geste utile a ce moment-la.
  */
 @Composable
-fun BarcodeFilterPanel(
-    pattern: String,
-    validation: RegexRuleEngine.Validation,
-    onPatternChange: (String) -> Unit,
-    onOpenLibrary: () -> Unit,
+fun CaptureToggleButton(
+    capturing: Boolean,
+    canCapture: Boolean,
+    onToggleCapture: () -> Unit,
+    onEditPattern: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val (label, icon) = when {
+        capturing -> R.string.ocr_stop to Icons.Default.Stop
+        canCapture -> R.string.ocr_start to Icons.Default.PlayArrow
+        else -> R.string.ocr_enter_pattern to Icons.Default.Edit
+    }
+    Button(
+        onClick = if (capturing || canCapture) onToggleCapture else onEditPattern,
+        shape = CircleShape,
+        colors = when {
+            capturing -> ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            )
+            canCapture -> ButtonDefaults.buttonColors()
+            else -> ButtonDefaults.buttonColors(
+                containerColor = OverlayScrim,
+                contentColor = OverlayContent,
+            )
+        },
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+        contentPadding = PaddingValues(horizontal = 28.dp),
+        modifier = modifier.heightIn(min = 56.dp),
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+        Text(stringResource(label), modifier = Modifier.padding(start = 10.dp))
+    }
+}
+
+/**
+ * Edition de la formule, ouverte depuis la pastille.
+ *
+ * En OCR, la formule isole un fragment dans du texte libre, avec le choix du groupe
+ * capture. En QR Code et code-barres, c'est un filtre de conformite : le code est deja
+ * une valeur delimitee, la formule le valide ou le rejette en totalite, sans groupe ni
+ * armement. Chaque frappe s'applique tout de suite, comme avant ; en OCR elle desarme
+ * la capture (decision 12).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PatternEditorSheet(
+    isOcr: Boolean,
+    pattern: String,
+    validation: RegexRuleEngine.Validation,
+    groupCount: Int,
+    groupIndex: Int,
+    onPatternChange: (String) -> Unit,
+    onGroupIndexChange: (Int) -> Unit,
+    onOpenLibrary: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        OutlinedTextField(
-            value = pattern,
-            onValueChange = onPatternChange,
-            label = { Text(stringResource(R.string.barcode_filter_label)) },
-            placeholder = { Text(stringResource(R.string.barcode_filter_hint)) },
-            singleLine = true,
-            isError = pattern.isNotEmpty() && invalid != null,
-            supportingText = {
-                if (pattern.isNotEmpty() && invalid != null && invalid.message.isNotBlank()) {
-                    Text(invalid.message)
-                } else if (pattern.isBlank()) {
-                    Text(stringResource(R.string.barcode_filter_empty))
-                }
-            },
-            // Ni majuscule automatique ni correction : une regex n'est pas du texte.
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                autoCorrectEnabled = false,
-                imeAction = ImeAction.Done,
-            ),
-            textStyle = PatternTextStyle,
-            shape = MaterialTheme.shapes.medium,
-            modifier = Modifier.fillMaxWidth(),
-        )
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            OutlinedTextField(
+                value = pattern,
+                onValueChange = onPatternChange,
+                label = {
+                    Text(
+                        stringResource(
+                            if (isOcr) {
+                                R.string.ocr_pattern_label
+                            } else {
+                                R.string.barcode_filter_label
+                            },
+                        ),
+                    )
+                },
+                placeholder = {
+                    Text(
+                        stringResource(
+                            if (isOcr) R.string.ocr_pattern_hint else R.string.barcode_filter_hint,
+                        ),
+                    )
+                },
+                singleLine = true,
+                isError = pattern.isNotEmpty() && invalid != null,
+                supportingText = {
+                    if (pattern.isNotEmpty() && invalid != null && invalid.message.isNotBlank()) {
+                        Text(invalid.message)
+                    } else if (!isOcr && pattern.isBlank()) {
+                        Text(stringResource(R.string.barcode_filter_empty))
+                    }
+                },
+                // Ni majuscule automatique ni correction : une regex n'est pas du texte.
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrectEnabled = false,
+                    imeAction = ImeAction.Done,
+                ),
+                textStyle = PatternTextStyle,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester),
+            )
 
-        RegexToolsRow(onPatternChange = onPatternChange, onOpenLibrary = onOpenLibrary)
+            // Sans formule, la feuille s'ouvre pour en ecrire une : le clavier vient avec
+            // elle. Avec une formule, on vient plutot chercher un outil, le clavier
+            // masquerait la moitie de la feuille.
+            LaunchedEffect(Unit) {
+                if (pattern.isBlank()) focusRequester.requestFocus()
+            }
+
+            RegexToolsRow(onPatternChange = onPatternChange, onOpenLibrary = onOpenLibrary)
+
+            // Le choix du groupe n'a de sens que si la formule en contient.
+            if (isOcr && groupCount > 0) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.ocr_group),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    (0..groupCount).forEach { index ->
+                        FilterChip(
+                            selected = groupIndex == index,
+                            onClick = { onGroupIndexChange(index) },
+                            label = {
+                                Text(
+                                    if (index == 0) {
+                                        stringResource(R.string.ocr_group_full)
+                                    } else {
+                                        "$index"
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+
+            PrimaryButton(
+                text = stringResource(R.string.action_confirm),
+                onClick = {
+                    scope.launch { sheetState.hide() }.invokeOnCompletion {
+                        if (!sheetState.isVisible) onDismiss()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
