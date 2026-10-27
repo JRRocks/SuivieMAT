@@ -57,9 +57,9 @@ vérifiée le 2026-09-24 dans `consignes/outils.md` § 6 ter.
 **L'utilisateur n'a pas toujours d'ordinateur** : l'APK de test se produit alors sur
 GitHub. Le push déclenche le workflow depuis le 2026-10-10 (il ne le faisait pas
 avant) ; s'il ne part pas, le lancer à la main (`actions_run_trigger`, `run_workflow`,
-`ref` = la branche). Le 2026-10-26, GitHub a refusé les deux exécutions sans leur
-attribuer de machine (cause probable : quota ou facturation du compte, voir
-`outils.md` § 6 bis). Il dépose l'APK dans
+`ref` = la branche). Le 2026-10-26, GitHub avait refusé les exécutions faute de
+minutes ; le dépôt est **public depuis le 2026-10-27** et la CI compile de nouveau
+(exécution n° 13 réussie, voir `outils.md` § 6 bis). Il dépose l'APK dans
 `release/` de la branche, signé par la clé de debug versionnée — voir `outils.md` § 6 bis.
 
 ### Miroir Google Drive (règles du dossier `2 - Jean/Claude Code/`)
