@@ -62,6 +62,12 @@ minutes ; le dépôt est **public depuis le 2026-10-27** et la CI compile de nou
 (exécution n° 13 réussie, voir `outils.md` § 6 bis). Il dépose l'APK dans
 `release/` de la branche, signé par la clé de debug versionnée — voir `outils.md` § 6 bis.
 
+**Règle de l'utilisateur (2026-10-28) : à la fin de chaque commit poussé, donner le lien
+vers la page GitHub de l'APK** — la page du fichier, pas le lien de téléchargement direct :
+<https://github.com/JRRocks/SuivieMAT/blob/claude/remove-scanlist-history-a5bqzh/release/SuivieMAT-debug.apk>
+(adapter le nom de branche si le travail se fait ailleurs). Préciser si l'APK de cette page
+correspond déjà au dernier commit ou si la CI est encore en train de le compiler.
+
 ### Miroir Google Drive (règles du dossier `2 - Jean/Claude Code/`)
 
 Le Drive de l'utilisateur est une **seconde sauvegarde**, à sens unique : local → Drive,
