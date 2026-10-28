@@ -61,6 +61,8 @@ avant) ; s'il ne part pas, le lancer à la main (`actions_run_trigger`, `run_wor
 minutes ; le dépôt est **public depuis le 2026-10-27** et la CI compile de nouveau
 (exécution n° 13 réussie, voir `outils.md` § 6 bis). Il dépose l'APK dans
 `release/` de la branche, signé par la clé de debug versionnée — voir `outils.md` § 6 bis.
+Depuis la 1.10 (2026-10-28), c'est l'APK **optimisé** (`assembleOptimise`, R8, non
+debuggable), sous le même nom `SuivieMAT-debug.apk`.
 
 **Règle de l'utilisateur (2026-10-28) : à la fin de chaque commit poussé, donner le lien
 vers la page GitHub de l'APK** — la page du fichier, pas le lien de téléchargement direct :
@@ -125,6 +127,13 @@ Installer sur un appareil branché :
 
 ```bash
 "$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
+```
+
+Compiler l'APK optimisé (R8, non debuggable, même clé : remplace le debug sans perte de
+données, ~4× plus rapide au démarrage — mesures dans `consignes/outils.md` § 7) :
+
+```bash
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleOptimise
 ```
 
 > `java` n'est **pas** dans le PATH : sans `JAVA_HOME`, `gradlew` échoue immédiatement.

@@ -78,7 +78,7 @@ fun CameraPreview(
     torchEnabled: Boolean,
     modifier: Modifier = Modifier,
     analysisResolution: Size = STANDARD_ANALYSIS_RESOLUTION,
-    consensusProgress: Float = 0f,
+    consensusProgress: () -> Float = { 0f },
     onError: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -189,7 +189,9 @@ fun CameraPreview(
  * identique a celle d'avant l'ajout du consensus.
  */
 @Composable
-private fun Viewfinder(progress: Float = 0f, modifier: Modifier = Modifier) {
+private fun Viewfinder(progress: () -> Float, modifier: Modifier = Modifier) {
+    // Lu dans le bloc de dessin : un changement d'avancement redessine le reticule
+    // sans recomposer l'ecran de scan.
     Canvas(modifier = modifier) {
         val frameWidth = size.width * 0.78f
         val frameHeight = frameWidth * 0.62f
@@ -200,7 +202,7 @@ private fun Viewfinder(progress: Float = 0f, modifier: Modifier = Modifier) {
         val baseCorner = frameWidth * 0.10f
         val stroke = 4.dp.toPx()
         val color = Color(0xFF4ADE80)
-        val advance = progress.coerceIn(0f, 1f)
+        val advance = progress().coerceIn(0f, 1f)
         val horizontalArm = baseCorner + (frameWidth / 2f - baseCorner) * advance
         val verticalArm = baseCorner + (frameHeight / 2f - baseCorner) * advance
 

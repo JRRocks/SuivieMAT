@@ -1,7 +1,11 @@
 name: Build debug APK
 
-# Produit l'APK de debug sans poste Windows (voir CLAUDE.md), et le depose dans le
-# dossier release/ de la branche compilee.
+# Produit l'APK de test sans poste Windows (voir CLAUDE.md), et le depose dans le
+# dossier release/ de la branche compilee. Depuis le 2026-10-28, c'est la variante
+# "optimise" (R8, non debuggable, meme cle de debug) : ~4 fois plus rapide au demarrage
+# qu'un APK debuggable, mesures dans consignes/outils.md § 7. Le nom du fichier depose
+# (SuivieMAT-debug.apk) et celui du workflow restent inchanges : le lien de la page
+# GitHub de l'APK ne bouge pas.
 #
 # Sur le depot SuivieMAT, le declenchement sur push ne s'est jamais produit (constate le
 # 2026-09-24) ; le lancement manuel (workflow_dispatch), lui, fonctionne, y compris sur
@@ -56,8 +60,8 @@ jobs:
 
       # apk.phoneOnly : arm64 seul, l'APK depose est destine au telephone, pas a
       # l'emulateur (voir app/build.gradle.kts).
-      - name: Compiler l'APK de debug
-        run: ./gradlew assembleDebug -Papk.phoneOnly --stacktrace
+      - name: Compiler l'APK optimise
+        run: ./gradlew assembleOptimise -Papk.phoneOnly --stacktrace
 
       # Retention d'un jour : le stockage des artefacts est facture a l'heure, sur un
       # quota de 0,5 Go partage par tout le compte (atteint le 2026-10-10).
@@ -76,7 +80,7 @@ jobs:
       - name: Deposer l'APK dans release/ de la branche
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/SuivieMAT-debug.apk
+          cp app/build/outputs/apk/optimise/app-optimise.apk release/SuivieMAT-debug.apk
           {
             echo "commit source : ${GITHUB_SHA}"
             echo "compile le    : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -86,7 +90,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add release/
           git diff --cached --quiet && exit 0
-          git commit -m "Depose l'APK de debug compile par la CI (${GITHUB_SHA::7})"
+          git commit -m "Depose l'APK optimise compile par la CI (${GITHUB_SHA::7})"
           git push origin "HEAD:${GITHUB_REF_NAME}"
 
       # L'APK est deja dans release/ : en artefact, il doublait ~40 Mo par run pendant
@@ -96,8 +100,8 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: app-optimise-apk
+          path: app/build/outputs/apk/optimise/app-optimise.apk
           retention-days: 1
           if-no-files-found: ignore
 

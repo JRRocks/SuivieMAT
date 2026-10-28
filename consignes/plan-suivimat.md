@@ -26,9 +26,10 @@
       dépôt** (secret de la CI + copie hors ligne). Toutes les versions suivantes signées
       avec elle : la première signature installée verrouille les mises à jour, et une
       désinstallation efface le journal non exporté.
-- [ ] **Produire l'APK de release** avec cette clé : la CI ne compile aujourd'hui que le
-      debug.
-- [ ] **Ne jamais distribuer un APK de `release/`** : ce sont des APK de debug, signés
+- [ ] **Produire l'APK de release** avec cette clé : la CI ne compile aujourd'hui que
+      l'APK de test `optimise` (optimisé par R8 depuis le 2026-10-28, mais signé avec la
+      clé de debug).
+- [ ] **Ne jamais distribuer un APK de `release/`** : ce sont des APK de test, signés
       avec la clé de debug versionnée `app/debug.keystore`, publique dans le dépôt
       (depuis le 2026-09-25, `outils.md` § 6 bis).
 - [ ] `allowBackup="false"` (C4, D12), si validé.

@@ -194,7 +194,10 @@ workflow copie l'APK dans `release/SuivieMAT-debug.apk` de la branche compilée,
 (`permissions: contents: write`). Un push fait avec `GITHUB_TOKEN` ne relance pas de
 run, et `paths-ignore: release/**` double la garde. L'APK est compilé avec
 `-Papk.phoneOnly` : arm64 seul (≈ 39 Mo au lieu de 57), parce que chaque version reste
-dans l'historique git. Il se télécharge depuis la page du fichier sur GitHub, depuis le
+dans l'historique git. **Depuis le 2026-10-28 (1.10), c'est l'APK `optimise`**
+(`assembleOptimise`, voir § 7) et non plus le debug : même clé, il s'installe par-dessus
+les précédents sans perte de données ; le nom `SuivieMAT-debug.apk` est conservé pour
+que le lien de sa page GitHub ne change pas. Il se télécharge depuis la page du fichier sur GitHub, depuis le
 téléphone. Mode d'emploi pour l'utilisateur : `release/LISEZMOI.md`.
 
 **Clé de debug versionnée** (`app/debug.keystore`, depuis le 2026-09-25) : le poste
@@ -207,7 +210,7 @@ une application installée avant depuis Android Studio porte l'ancienne signatur
 être désinstallée une fois.
 
 L'APK de debug (54,5 Mio, 37,7 Mio en arm64 seul) dépasse la limite de 30 Mio d'envoi
-de fichier d'une session cloud : c'est ce qui a motivé le dépôt dans `release/`. Il lance `testDebugUnitTest` **puis** `assembleDebug` sur un runner
+de fichier d'une session cloud : c'est ce qui a motivé le dépôt dans `release/`. Il lance `testDebugUnitTest` **puis** `assembleOptimise` (`assembleDebug` jusqu'au 2026-10-28) sur un runner
 `ubuntu-latest`. Déclenchement : à chaque push sur la branche de travail, ou manuellement
 (`workflow_dispatch`, utilisable une fois le fichier présent sur la branche par défaut).
 
@@ -314,10 +317,40 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 "$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
 ```
 
+Compiler l'APK **optimisé** (type de build `optimise`, ajouté le 2026-10-28) :
+
+```bash
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleOptimise
+```
+
+Sortie : `app/build/outputs/apk/optimise/app-optimise.apk`. C'est le debug avec R8
+(minification + suppression des ressources inutiles) et **sans `debuggable`** — même
+`applicationId`, même clé de debug : il s'installe par-dessus l'APK de debug **sans perdre
+les dossiers**, et inversement. `-Papk.phoneOnly` s'y applique comme au debug.
+
+Pourquoi : un APK debuggable tourne largement interprété. Mesure sur l'AVD `SuivieMAT_Test`
+le 2026-10-28, à charge égale, même parcours d'usage :
+
+| | Debug | Optimisé |
+|---|---|---|
+| Démarrage à froid (`am start -W`) | 1,75 – 2,07 s | 0,32 – 0,49 s |
+| Navigation onglets + scan : image p95 / p99 | 38 / 117 ms | 30 / 73 ms |
+| Frames « Slow UI thread » sur ce parcours | 41 | 14 |
+| Liste de 205 dossiers : p99 / Slow UI thread | 48 ms / 7 | 34 ms / 2 |
+
+Limite : **pas de `run-as`** (non debuggable). L'injection de données en base sur émulateur
+(`workflow.md` § 8) et le débogueur d'Android Studio demandent l'APK de debug.
+
+Vérifié écran par écran en optimisé (aucun plantage, R8 sans règle supplémentaire) : les
+trois onglets, recherche, fiche, Consulter, export `.csv` jusqu'à la feuille de partage,
+préférences d'envoi, scan OCR (formule rechargée, bibliothèque, Regex Auto), Code 2D, NFC
+(repli), comparaison de 1 500 lignes et son scan caméra.
+
 ## 8. État de la chaîne de build
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), type de build `optimise` et lecture différée du réticule | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (voir § 7) ; `versionName` 1.10 ; la CI compile et dépose désormais l'APK optimisé | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), correctif route d'ouverture et graisse des polices | ✅ **206 tests, 0 échec** (2 nouveaux dans `RoutesTest`), sans avertissement ; `versionName` 1.9 ; APK confié à la CI au push | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), phase 9 (finitions) | ✅ **204 tests, 0 échec** (5 nouveaux dans `AnalysisRotationTest`), sans avertissement ; `versionName` 1.8 ; APK confié à la CI au push | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), fenêtres de formules (décision 31) | ✅ **199 tests, 0 échec**, sans avertissement ; `versionName` 1.7 ; dépôt passé en public : APK confié à la CI au push | 2026-10-27 |

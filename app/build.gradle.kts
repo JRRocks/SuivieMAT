@@ -20,8 +20,8 @@ android {
         applicationId = "com.suiviemat.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.9"
+        versionCode = 11
+        versionName = "1.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -62,6 +62,28 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        // APK de test a la vitesse reelle de l'application. Un APK debuggable tourne
+        // largement interprete et sans optimisation R8 : mesure sur emulateur le
+        // 2026-10-28, demarrage a froid 1,8 s contre 0,4 s ici, et trois fois moins de
+        // frames lentes sur le thread UI. Meme applicationId et meme cle de debug :
+        // il remplace l'APK de debug sans perdre les dossiers du telephone. Non
+        // debuggable, donc pas de run-as : l'injection de donnees en base sur
+        // emulateur (workflow.md § 8) se fait toujours avec le debug.
+        create("optimise") {
+            initWith(getByName("debug"))
+            ndk {
+                abiFilters.clear()
+                abiFilters += if (phoneOnly) listOf("arm64-v8a") else listOf("arm64-v8a", "x86_64")
+            }
+            isDebuggable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            matchingFallbacks += "release"
         }
     }
 

@@ -8,7 +8,7 @@ téléphone, sans ordinateur. Faute de minutes GitHub Actions (jusqu'au 1er nove
 
 | Fichier | Contenu |
 |---|---|
-| `SuivieMAT-debug.apk` | Dernier APK de debug compilé pour cette branche (arm64 : téléphone uniquement, ne s'installe pas sur l'émulateur) |
+| `SuivieMAT-debug.apk` | Dernier APK de test compilé pour cette branche (arm64 : téléphone uniquement, ne s'installe pas sur l'émulateur). Depuis la 1.10 (2026-10-28), c'est la variante **optimisée** (environ 4 fois plus rapide au démarrage) ; elle garde la même clé et le même nom, et s'installe par-dessus la précédente sans rien perdre |
 | `SuivieMAT-debug.txt` | Commit source, date de compilation et empreinte SHA-256 de l'APK |
 
 ## Installer depuis le téléphone

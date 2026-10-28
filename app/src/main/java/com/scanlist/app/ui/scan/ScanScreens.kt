@@ -143,7 +143,9 @@ fun ScanScreen(
     val references by viewModel.references.collectAsStateWithLifecycle()
     val torch by viewModel.torch.collectAsStateWithLifecycle()
     val event by viewModel.lastEvent.collectAsStateWithLifecycle()
-    val consensusProgress by viewModel.consensusProgress.collectAsStateWithLifecycle()
+    // Pas de delegation : l'avancement change plusieurs fois par code lu, et le lire ici
+    // recomposerait tout l'ecran a chaque fois. Le reticule le lit au dessin.
+    val consensusProgress = viewModel.consensusProgress.collectAsStateWithLifecycle()
 
     val pattern by viewModel.pattern.collectAsStateWithLifecycle()
     val validation by viewModel.validation.collectAsStateWithLifecycle()
@@ -178,8 +180,8 @@ fun ScanScreen(
         }
     }
 
-    val found = references.filter { it.state == ReferenceState.FOUND }
-    val missing = references.filter { it.state == ReferenceState.MISSING }
+    val found = remember(references) { references.filter { it.state == ReferenceState.FOUND } }
+    val missing = remember(references) { references.filter { it.state == ReferenceState.MISSING } }
 
     // Le compteur vit dans l'en-tete bleu : le nombre de captures a cote du nom du
     // dossier, l'avancement sous le nom de la session. Il reste visible quelle que soit
@@ -302,7 +304,9 @@ fun ScanScreen(
                                 analysisResolution = analysisResolutionFor(mode),
                                 // Comparaison : le consensus ne s'y applique pas (portee
                                 // validee), le reticule reste dans son etat d'origine.
-                                consensusProgress = if (isCompare) 0f else consensusProgress,
+                                consensusProgress = {
+                                    if (isCompare) 0f else consensusProgress.value
+                                },
                                 onError = viewModel::onCameraError,
                             )
                         }
