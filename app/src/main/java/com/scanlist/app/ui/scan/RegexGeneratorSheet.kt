@@ -15,10 +15,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -53,14 +51,13 @@ import com.scanlist.app.ui.theme.compareColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegexGeneratorSheet(onApply: (String) -> Unit, onDismiss: () -> Unit) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val close = sheetCloser(sheetState, onDismiss)
+    val close = onDismiss
     var input by remember { mutableStateOf("") }
     val result = remember(input) { RegexSuggester.suggest(input) }
     // Une nouvelle saisie change les propositions : la plus stricte redevient le choix.
     var selected by remember(result) { mutableIntStateOf(0) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    InstantModalSheet(onDismiss) {
         SheetHeader(title = stringResource(R.string.regex_generator_title), onClose = close)
         Column(
             modifier = Modifier

@@ -351,6 +351,7 @@ préférences d'envoi, scan OCR (formule rechargée, bibliothèque, Regex Auto),
 | Vérification | Résultat | Date |
 |---|---|---|
 | `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), type de build `optimise` et lecture différée du réticule | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (voir § 7) ; `versionName` 1.10 ; la CI compile et dépose désormais l'APK optimisé | 2026-10-28 |
+| `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), interface sans transition (décision 32) | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (onglets, tiroir, feuille de formule) ; `versionName` 1.11 | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), correctif route d'ouverture et graisse des polices | ✅ **206 tests, 0 échec** (2 nouveaux dans `RoutesTest`), sans avertissement ; `versionName` 1.9 ; APK confié à la CI au push | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), phase 9 (finitions) | ✅ **204 tests, 0 échec** (5 nouveaux dans `AnalysisRotationTest`), sans avertissement ; `versionName` 1.8 ; APK confié à la CI au push | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), fenêtres de formules (décision 31) | ✅ **199 tests, 0 échec**, sans avertissement ; `versionName` 1.7 ; dépôt passé en public : APK confié à la CI au push | 2026-10-27 |

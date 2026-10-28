@@ -20,20 +20,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindowProvider
 import com.scanlist.app.R
-import kotlinx.coroutines.launch
 
 /*
  * Pieces communes des fenetres de formules (etape 7 de la refonte, variante C) : un
@@ -42,15 +47,23 @@ import kotlinx.coroutines.launch
  * sur un appui de travers.
  */
 
-/** Ferme la feuille en l'animant, puis previent l'appelant. */
+/**
+ * Feuille modale sans animation, sur demande de l'utilisateur : elle nait deja depliee
+ * (pas de glissement depuis le bas) et sa fenetre de dialogue n'a pas de fondu
+ * d'entree. Pour la meme raison, les boutons de fermeture appellent directement
+ * [onDismiss], sans animer la descente.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun sheetCloser(sheetState: SheetState, onDismiss: () -> Unit): () -> Unit {
-    val scope = rememberCoroutineScope()
-    return {
-        scope.launch { sheetState.hide() }.invokeOnCompletion {
-            if (!sheetState.isVisible) onDismiss()
-        }
+internal fun InstantModalSheet(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+    val density = LocalDensity.current
+    val sheetState = remember(density) {
+        SheetState(skipPartiallyExpanded = true, density = density, initialValue = SheetValue.Expanded)
+    }
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+        SideEffect { window?.setWindowAnimations(0) }
+        content()
     }
 }
 

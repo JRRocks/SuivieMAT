@@ -2,6 +2,8 @@ package com.scanlist.app.ui.navigation
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -97,7 +99,14 @@ private fun ScanListGraph(navController: NavHostController) {
     // Fourni par MainActivity : un seul hote de snackbar pour tout le graphe.
     val snackbarHostState = LocalSnackbarHostState.current
 
-    NavHost(navController = navController, startDestination = Routes.NEW_SCAN_MODE) {
+    // Aucune transition entre ecrans, sur demande de l'utilisateur : sans cela,
+    // Navigation Compose applique un fondu de 700 ms a chaque changement de menu.
+    NavHost(
+        navController = navController,
+        startDestination = Routes.NEW_SCAN_MODE,
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+    ) {
 
         // ----------------------------------------------------- Branche Dossiers
         composable(Routes.FOLDERS) {

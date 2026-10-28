@@ -1,6 +1,5 @@
 package com.scanlist.app.ui.scan
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -48,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -87,6 +87,14 @@ private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
  * independants de ce delai.
  */
 private const val BANNER_DURATION_MS = 0L
+
+/**
+ * Echelle d'animation nulle : le tiroir s'ouvre et se replie au tap sans transition,
+ * sur demande de l'utilisateur. Le glisser au doigt suit toujours le geste.
+ */
+private object InstantMotion : MotionDurationScale {
+    override val scaleFactor = 0f
+}
 
 /**
  * Onglet Nouveau scan : choix OCR / Code 2D / Code-barres / NFC.
@@ -245,7 +253,7 @@ fun ScanScreen(
                     ),
                     expanded = drawerExpanded,
                     onToggle = {
-                        scope.launch {
+                        scope.launch(InstantMotion) {
                             if (drawerExpanded) {
                                 drawerState.bottomSheetState.partialExpand()
                             } else {
@@ -388,7 +396,8 @@ fun ScanScreen(
 private fun LastEventBanner(event: ScanEvent?, modifier: Modifier = Modifier) {
     val colors = compareColors
 
-    AnimatedVisibility(visible = event != null, modifier = modifier) {
+    // Affichage sec, sans fondu ni glissement : l'outil privilegie l'instantane.
+    if (event != null) Box(modifier = modifier) {
         val (background, foreground, label) = when (event) {
             is ScanEvent.Saved -> Triple(
                 colors.found,
@@ -429,8 +438,6 @@ private fun LastEventBanner(event: ScanEvent?, modifier: Modifier = Modifier) {
                 colors.onNeutral,
                 stringResource(event.messageRes),
             )
-
-            null -> Triple(colors.neutral, colors.onNeutral, "")
         }
 
         Text(

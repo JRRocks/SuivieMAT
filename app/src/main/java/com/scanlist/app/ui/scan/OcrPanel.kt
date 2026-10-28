@@ -46,11 +46,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -238,12 +236,10 @@ fun PatternEditorSheet(
     onOpenLibrary: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val invalid = validation as? RegexRuleEngine.Validation.Invalid
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    InstantModalSheet(onDismiss) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -336,11 +332,7 @@ fun PatternEditorSheet(
 
             PrimaryButton(
                 text = stringResource(R.string.action_confirm),
-                onClick = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        if (!sheetState.isVisible) onDismiss()
-                    }
-                },
+                onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -444,14 +436,13 @@ fun RegexLibrarySheet(
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val close = sheetCloser(sheetState, onDismiss)
+    val close = onDismiss
     var selectedId by remember { mutableStateOf(activeRuleId) }
     var showHelp by remember { mutableStateOf(false) }
     var naming by remember { mutableStateOf(false) }
     val selected = rules.firstOrNull { it.id == selectedId }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    InstantModalSheet(onDismiss) {
         SheetHeader(title = stringResource(R.string.ocr_library), onClose = close) {
             IconButton(onClick = { showHelp = true }) {
                 Icon(
@@ -635,12 +626,11 @@ private fun SaveRuleDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RegexHelpSheet(onDismiss: () -> Unit) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    InstantModalSheet(onDismiss) {
         SheetHeader(
             title = stringResource(R.string.regex_help_title),
-            onClose = sheetCloser(sheetState, onDismiss),
+            onClose = onDismiss,
         )
         Column(
             modifier = Modifier

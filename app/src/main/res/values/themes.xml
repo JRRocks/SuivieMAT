@@ -5,5 +5,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+        <!-- Pas d'animation d'ouverture ni de fermeture de fenetre : tout est instantane. -->
+        <item name="android:windowAnimationStyle">@null</item>
     </style>
 </resources>
