@@ -62,6 +62,12 @@ minutes ; le dépôt est **public depuis le 2026-10-27** et la CI compile de nou
 (exécution n° 13 réussie, voir `outils.md` § 6 bis). Il dépose l'APK dans
 `release/` de la branche, signé par la clé de debug versionnée — voir `outils.md` § 6 bis.
 
+**Règle de l'utilisateur (2026-10-28) : à la fin de chaque commit poussé, donner le lien
+vers la page GitHub de l'APK** — la page du fichier, pas le lien de téléchargement direct :
+<https://github.com/JRRocks/SuivieMAT/blob/claude/remove-scanlist-history-a5bqzh/release/SuivieMAT-debug.apk>
+(adapter le nom de branche si le travail se fait ailleurs). Préciser si l'APK de cette page
+correspond déjà au dernier commit ou si la CI est encore en train de le compiler.
+
 ### Miroir Google Drive (règles du dossier `2 - Jean/Claude Code/`)
 
 Le Drive de l'utilisateur est une **seconde sauvegarde**, à sens unique : local → Drive,
@@ -251,9 +257,11 @@ ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre
 QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
 25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
 mail, fonction Comparer complète, finitions de la phase 9 (permission caméra bloquée,
-rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **205 tests,
+rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **206 tests,
 0 échec, aucun avertissement de
-compilation** (vérifié le 2026-10-28). Aucune coquille ne subsiste dans l'application.
+compilation** (vérifié le 2026-10-28). **Piège de navigation** : une route fixe ne doit
+jamais correspondre au modèle d'une autre (`scan/new` ouvrait l'écran `scan/{mode}`,
+correctif 1.9) — `RoutesTest` le vérifie. Aucune coquille ne subsiste dans l'application.
 
 **Refonte de l'interface terminée** (décision 27, phase 11 de `workflow.md`, non vérifiée
 sur téléphone) : style
