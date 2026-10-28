@@ -40,7 +40,13 @@ object Routes {
     const val COMPARE_SCAN_MODE = "compare/{sessionId}/mode"
 
     // --- Branche Nouveau scan ---
-    const val NEW_SCAN_MODE = "scan/new"
+
+    /**
+     * Surtout pas sous "scan/" : Navigation resolvait alors l'ecran d'ouverture sur le
+     * motif [SCAN] avec mode = "new", inconnu, d'ou une ouverture directe sur la camera
+     * Code 2D, sans barre de navigation.
+     */
+    const val NEW_SCAN_MODE = "newscan"
 
     /**
      * Ecran de scan, unique pour les quatre modes et les deux contextes.

@@ -70,14 +70,18 @@ jamais d'édition directe sur le Drive. Son propre `CLAUDE.md` (à la racine de
 
 | Dossier Drive | Source locale |
 |---|---|
-| `2 - Jean/Claude Code/SuivieMAT/` | `C:\Users\Taiepii\Desktop\Claude Code\ScanList` |
+| `2 - Jean/Claude Code/SuivieMAT/` | `C:\Users\Taiepii\Desktop\Claude Code\SuivieMat` (clone GitHub dans `repo\`) |
+
+> ⚠️ `C:\Users\Taiepii\Desktop\Claude Code\ScanList` est l'application **ScanList
+> indépendante** (`JRRocks/ScanList`) : ne jamais en faire la source de ce miroir, le
+> `/MIR` écraserait SuivieMAT sur le Drive.
 
 Resynchroniser **après chaque changement livré** (nouveau commit, nouvelle version), depuis
 le poste Windows, Drive monté en `G:` (`Mon Drive` ou `My Drive` selon le PC :
 `Test-Path "G:\My Drive"`) :
 
 ```powershell
-robocopy "C:\Users\Taiepii\Desktop\Claude Code\ScanList" "G:\<Drive root>\2 - Jean\Claude Code\SuivieMAT" /MIR /XD .git .gradle .kotlin build .idea /XF local.properties *.apk /R:1 /W:1
+robocopy "C:\Users\Taiepii\Desktop\Claude Code\SuivieMat" "G:\<Drive root>\2 - Jean\Claude Code\SuivieMAT" /MIR /XD .git .gradle .kotlin build .idea /XF local.properties *.apk *.log /R:1 /W:1
 Copy-Item "app\build\outputs\apk\debug\app-debug.apk" "G:\<Drive root>\2 - Jean\Claude Code\APK release\SuivieMAT.<versionName>.apk"
 ```
 
@@ -96,25 +100,25 @@ prochaine session sur le PC.
 Compiler l'APK de debug :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
 ```
 
 Lancer tous les tests unitaires :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
 ```
 
 Lancer une seule classe de test (ex. `ScanConsensusTest`) :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest --tests "com.scanlist.app.ScanConsensusTest"
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest --tests "com.scanlist.app.ScanConsensusTest"
 ```
 
 Installer sur un appareil branché :
 
 ```bash
-"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/ScanList/app/build/outputs/apk/debug/app-debug.apk"
+"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
 ```
 
 > `java` n'est **pas** dans le PATH : sans `JAVA_HOME`, `gradlew` échoue immédiatement.
@@ -247,9 +251,9 @@ ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre
 QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
 25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
 mail, fonction Comparer complète, finitions de la phase 9 (permission caméra bloquée,
-rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **204 tests,
+rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **205 tests,
 0 échec, aucun avertissement de
-compilation** (vérifié le 2026-10-27). Aucune coquille ne subsiste dans l'application.
+compilation** (vérifié le 2026-10-28). Aucune coquille ne subsiste dans l'application.
 
 **Refonte de l'interface terminée** (décision 27, phase 11 de `workflow.md`, non vérifiée
 sur téléphone) : style

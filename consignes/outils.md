@@ -299,19 +299,19 @@ par écran reste à faire sur le poste Windows ou sur le téléphone.
 Compiler l'APK de debug :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
 ```
 
 Lancer les tests unitaires :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/ScanList" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
+cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
 ```
 
 Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 ```bash
-"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/ScanList/app/build/outputs/apk/debug/app-debug.apk"
+"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
 ```
 
 ## 8. État de la chaîne de build
