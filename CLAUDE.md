@@ -247,9 +247,11 @@ ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre
 QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
 25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
 mail, fonction Comparer complète, finitions de la phase 9 (permission caméra bloquée,
-rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **204 tests,
+rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **206 tests,
 0 échec, aucun avertissement de
-compilation** (vérifié le 2026-10-27). Aucune coquille ne subsiste dans l'application.
+compilation** (vérifié le 2026-10-28). **Piège de navigation** : une route fixe ne doit
+jamais correspondre au modèle d'une autre (`scan/new` ouvrait l'écran `scan/{mode}`,
+correctif 1.9) — `RoutesTest` le vérifie. Aucune coquille ne subsiste dans l'application.
 
 **Refonte de l'interface terminée** (décision 27, phase 11 de `workflow.md`, non vérifiée
 sur téléphone) : style

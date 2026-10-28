@@ -40,7 +40,11 @@ object Routes {
     const val COMPARE_SCAN_MODE = "compare/{sessionId}/mode"
 
     // --- Branche Nouveau scan ---
-    const val NEW_SCAN_MODE = "scan/new"
+    // Surtout pas "scan/..." : Navigation retient le premier ecran dont le modele de
+    // route *correspond*, et "scan/new" correspondait a SCAN avec mode = "new". L'appli
+    // s'ouvrait alors sur un scan Code 2D sans retour possible (corrige en 1.9). Le
+    // test RoutesTest interdit qu'une route en avale une autre.
+    const val NEW_SCAN_MODE = "new-scan"
 
     /**
      * Ecran de scan, unique pour les quatre modes et les deux contextes.

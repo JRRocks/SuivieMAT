@@ -318,6 +318,7 @@ Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), correctif route d'ouverture et graisse des polices | ✅ **206 tests, 0 échec** (2 nouveaux dans `RoutesTest`), sans avertissement ; `versionName` 1.9 ; APK confié à la CI au push | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), phase 9 (finitions) | ✅ **204 tests, 0 échec** (5 nouveaux dans `AnalysisRotationTest`), sans avertissement ; `versionName` 1.8 ; APK confié à la CI au push | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), fenêtres de formules (décision 31) | ✅ **199 tests, 0 échec**, sans avertissement ; `versionName` 1.7 ; dépôt passé en public : APK confié à la CI au push | 2026-10-27 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), onglet Comparer par date (décision 30) | ✅ **199 tests, 0 échec** (9 nouveaux dans `CompareOverviewTest`), sans avertissement ; `versionName` 1.6 ; APK arm64 déposé dans `release/` par la session | 2026-10-27 |

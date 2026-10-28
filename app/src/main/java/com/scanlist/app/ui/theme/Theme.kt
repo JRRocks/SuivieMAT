@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -168,19 +170,31 @@ val LocalCompareColors = staticCompositionLocalOf { LightCompareColors }
 /*
  * Polices embarquees (res/font, licence OFL dans assets/licences) : l'application est
  * hors-ligne, une police telechargeable a la volee n'y aurait pas sa place. Fichiers
- * variables : chaque graisse declaree regle l'axe "wght" du meme fichier.
+ * variables : la graisse declaree ne fait que choisir l'entree de la famille, c'est
+ * variationSettings qui regle l'axe "wght" du fichier. Sans lui, Android dessine
+ * l'instance par defaut du fichier, la plus fine (ExtraLight), quelle que soit la
+ * graisse demandee : tous les titres sortaient en trait fin (corrige en 1.9).
  */
+// FontVariation.weight est encore marque experimental en Compose 1.7, mais c'est le seul
+// moyen de regler la graisse d'un fichier variable lu depuis les ressources.
+@OptIn(ExperimentalTextApi::class)
+private fun variable(resId: Int, weight: FontWeight) = Font(
+    resId = resId,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+)
+
 private val SourceSans3 = FontFamily(
-    Font(R.font.source_sans_3, FontWeight.Normal),
-    Font(R.font.source_sans_3, FontWeight.Medium),
-    Font(R.font.source_sans_3, FontWeight.SemiBold),
-    Font(R.font.source_sans_3, FontWeight.Bold),
+    variable(R.font.source_sans_3, FontWeight.Normal),
+    variable(R.font.source_sans_3, FontWeight.Medium),
+    variable(R.font.source_sans_3, FontWeight.SemiBold),
+    variable(R.font.source_sans_3, FontWeight.Bold),
 )
 
 /** Chasse fixe des valeurs et des formules, la meme dans tous les ecrans. */
 val ValueFontFamily = FontFamily(
-    Font(R.font.source_code_pro, FontWeight.Medium),
-    Font(R.font.source_code_pro, FontWeight.SemiBold),
+    variable(R.font.source_code_pro, FontWeight.Medium),
+    variable(R.font.source_code_pro, FontWeight.SemiBold),
 )
 
 private fun sans(weight: FontWeight, size: Int, line: Int) = TextStyle(
