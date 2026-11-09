@@ -1,0 +1,14 @@
+// Fait passer l'application pour une tres vieille version, le temps d'une verification :
+// installee ainsi, elle voit la derniere release GitHub comme une mise a jour et tout le
+// parcours peut etre deroule sur un emulateur. Passe a Gradle par --init-script, sans
+// rien ecrire dans le fichier de build du module. Voir README.md.
+allprojects {
+    if (path == ':app') {
+        pluginManager.withPlugin('com.android.application') {
+            android.defaultConfig {
+                versionCode = 1
+                versionName = '0.1'
+            }
+        }
+    }
+}
