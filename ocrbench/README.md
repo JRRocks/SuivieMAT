@@ -39,7 +39,7 @@ ligne de trop), l'absence de valeur une image **sans lecture**.
 ce dossier change. Le rapport s'affiche dans le résumé de l'exécution.
 
 **Sur un téléphone ou un émulateur branché**, depuis Linux ou macOS, avec le SDK, un NDK,
-Rust et Python (Pillow 11.1.0) :
+Rust et Python (Pillow 12.0.0) :
 
 ```bash
 ANDROID_NDK_HOME=<ndk> ocrbench/prepare.sh arm64-v8a      # x86_64 pour un émulateur
@@ -72,7 +72,7 @@ les dossiers du téléphone sont conservés.
   flou de bougé réel.
 - **Le moteur Rust est réglé en sa faveur** : avec les modèles publiés, le fond d'une
   image sort au niveau du seuil de détection d'origine (0,2) et plus rien n'est lu ; le
-  seuil est relevé à 0,4, le meilleur des quatre essayés sur ces étiquettes
+  seuil est relevé à 0,5, le meilleur des cinq essayés sur ces étiquettes
   (`rust/src/engine.rs`).
 - Le mode `debuggable` est retiré pour la mesure, et les deux paquets sont compilés à
   l'avance : le Kotlin est mesuré tel qu'il tourne dans l'APK livré.

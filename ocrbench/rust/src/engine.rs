@@ -13,10 +13,11 @@ use rten_tensor::prelude::*;
 /// Le moteur est livre avec 0,2. Avec les modeles publies, le fond d'une image sort a
 /// environ 0,20 (mesure aussi avec ONNX Runtime, donc propre au modele) : au seuil
 /// d'origine les trois quarts de l'image sont pris pour du texte et plus rien n'est lu.
-/// Le texte, lui, depasse 0,5. Parmi 0,25, 0,3, 0,4 et 0,5 essayes sur les etiquettes du
-/// banc, 0,4 lit le plus de valeurs justes : ce reglage est donc en faveur du moteur,
+/// Le texte, lui, depasse 0,5. Parmi 0,25, 0,3, 0,35, 0,4 et 0,5 essayes sur les
+/// etiquettes du banc, 0,5 lit le plus de valeurs justes et le moins de fausses (les
+/// ecarts restent de une ou deux etiquettes) : ce reglage est donc en faveur du moteur,
 /// c'est la condition pour que la comparaison ait un sens.
-pub const DETECTION_THRESHOLD: f32 = 0.4;
+pub const DETECTION_THRESHOLD: f32 = 0.5;
 
 /// Parametres de `ocrs::detection`, non exposes par la bibliotheque.
 const EXPAND_DISTANCE: f32 = 3.0;

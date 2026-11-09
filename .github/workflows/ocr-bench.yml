@@ -56,7 +56,7 @@ jobs:
       - name: Installer Pillow
         run: |
           python3 -m venv "$RUNNER_TEMP/venv"
-          "$RUNNER_TEMP/venv/bin/pip" install --quiet "pillow==11.1.0"
+          "$RUNNER_TEMP/venv/bin/pip" install --quiet "pillow==12.0.0"
 
       - name: Preparer les images, les modeles et la bibliotheque Rust
         run: PYTHON="$RUNNER_TEMP/venv/bin/python" ocrbench/prepare.sh x86_64
