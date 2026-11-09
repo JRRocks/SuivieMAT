@@ -140,8 +140,9 @@ prises en charge).
 Le projet est versionné avec Git et hébergé sur GitHub depuis le 2026-09-03 :
 **https://github.com/JRRocks/ScanList** (branche `main`).
 
-- Identité git configurée **localement au dépôt** (pas globalement) : `JRRocks` /
-  `jean.rox.unio@gmail.com`.
+- Identité git configurée **localement au dépôt** (pas globalement) : `JRRocks` et une adresse
+  `noreply` de GitHub. Dépôt public : jamais l'adresse personnelle, ni dans un commit ni dans
+  un fichier (celle qui figurait ici a été retirée le 2026-11-09).
 - `.gitignore` corrigé au passage : le motif `/build` hérité n'était ancré qu'à la racine
   et ne couvrait pas `app/build` (sorties de compilation, caches Kotlin, APK) — remplacé
   par `build/` pour couvrir tous les modules.
@@ -302,25 +303,25 @@ par écran reste à faire sur le poste Windows ou sur le téléphone.
 Compiler l'APK de debug :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
 ```
 
 Lancer les tests unitaires :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
 ```
 
 Installer sur le Galaxy S25 branché en USB (débogage USB activé) :
 
 ```bash
-"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
+"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
 ```
 
 Compiler l'APK **optimisé** (type de build `optimise`, ajouté le 2026-10-28) :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleOptimise
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleOptimise
 ```
 
 Sortie : `app/build/outputs/apk/optimise/app-optimise.apk`. C'est le debug avec R8
