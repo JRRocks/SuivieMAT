@@ -13,7 +13,10 @@ allprojects {
                 // Les sources du banc, et ce que ocrbench/prepare.sh fabrique (images,
                 // modeles, bibliotheque Rust), n'entrent que dans l'APK de test.
                 sourceSets.androidTest {
-                    kotlin.srcDir rootProject.file('ocrbench/androidTest/kotlin')
+                    // "java" et non "kotlin" : le compilateur Kotlin lit les dossiers
+                    // "java" du module (c'est ainsi que src/main/java est compile), alors
+                    // qu'un dossier ajoute ici a "kotlin" est ignore sans un mot.
+                    java.srcDir rootProject.file('ocrbench/androidTest/kotlin')
                     assets.srcDir rootProject.file('ocrbench/build/assets')
                     jniLibs.srcDir rootProject.file('ocrbench/build/jniLibs')
                 }
