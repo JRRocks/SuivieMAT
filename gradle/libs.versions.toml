@@ -16,6 +16,7 @@ mlkitText = "16.0.1"
 datastore = "1.1.1"
 coroutines = "1.8.1"
 junit = "4.13.2"
+orgJson = "20250517"
 androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
 
@@ -68,6 +69,10 @@ mlkit-text-recognition = { group = "com.google.mlkit", name = "text-recognition"
 
 # --- Tests ---
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+# org.json fait partie d'Android : sur la JVM des tests unitaires, android.jar n'en
+# fournit que des coquilles vides. Cette bibliotheque en est l'implementation de
+# reference, pour les tests seulement (lecture de la release GitHub).
+org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

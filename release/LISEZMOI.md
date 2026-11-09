@@ -11,6 +11,18 @@ téléphone, sans ordinateur. Faute de minutes GitHub Actions (jusqu'au 1er nove
 | `SuivieMAT-debug.apk` | Dernier APK de test compilé pour cette branche (arm64 : téléphone uniquement, ne s'installe pas sur l'émulateur). Depuis la 1.10 (2026-10-28), c'est la variante **optimisée** (environ 4 fois plus rapide au démarrage) ; elle garde la même clé et le même nom, et s'installe par-dessus la précédente sans rien perdre |
 | `SuivieMAT-debug.txt` | Commit source, date de compilation et empreinte SHA-256 de l'APK |
 
+## Mise à jour depuis l'application (à partir de la 1.12)
+
+Depuis la version 1.12, l'application se met à jour elle-même : au lancement, elle
+regarde la dernière **release** du dépôt
+(<https://github.com/JRRocks/SuivieMAT/releases>) et, s'il y en a une plus récente,
+propose de l'installer. On peut aussi le demander : onglet *Nouveau scan*, tout en bas,
+**« Rechercher une mise à jour »**. Android demande toujours de confirmer
+l'installation, et la première fois d'autoriser SuivieMAT à installer des applications.
+
+Ce dossier reste utile pour **la première installation** et pour passer d'une version
+antérieure à la 1.12, qui ne sait pas encore se mettre à jour.
+
 ## Installer depuis le téléphone
 
 1. Ouvrir `SuivieMAT-debug.apk` sur GitHub, puis « Download » (ou « View raw »).

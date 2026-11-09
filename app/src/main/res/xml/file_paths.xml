@@ -4,4 +4,8 @@
     <cache-path
         name="exports"
         path="exports/" />
+    <!-- APK d'une mise a jour telechargee, remis a l'installateur d'Android. -->
+    <cache-path
+        name="updates"
+        path="updates/" />
 </paths>

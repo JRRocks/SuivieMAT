@@ -4,8 +4,8 @@
 > **Règle absolue :** mettre à jour le tableau d'avancement (§ 6) et le journal (§ 7)
 > à chaque évolution majeure, et systématiquement avant/après un `/clear`.
 >
-> Dernière mise à jour : 2026-10-28 — *Correctif : ouverture sur Nouveau scan (route `new-scan`),
-> chemins locaux corrigés, branche SuivieMAT fusionnée dans `main`*
+> Dernière mise à jour : 2026-11-09 — *Son réservé aux scans réussis, mise à jour intégrée
+> par les releases GitHub (1.12)*
 
 ---
 
@@ -59,13 +59,18 @@ com.scanlist.app
 │   ├── search      (FolderSearch : filtre casse + accents)              ✅ phase 6
 │   ├── folders     (FolderTimeline : période et moment d'activité d'un dossier,
 │   │                semaine du lundi — pur, testable)                   ✅ 2026-10-27
-│   └── nfc         (NfcValue : choix NDEF/UID, decodage RTD_TEXT — pur, testable)
+│   ├── nfc         (NfcValue : choix NDEF/UID, decodage RTD_TEXT — pur, testable)
+│   └── update      (AppVersion : comparaison numérique des versions ;
+│                    ReleaseCatalog : ReleaseParser [réponse de GitHub],
+│                    UpdateResolver [proposer ou non, quel APK], UpdatePolicy
+│                    [cadence] — pur, testable)                          ✅ 2026-11-09
 ├── di              (AppModule : Room + DAO)
 ├── scanner
 │   ├── BarcodeAnalyzer       (ImageAnalysis.Analyzer, filtré par mode)  ✅ phase 4
 │   ├── ScanDebouncer         (verrou anti-rebond post-validation)       ✅ phase 4, rôle révisé le 2026-08-24
 │   ├── ScanConsensus         (validation par lectures identiques + garde d'ambiguïté) ✅ 2026-08-24
-│   ├── ScanFeedback          (vibration + bip)                          ✅ phase 4
+│   ├── ScanFeedback          (vibration ; bip pour le seul scan réussi,
+│   │                          décision 33)                              ✅ phase 4
 │   ├── OcrAnalyzer           (ImageAnalysis.Analyzer, texte brut)       ✅ phase 5
 │   ├── AnalysisRotation      (orientation physique → rotation d'analyse) ✅ phase 9
 │   └── NfcTagDecoder         (pont Tag Android → NfcValue)
@@ -93,9 +98,17 @@ com.scanlist.app
 │   ├── compare     (onglet [CompareHomeScreen + CompareHomeViewModel],
 │   │                session, CompareSections partagées,
 │   │                CompareStartViewModel, CompareSessionViewModel)   ✅ phase 8
-│   └── settings    (EmailPrefsScreen)
-└── export          (ExportManager, ExportFileName)                     ✅ phase 7
+│   ├── settings    (EmailPrefsScreen)
+│   └── update      (UpdateViewModel [porté par l'Activity], UpdateUi :
+│                    UpdateHost [fenêtre posée à la racine de la navigation],
+│                    AppVersionFooter [pied de l'onglet Nouveau scan])    ✅ 2026-11-09
+├── export          (ExportManager, ExportFileName)                     ✅ phase 7
+└── update          (UpdateRepository : interrogation de GitHub, téléchargement
+                     contrôlé, intention d'installation — seul code réseau) ✅ 2026-11-09
 ```
+
+Hors de l'application, à la racine du dépôt : `ocrbench/` (banc de mesure OCR, voir son
+`README.md`) et `verif-maj/` (vérification de la mise à jour sur émulateur, § 3 quater).
 
 > `CameraPreview` vit dans `ui/scan` et non dans `scanner/` : c'est un composable Compose,
 > alors que `scanner/` ne contient que du code sans dépendance à l'UI.
@@ -219,7 +232,8 @@ CameraX Preview ──┬──► PreviewView (affichage)
         ┌─────────────┴─────────────┐
         ▼                           ▼
    nouveau : vibration courte   doublon : vibration double
-   + son + ligne ajoutée        + toast discret, rien inséré
+   + son + ligne ajoutée        + bandeau, rien inséré, PAS DE SON
+                                (décision 33 : seul le scan réussi s'entend)
                       ▼
         ► retour immédiat à l'analyse (jamais de blocage)
 ```
@@ -268,6 +282,55 @@ ScanViewModel.onNfcTagRead(DetectedNfcTag)
   une exception de lecture ne produisent rien — `NfcTagDecoder.decode` renvoie alors
   `null` et le callback ignore silencieusement le tag.
 
+### 3 quater. Mise à jour par les releases GitHub (décision 34)
+
+```
+CI (build-debug-apk.yml)                      Application
+────────────────────────                      ───────────
+assembleOptimise -Papk.phoneOnly              lancement (au plus toutes les 6 h)
+   │                                          ou « Rechercher une mise à jour »
+   ├─► release/SuivieMAT-debug.apk                    │
+   │   (dans la branche, comme avant)                 ▼
+   └─► release GitHub v<versionName>          GET api.github.com/.../releases/latest
+       SuivieMAT-<version>-arm64-v8a.apk              │
+       (jamais remplacée)                             ▼
+                                              ReleaseParser ─► UpdateResolver
+                                              version plus récente ? APK pour cet appareil ?
+                                                 │ non : rien (« à jour » si demandé)
+                                                 ▼ oui
+                                              fenêtre « Mise à jour disponible »
+                                              (sur les trois onglets seulement)
+                                                 │ « Installer »
+                                                 ▼
+                                              téléchargement dans cache/updates/
+                                              contrôles : taille, SHA-256 (GitHub),
+                                              identifiant, versionCode, signature
+                                                 ▼
+                                              installateur d'Android (FileProvider)
+                                              ─► confirmation de l'utilisateur
+```
+
+- **Où vit quoi** : la décision (plus récent ? quel APK ?) est pure et testée
+  (`domain/update`, 31 tests) ; le réseau et l'APK sont dans `update/UpdateRepository` ;
+  l'état de la fenêtre dans `ui/update/UpdateViewModel`, porté par l'Activity pour
+  survivre aux changements d'onglet.
+- **Sur erreur, ne rien faire** : hors connexion, réponse illisible, release sans APK
+  pour l'appareil — la recherche automatique se tait. Seule la recherche demandée répond
+  (« à jour », ou « recherche impossible »).
+- **Jamais par-dessus la caméra** : `UpdateHost(promptAllowed = onglet racine)`. Une mise
+  à jour trouvée pendant un scan attend le retour à un onglet.
+- **Rien d'installé d'office** : un appui pour télécharger, puis la confirmation
+  d'Android. La première fois, Android demande aussi d'autoriser SuivieMAT à installer
+  des applications.
+- **Comparaison des versions** : numérique, segment par segment (`AppVersion`) — `1.10`
+  est plus récente que `1.9`. L'étiquette de la release doit être `v<versionName>`.
+- **Sécurité** : seuls les fichiers de la page de releases du dépôt sont téléchargés
+  (préfixe vérifié), en HTTPS ; l'APK reçu doit être cette application, signée par la
+  même clé, dans une version qu'Android acceptera. Android refait ces contrôles et lui
+  seul fait foi. Limite connue : la clé de debug est publique (`plan-suivimat.md` § 0).
+- **Vérification de bout en bout** : `verif-maj/` (workflow *Verification de la mise a
+  jour sur emulateur*) installe une « version 0.1 » et déroule tout le parcours.
+
 ## 4. Moteur de comparaison
 
 > **Sens de la comparaison (décision 14).** La fonction valide la **présence physique**
@@ -297,8 +360,8 @@ Chargement référence (dossier local OU CSV importé)
 - L'écran affiche **deux sections** : « À valider » (rouge) puis « Validés » (vert), avec
   deux compteurs colorés et une barre d'avancement. Les rouges en tête : c'est la seule
   section sur laquelle il reste à agir, elle doit rester visible sans défiler.
-- Le hors-liste n'est signalé que par `ScanFeedback.outOfList()` — vibration longue, bip
-  grave — et un bandeau gris de 1,4 s. **Gris et non rouge** : le rouge est réservé aux
+- Le hors-liste n'est signalé que par `ScanFeedback.outOfList()` — vibration longue, **sans
+  son depuis la décision 33** (le bip grave est retiré) — et un bandeau gris. **Gris et non rouge** : le rouge est réservé aux
   entrées de référence à valider ; une lecture hors liste n'est pas une erreur, elle n'est
   simplement pas prise en compte.
 - « Enregistrer » crée un dossier unique de type `COMPARISON` contenant **les seuls
@@ -357,11 +420,14 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 | 9 | **Finitions** | Permissions, torche, rotation, écran allumé, gestion mémoire, icône | ✅ Fait (2026-10-27) — non vérifié sur téléphone |
 | 10 | **Build & test terrain** | APK debug, installation sur Galaxy S25, test sur 10 batteries | ⬜ À faire |
 | 11 | **Refonte de l'interface** (décision 27) | Style uniforme en 7 étapes, 5 variantes par étape soumises à l'utilisateur sur le canevas de maquettes : 1 style global ✅ (C, « Bleu de travail ») · 2 menu principal ✅ (E, barre de navigation, décision 28) · 3 choix du mode ✅ (E, échantillons d'étiquette) · 4 écran de scan ✅ (B, caméra pleine et tiroir, décision 29) · 5 dossiers ✅ (B, liste par date et boutons) · 6 comparer ✅ (G, mélange de B et C : avancement dans la liste, décision 30) · 7 export et fenêtres de formules ✅ (A pour l'export, inchangé ; C pour les formules, décision 31) | ✅ Terminée (7/7) — non vérifiée sur téléphone |
+| 12 | **Mise à jour intégrée** (décision 34) | Release GitHub par version publiée par la CI ; recherche au lancement et à la demande, fenêtre « Mise à jour disponible », téléchargement contrôlé, installation par Android ; pied de l'onglet Nouveau scan avec la version. Voir § 3 quater | ✅ Fait (2026-11-09, 1.12) — vérification de bout en bout sur émulateur : voir § 7 ; non vérifié sur téléphone |
 
 ## 7. Journal des évolutions
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
+| 2026-11-09 | **Mise à jour intégrée par les releases GitHub (décision 34, 1.12).** Demandé par l'utilisateur. **CI** : `build-debug-apk.yml` publie, après le dépôt dans `release/`, une release `v<versionName>` portant `SuivieMAT-<version>-arm64-v8a.apk` (version lue dans l'APK par `aapt2`, texte tiré de `.github/release-notes.md`) ; une version déjà publiée n'est pas remplacée (avertissement), et seule la branche de travail publie. **Application** : `domain/update` (pur) — `AppVersion` compare les versions numériquement (`1.10` > `1.9`), `ReleaseParser` lit la réponse de `releases/latest` et écarte tout APK hors de la page de releases du dépôt, `UpdateResolver` décide s'il y a lieu de proposer et quel APK prendre selon l'architecture, `UpdatePolicy` fixe la cadence (six heures) ; `update/UpdateRepository` interroge GitHub et télécharge par `HttpURLConnection` (aucune dépendance ajoutée à l'APK), contrôle la taille, l'empreinte SHA-256 annoncée, puis l'identifiant, le `versionCode` et la signature de l'APK reçu, et prépare l'intention d'installation (`FileProvider`, nouveau chemin `cache/updates/`) ; `ui/update` porte la fenêtre (`UpdateHost`, à la racine de la navigation, muette hors des trois onglets) et le pied de l'onglet Nouveau scan (`AppVersionFooter` : version installée, « Rechercher une mise à jour »). Fenêtres sans animation (décision 32). Manifeste : `INTERNET` et `REQUEST_INSTALL_PACKAGES`. **Constat** : l'APK 1.11 déclarait déjà `INTERNET` et `ACCESS_NETWORK_STATE`, apportées par ML Kit — les consignes disaient le contraire (`outils.md` § 5, `plan-suivimat.md` C8). **31 tests ajoutés** (`AppVersionTest`, `ReleaseParserTest`, `UpdateResolverTest`) ; `org.json:json` en dépendance de test seulement. Outillage de vérification sur émulateur : `verif-maj/`. `versionName` 1.12 (`versionCode` 13). **237 tests, 0 échec**, aucun avertissement, APK debug et optimisé compilés. | `contexte.md`, `outils.md`, `workflow.md`, `plan-suivimat.md`, `CLAUDE.md` |
+| 2026-11-09 | **Le son est réservé aux scans réussis (décision 33).** Demandé par l'utilisateur. `ScanFeedback.duplicate()` et `outOfList()` ne jouent plus de son : seul `success()` garde son bip (valeur enregistrée, référence passée au vert). Les trois vibrations sont conservées, avec leurs signatures distinctes, ainsi que les bandeaux — choix du développeur, signalé à l'utilisateur. Aucun test ne couvre `ScanFeedback` (classe Android, son et vibration) : à l'oreille sur le téléphone. | `contexte.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-11-09 | **Dépôt public : consignes nettoyées.** Demandé par l'utilisateur. L'adresse de l'identité git n'est plus citée (`outils.md`) et les chemins du poste s'écrivent `C:\Users\<utilisateur>\…` (`CLAUDE.md`, `outils.md`). Règle pour ce dépôt public : ni adresse e-mail, ni nom d'utilisateur du poste dans un fichier ou un message de commit ; les commits portent une identité `noreply`. Aucun changement de code, aucun nouvel APK. | `outils.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-10-28 | **Interface instantanée (décision 32).** Demandé par l'utilisateur. `ScanListNavHost` : `EnterTransition.None` / `ExitTransition.None` (le fondu par défaut de 700 ms disparaît, retour compris). `ScanScreens` : bandeau affiché par un simple `if` au lieu d'`AnimatedVisibility` ; tiroir déplié / replié dans un contexte `MotionDurationScale` à 0 (`InstantMotion`). `FormulaSheetParts` : `sheetCloser` remplacé par `InstantModalSheet`, une `ModalBottomSheet` dont l'état naît `Expanded` et dont la fenêtre de dialogue reçoit `setWindowAnimations(0)` ; les quatre feuilles (formule, formules enregistrées, aide, Regex Auto) l'utilisent et se ferment par appel direct à `onDismiss`. `themes.xml` : `android:windowAnimationStyle` à `@null`. Vérifié sur l'AVD (display 2) par captures 100 à 200 ms après l'appui : onglets, écran de scan, tiroir et feuille de formule déjà à leur état final, sans mélange ni transparence (avant : feuille encore en fondu à 250 ms). Build et tests unitaires verts, aucun avertissement. Non vérifié sur le S25. | `contexte.md` |
 | 2026-10-28 | **Performance : APK de test optimisé (1.10).** Mesure sur l'AVD `SuivieMAT_Test` (démarrage à froid, `dumpsys gfxinfo` sur un parcours d'usage, puis avec 205 dossiers, 2 000 captures et une comparaison de 1 500 lignes injectés) : le code de l'application tient la charge (listes ≤ 5 % d'images en retard, même en debug) ; le frein est l'APK **debuggable**. Nouveau type de build `optimise` (R8 + suppression des ressources, non debuggable, même `applicationId` et même clé de debug, donc installable par-dessus sans perte de données) : démarrage 1,8 s → 0,4 s, frames « Slow UI thread » divisées par 3. **La CI dépose désormais cet APK** dans `release/SuivieMAT-debug.apk` (nom inchangé pour garder le lien). Vérifié écran par écran en optimisé, sans plantage ni règle R8 supplémentaire. Écran de scan : l'avancement du consensus est lu au dessin du réticule (plus de recomposition de tout l'écran à chaque lecture), filtres rouge / vert mémorisés — gain non mesurable sur émulateur, qui ne lit aucun code. Pipeline de scan inchangé : le débit d'analyse (~10 images/s sur émulateur) ne dépend pas de la charge de l'UI. À noter : les écouteurs ML Kit tournent en fait sur le thread principal, et non sur le thread d'analyse comme le disent les commentaires — laissé tel quel, faute de gain mesuré. `versionName` 1.10 (`versionCode` 11). 206 tests, 0 échec. **Non vérifié sur téléphone.** | `outils.md`, `workflow.md`, `plan-suivimat.md`, `CLAUDE.md` |

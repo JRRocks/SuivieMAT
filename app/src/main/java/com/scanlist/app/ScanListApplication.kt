@@ -14,8 +14,9 @@ import kotlinx.coroutines.launch
 /**
  * Point d'entree Hilt de l'application.
  *
- * ScanList fonctionne integralement hors-ligne : base Room locale, modeles ML Kit
- * embarques dans l'APK, aucune permission reseau declaree.
+ * L'application fonctionne hors-ligne : base Room locale, modeles ML Kit embarques dans
+ * l'APK. Le reseau ne sert qu'a la mise a jour depuis GitHub (decision 34), qui se tait
+ * quand il manque.
  */
 @HiltAndroidApp
 class ScanListApplication : Application() {

@@ -290,6 +290,28 @@
     <!-- Guillemets obligatoires : sans eux, l'espace de bord serait supprime. -->
     <string name="regex_generator_block_joiner">", "</string>
 
+    <!-- Mise à jour depuis les releases GitHub (décision 34) -->
+    <string name="update_installed_version">%1$s %2$s</string>
+    <string name="update_check_now">Rechercher une mise à jour</string>
+    <string name="update_checking">Recherche en cours…</string>
+    <string name="update_up_to_date">SuivieMAT est à jour (version %1$s).</string>
+    <string name="update_check_failed">Recherche impossible : pas de connexion, ou GitHub ne répond pas.</string>
+    <string name="update_available_title">Mise à jour disponible</string>
+    <string name="update_available_text">La version %1$s est disponible (%2$d Mo). Tu utilises la %3$s. Tes dossiers et tes réglages sont conservés.</string>
+    <string name="update_available_text_no_size">La version %1$s est disponible. Tu utilises la %2$s. Tes dossiers et tes réglages sont conservés.</string>
+    <string name="update_action_install">Installer</string>
+    <string name="update_action_later">Plus tard</string>
+    <string name="update_action_retry">Réessayer</string>
+    <string name="update_downloading_title">Téléchargement de la version %1$s</string>
+    <string name="update_downloading_percent">%1$d %%</string>
+    <string name="update_downloading_unknown">Téléchargement en cours…</string>
+    <string name="update_ready_title">Version %1$s prête à installer</string>
+    <string name="update_ready_text">Android te demande de confirmer l\'installation. La première fois, il te demande aussi d\'autoriser SuivieMAT à installer des applications : c\'est à accepter une seule fois.</string>
+    <string name="update_failed_title">Mise à jour interrompue</string>
+    <string name="update_download_failed">Le téléchargement n\'a pas abouti. Vérifie la connexion, puis réessaie.</string>
+    <string name="update_invalid_file">Le fichier reçu n\'est pas la mise à jour attendue : rien n\'a été installé.</string>
+    <string name="update_no_installer">Android n\'a pas pu ouvrir l\'installation de ce fichier.</string>
+
     <!-- Communs -->
     <string name="action_back">Retour</string>
     <string name="action_cancel">Annuler</string>

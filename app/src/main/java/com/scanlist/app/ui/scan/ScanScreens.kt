@@ -70,6 +70,7 @@ import com.scanlist.app.ui.common.SectionTitle
 import com.scanlist.app.ui.compare.CompareCounterBar
 import com.scanlist.app.ui.compare.compareSections
 import com.scanlist.app.ui.theme.ScanValueTextStyle
+import com.scanlist.app.ui.update.AppVersionFooter
 import com.scanlist.app.ui.theme.compareColors
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -83,8 +84,8 @@ private val TIME_FORMAT = SimpleDateFormat("HH:mm:ss", Locale.FRANCE)
  * Duree d'affichage du bandeau de derniere capture.
  *
  * A 0 sur decision explicite de l'utilisateur : outil pro, la rapidite prime sur le
- * confort visuel. Le retour reste assure par la vibration et le bip (ScanFeedback),
- * independants de ce delai.
+ * confort visuel. Le retour reste assure par la vibration et, pour un scan reussi, le
+ * bip (ScanFeedback), independants de ce delai.
  */
 private const val BANNER_DURATION_MS = 0L
 
@@ -105,19 +106,30 @@ private object InstantMotion : MotionDurationScale {
 @Composable
 fun NewScanModeScreen(
     onModeSelected: (ScanMode) -> Unit,
+    appVersion: String,
+    checkingUpdate: Boolean,
+    onCheckUpdate: () -> Unit,
 ) {
     ScanListScaffold(
         title = stringResource(R.string.menu_new_scan),
         subtitle = stringResource(R.string.choose_scan_mode),
     ) { padding ->
-        ScanModePicker(
-            onModeSelected = onModeSelected,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-        )
+        ) {
+            ScanModePicker(onModeSelected = onModeSelected)
+            // Sous les quatre modes, la ou l'on ne va que lorsqu'on le cherche : la
+            // version installee et la recherche de mise a jour (decision 34).
+            AppVersionFooter(
+                version = appVersion,
+                checking = checkingUpdate,
+                onCheck = onCheckUpdate,
+            )
+        }
     }
 }
 
@@ -128,7 +140,8 @@ fun NewScanModeScreen(
  * (camera pour OCR/QR/code-barres, surface d'attente pour NFC) occupe toute la hauteur
  * sous l'en-tete ; les resultats vivent dans un tiroir qui montre les dernieres lignes et
  * se deplie d'un appui. La formule se replie en pastille sur l'image. Aucune validation,
- * aucune boite de dialogue pendant le scan — le retour se fait par vibration et par bip.
+ * aucune boite de dialogue pendant le scan — le retour se fait par vibration, et par un
+ * bip quand la lecture est prise en compte.
  *
  * En scan de dossier, le tiroir porte les captures, la plus recente en tete. En
  * comparaison, c'est la liste de reference qui se vide de son rouge.

@@ -14,8 +14,13 @@ import javax.inject.Inject
  * Retour haptique et sonore du scan a la chaine.
  *
  * En usage terrain l'utilisateur ne regarde pas l'ecran entre deux codes : le signal
- * doit passer par la main et l'oreille. Deux signatures nettement distinctes, pour
- * qu'un doublon ne soit jamais confondu avec une capture reussie.
+ * doit passer par la main et l'oreille.
+ *
+ * Le son est reserve au scan reussi (decision 33, demande de l'utilisateur) : un bip
+ * veut toujours dire "pris en compte", on n'a plus a distinguer trois sons a l'oreille
+ * dans le bruit d'un atelier. Une lecture sans effet (doublon, deja valide, hors liste)
+ * ne s'entend pas ; elle garde sa vibration propre, nettement distincte de celle du
+ * succes, pour rester perceptible sans regarder l'ecran.
  */
 class ScanFeedback @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -33,7 +38,7 @@ class ScanFeedback @Inject constructor(
 
     /**
      * Cree a la demande : un ToneGenerator retient une piste audio, inutile de la
-     * reserver tant qu'aucun scan n'a eu lieu.
+     * reserver tant qu'aucun scan n'a reussi.
      */
     private var toneGenerator: ToneGenerator? = null
 
@@ -52,24 +57,23 @@ class ScanFeedback @Inject constructor(
         tones()?.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
     }
 
-    /** Deja present dans ce dossier : double impulsion et bip double. */
+    /** Deja present dans ce dossier, ou deja valide : double impulsion, sans son. */
     fun duplicate() {
         vibrate(
             VibrationEffect.createWaveform(longArrayOf(0, 40, 90, 40), -1),
         )
-        tones()?.startTone(ToneGenerator.TONE_PROP_BEEP2, 200)
     }
 
     /**
      * Valeur lue hors de la liste de reference, en mode Comparer.
      *
-     * Ni reussite ni doublon : une impulsion longue et un bip grave, pour que
-     * l'utilisateur sache sans regarder qu'il vient de viser autre chose que ce qu'il
-     * controle. Rien n'est enregistre : ce signal est la seule trace de la lecture.
+     * Ni reussite ni doublon : une impulsion longue, sans son, pour que l'utilisateur
+     * sache sans regarder qu'il vient de viser autre chose que ce qu'il controle. Rien
+     * n'est enregistre : ce signal et le bandeau gris sont les seules traces de la
+     * lecture.
      */
     fun outOfList() {
         vibrate(VibrationEffect.createOneShot(220, VibrationEffect.DEFAULT_AMPLITUDE))
-        tones()?.startTone(ToneGenerator.TONE_SUP_ERROR, 250)
     }
 
     private fun vibrate(effect: VibrationEffect) {

@@ -22,8 +22,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * Preferences locales.
  *
  * Contient uniquement des reglages d'usage : destinataire et objet par defaut de
- * l'export, dernier mode de scan, derniere formule regex. Aucun identifiant de
- * messagerie n'y est stocke, l'envoi passant par un Intent vers le client mail.
+ * l'export, dernier mode de scan, derniere formule regex, date de la derniere recherche
+ * de mise a jour. Aucun identifiant de messagerie n'y est stocke, l'envoi passant par un
+ * Intent vers le client mail.
  */
 @Singleton
 class SettingsDataStore @Inject constructor(
@@ -37,6 +38,7 @@ class SettingsDataStore @Inject constructor(
         val LAST_SCAN_MODE = stringPreferencesKey("last_scan_mode")
         val LAST_REGEX_RULE_ID = longPreferencesKey("last_regex_rule_id")
         val REGEX_DEFAULTS_SEEDED = booleanPreferencesKey("regex_defaults_seeded")
+        val LAST_UPDATE_CHECK_AT = longPreferencesKey("last_update_check_at")
     }
 
     val emailPrefs: Flow<EmailPrefs> = context.dataStore.data.map { prefs ->
@@ -75,6 +77,11 @@ class SettingsDataStore @Inject constructor(
         prefs[Keys.REGEX_DEFAULTS_SEEDED] ?: false
     }
 
+    /** Date (epoch ms) de la derniere recherche de mise a jour aboutie, ou 0 si aucune. */
+    val lastUpdateCheckAt: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[Keys.LAST_UPDATE_CHECK_AT] ?: 0L
+    }
+
     suspend fun setEmailPrefs(prefs: EmailPrefs) {
         context.dataStore.edit { store ->
             store[Keys.EMAIL_RECIPIENT] = prefs.recipient
@@ -95,6 +102,10 @@ class SettingsDataStore @Inject constructor(
 
     suspend fun markRegexDefaultsSeeded() {
         context.dataStore.edit { it[Keys.REGEX_DEFAULTS_SEEDED] = true }
+    }
+
+    suspend fun setLastUpdateCheckAt(at: Long) {
+        context.dataStore.edit { it[Keys.LAST_UPDATE_CHECK_AT] = at }
     }
 
     private companion object {

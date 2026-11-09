@@ -394,9 +394,10 @@ class ScanViewModel @Inject constructor(
      * validee prime sur tout le reste, c'est la confirmation attendue ; une entree
      * deja validee vient ensuite ; une valeur hors liste ferme la marche.
      *
-     * Le hors-liste n'est signale que par ce bandeau et son bip : rien n'est ecrit et
-     * aucun compteur ne bouge. L'operateur doit savoir qu'il vient de viser autre
-     * chose que ce qu'il controle, sans que cela laisse la moindre trace.
+     * Le hors-liste n'est signale que par ce bandeau et sa vibration longue, sans son
+     * (decision 33) : rien n'est ecrit et aucun compteur ne bouge. L'operateur doit
+     * savoir qu'il vient de viser autre chose que ce qu'il controle, sans que cela
+     * laisse la moindre trace.
      */
     private fun publishCompare(outcomes: List<CompareOutcome>) {
         val matched = outcomes.filterIsInstance<CompareOutcome.Matched>()
@@ -427,8 +428,9 @@ class ScanViewModel @Inject constructor(
     }
 
     private fun publish(results: List<ScanRecordResult>) {
-        // Une seule signature sonore par image, meme si elle contenait plusieurs codes :
-        // enchainer cinq bips serait illisible a l'oreille.
+        // Un seul signal par image, meme si elle contenait plusieurs codes : enchainer
+        // cinq bips serait illisible a l'oreille. Seul l'enregistrement s'entend, un
+        // doublon ne fait que vibrer (decision 33).
         val saved = results.filterIsInstance<ScanRecordResult.Saved>()
         val duplicates = results.filterIsInstance<ScanRecordResult.Duplicate>()
 

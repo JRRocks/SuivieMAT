@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** À relire en priorité après un `/clear` ou au démarrage
 > d'une nouvelle session. À mettre à jour à chaque évolution majeure du périmètre fonctionnel.
 >
-> Dernière mise à jour : 2026-10-27 — *Fenêtres de formules : on coche, puis un seul
-> bouton (décision 31) ; refonte de l'interface terminée*
+> Dernière mise à jour : 2026-11-09 — *Son réservé aux scans réussis (décision 33), mise à
+> jour intégrée par les releases GitHub (décision 34)*
 
 ---
 
@@ -33,7 +33,8 @@ puis contrôle de conformité par comparaison avec une liste de référence.
 
 L'application doit fonctionner **100 % hors-ligne** : aucune dépendance réseau pour le scan,
 l'OCR, le stockage ou la comparaison. Le réseau n'est sollicité que par le client mail tiers
-au moment de l'export.
+au moment de l'export et, **depuis la décision 34**, par la mise à jour de l'application
+(GitHub), qui se tait quand il manque.
 
 ## 3. Périmètre fonctionnel
 
@@ -57,7 +58,8 @@ réciproquement.
 ### 3.2 Règles de capture
 
 - **Scan à la chaîne** : écriture automatique en base + retour immédiat à l'analyse.
-  Aucune boîte de dialogue bloquante. Retour utilisateur par vibration + son court.
+  Aucune boîte de dialogue bloquante. Retour utilisateur par vibration + son court —
+  **le son pour le seul scan réussi** depuis la décision 33.
 - **Multi-codes sur une image** : si plusieurs codes sont détectés dans la même frame,
   chacun crée **sa propre ligne**.
 - **Pas de doublon** : la portée est **le dossier courant**. Une valeur déjà présente dans
@@ -112,7 +114,8 @@ quand elle est lue.
 ni enregistré. Il n'existe donc pas de troisième état. L'application le signale seulement
 sur le moment — bip grave, vibration longue et bandeau gris fugace — pour que l'opérateur
 sache qu'il vient de viser autre chose que ce qu'il contrôle. Cette signalisation ne laisse
-aucune trace.
+aucune trace. *(Depuis la décision 33, le bip grave est retiré : restent la vibration
+longue et le bandeau.)*
 
 - **Cas d'erreur** (lecture illisible, valeur vide, échec de décodage) : **ne rien faire**.
   Pas de message d'erreur, pas d'enregistrement, le scan continue.
@@ -228,6 +231,8 @@ MENU PRINCIPAL
 | 30 | **Onglet Comparer : dossiers et imports par date, avec l'avancement des comparaisons** *(modifie le § 4)* | Étape 6 de la refonte (décision 27) : cinq présentations de l'onglet et de la session sur le canevas, puis, à la demande de l'utilisateur, cinq mélanges de deux d'entre elles (« l'affichage de C avec la barre d'avancement de B »). **Choix de l'utilisateur : G, « avancement dans la liste ».** L'onglet Comparer montre directement les dossiers, rangés par date comme l'onglet Dossiers, sous un bouton « Importer un fichier .csv » : l'écran intermédiaire « Depuis un dossier local / Depuis un import .csv » disparaît. Un dossier déjà utilisé par une comparaison porte, sous sa ligne, l'avancement de la **dernière** (reste à valider, compte, barre verte sur fond rouge) et « Reprendre » ; un import `.csv` prend place à sa date avec son avancement. Les sessions deviennent ainsi **reprenables** : auparavant, une session quittée ne se retrouvait plus. Un appui sur un dossier déjà comparé demande s'il faut reprendre ou repartir d'une nouvelle comparaison (sinon l'avancement disparaîtrait derrière une liste toute rouge). Écran de session : le reste à valider en grand dans l'en-tête avec la barre, un sélecteur « À valider / Validés », « Lancer le scan » fixé en bas ; « Enregistrer dans un dossier » et « Exporter » passent en icônes dans l'en-tête, avec « Supprimer la comparaison » dans le menu — choix du développeur : les sessions étant désormais visibles, il faut pouvoir les retirer. Code rouge / vert (décision 14) inchangé. | 2026-10-27 |
 | 31 | **Fenêtres de formules : on coche, puis un seul bouton** | Étape 7 de la refonte (décision 27), dernière : cinq présentations de l'export, des préférences d'envoi et des fenêtres de formules sur le canevas. **Choix de l'utilisateur : A pour l'export et les préférences** (inchangés), **C pour les formules.** « Regex Auto » : les propositions deviennent une liste à cocher, la plus stricte cochée d'office ; la proposition cochée déplie son explication et son exemple vert ou rouge ; un seul bouton fixe en bas, « Utiliser cette formule », l'applique. « Enregistré » : même principe, la formule en service cochée d'office et repérée « Active », « Appliquer » en bas (grisé tant qu'on n'en a pas coché une autre, puisque réappliquer la même ne ferait que désarmer la capture) ; la suppression passe par le menu ⋮ de la ligne au lieu d'une corbeille à portée de doigt ; « Enregistrer la formule actuelle » demande le nom dans une fenêtre. Toutes les fenêtres de formules, aide comprise, se ferment par une croix en haut au lieu de « Fermer » en bas. **Ce qui change** : un appui sur une proposition ou sur une formule ne l'applique plus, il la coche. Les trois outils sous le champ (décision 26) sont inchangés. | 2026-10-27 |
 | 32 | **Aucune transition ni animation d'interface** | Demandé par l'utilisateur : « je préfère de l'instantané », retirer tout délai de chargement ou de transition qui n'est pas nécessaire au cœur de l'application. **Retirés** : le fondu de 700 ms de Navigation Compose entre tous les écrans et onglets ; l'apparition animée du bandeau de dernière lecture ; l'animation du tiroir de l'écran de scan quand on le déplie ou le replie d'un appui ; le glissement et le fondu d'entrée des fenêtres de formules (elles naissent dépliées, sans animation de fenêtre) et leur descente à la fermeture par la croix ou « Valider » ; les animations d'ouverture et de fermeture de la fenêtre de l'application. **Conservés, car ils font partie du cœur** : le verrou anti-rebond `ScanDebouncer` (1,5 s) et l'expiration du consensus `ScanConsensus` (800 ms), qui empêchent les doublons et les erreurs optiques (décision 19) ; la rétention de 24 h des exports en cache. **Restent animés, faute de prise dans Material 3** : le glisser au doigt (il suit le geste), la fermeture d'une fenêtre de formule par appui hors de la feuille ou par le retour système, et les effets de pression (ripple). | 2026-10-28 |
+| 33 | **Le son est réservé aux scans réussis** *(révise le volet sonore des décisions 14 et 18)* | Demandé par l'utilisateur : « retire les effets sonores des scans échoués et ne garde que ceux des scans réussis ». **Seul un scan pris en compte s'entend** : valeur enregistrée dans un dossier, ou entrée de référence passée au vert (bip bref, inchangé). **Ne s'entendent plus** : le doublon et l'entrée déjà validée (ancien double bip), la lecture hors liste en comparaison (ancien bip grave). Un bip veut donc toujours dire « pris en compte ». **Conservés, car ce ne sont pas des sons** — choix du développeur, à retirer sur simple demande : les vibrations, qui gardent leurs trois signatures (courte = réussi, double = doublon ou déjà validé, longue = hors liste), et les bandeaux gris. Sans elles, une lecture sans effet ne se percevrait plus qu'en regardant l'écran. | 2026-11-09 |
+| 34 | **Mise à jour intégrée par les releases GitHub** *(nuance le « 100 % hors-ligne » du § 2)* | Demandé par l'utilisateur : « un système de mise à jour via release GitHub ». **Côté dépôt** : chaque compilation de la branche de travail publie une **release** `v<versionName>` portant l'APK (`SuivieMAT-<version>-arm64-v8a.apk`) ; une version déjà publiée n'est jamais remplacée, il faut monter `versionCode` et `versionName` pour qu'une compilation arrive sur les téléphones. **Côté application** : au lancement, au plus une fois toutes les six heures, elle demande à GitHub la dernière release ; si elle est plus récente, une fenêtre « Mise à jour disponible » propose **Installer** ou **Plus tard**, uniquement sur les trois onglets (jamais par-dessus la caméra). « Installer » télécharge l'APK, le contrôle (taille et empreinte SHA-256 annoncées par GitHub, identifiant, version et signature de l'APK), puis ouvre l'installateur d'Android, qui demande toujours confirmation. Au pied de l'onglet Nouveau scan : la version installée et **« Rechercher une mise à jour »**, qui répond toujours. Hors connexion, la recherche automatique ne dit rien (règle « sur erreur, ne rien faire »). **Conséquences assumées par la demande** : l'application déclare `INTERNET` et `REQUEST_INSTALL_PACKAGES` ; le réseau ne sert qu'à cela, le scan, l'OCR, les dossiers et la comparaison n'y touchent pas. **Constat fait à cette occasion** : l'APK déclarait déjà `INTERNET` et `ACCESS_NETWORK_STATE`, apportées par ML Kit (télémétrie de Google) — la mention « aucune permission réseau » des consignes était inexacte, voir `outils.md` § 5. **Choix du développeur, à revoir sur demande** : l'emplacement (pied de l'onglet, fenêtre simple, sans passer par cinq variantes), la cadence de six heures, et le fait de proposer sans jamais installer d'office. **Limite** : ces APK sont signés par la clé de debug publique ; avant toute distribution aux magasiniers, voir `plan-suivimat.md` § 0. | 2026-11-09 |
 
 ## 6. Hors périmètre (non demandé)
 

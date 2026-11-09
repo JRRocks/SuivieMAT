@@ -17,12 +17,14 @@ on:
       - claude/init-xyw7gc
       - claude/remove-scanlist-history-a5bqzh
     # Le commit de l'APK lui-meme ne doit pas relancer une compilation. Le banc de
-    # mesure OCR non plus : rien de ce dossier n'entre dans l'APK, et il a son propre
-    # workflow (ocr-bench.yml).
+    # mesure OCR et la verification de la mise a jour non plus : rien de ces dossiers
+    # n'entre dans l'APK, et chacun a son propre workflow.
     paths-ignore:
       - 'release/**'
       - 'ocrbench/**'
       - '.github/workflows/ocr-bench.yml'
+      - 'verif-maj/**'
+      - '.github/workflows/verif-mise-a-jour.yml'
 
 permissions:
   # Ecriture : necessaire au depot de l'APK dans release/.
@@ -31,6 +33,11 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Seule cette branche publie des releases : l'application installee les propose a
+      # son utilisateur (mise a jour integree, decision 34). Une compilation lancee a la
+      # main sur une autre branche ne doit pas arriver sur les telephones.
+      BRANCHE_DES_RELEASES: claude/remove-scanlist-history-a5bqzh
     steps:
       - uses: actions/checkout@v4
 
@@ -65,6 +72,7 @@ jobs:
       # apk.phoneOnly : arm64 seul, l'APK depose est destine au telephone, pas a
       # l'emulateur (voir app/build.gradle.kts).
       - name: Compiler l'APK optimise
+        id: apk
         run: ./gradlew assembleOptimise -Papk.phoneOnly --stacktrace
 
       # Retention d'un jour : le stockage des artefacts est facture a l'heure, sur un
@@ -96,6 +104,45 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Depose l'APK optimise compile par la CI (${GITHUB_SHA::7})"
           git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      # Mise a jour integree (decision 34) : l'application lit la derniere release du
+      # depot et propose son APK. Une release par version, jamais remplacee : deux APK
+      # differents sous le meme numero ne se distingueraient plus, et un telephone deja a
+      # cette version ne verrait jamais le second. Si la version existe deja, la
+      # compilation n'est donc pas publiee, et un avertissement le dit.
+      #
+      # Tente meme si le depot dans release/ a echoue : les deux canaux sont independants.
+      - name: Publier la release GitHub de cette version
+        if: ${{ !cancelled() && steps.apk.outcome == 'success' && github.ref_name == env.BRANCHE_DES_RELEASES }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=app/build/outputs/apk/optimise/app-optimise.apk
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          AAPT2="$(ls "$SDK"/build-tools/*/aapt2 | sort -V | tail -1)"
+          # Lue dans l'APK lui-meme, et non dans le fichier de build : c'est cette
+          # valeur que le telephone comparera.
+          VERSION="$("$AAPT2" dump badging "$APK" | sed -n "s/^package:.* versionName='\([^']*\)'.*/\1/p")"
+          if [ -z "$VERSION" ]; then
+            echo "versionName illisible dans $APK" >&2
+            exit 1
+          fi
+          TAG="v$VERSION"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::warning::La release $TAG existe deja : cette compilation n'est pas publiee. Monter versionCode et versionName dans app/build.gradle.kts pour qu'elle soit proposee aux telephones."
+            exit 0
+          fi
+          # Le nom porte l'architecture : l'application choisit l'APK de son appareil.
+          ASSET="SuivieMAT-$VERSION-arm64-v8a.apk"
+          cp "$APK" "$ASSET"
+          sed -e "s/{{VERSION}}/$VERSION/g" \
+              -e "s/{{COMMIT}}/${GITHUB_SHA::7}/g" \
+              -e "s/{{SHA256}}/$(sha256sum "$ASSET" | cut -d' ' -f1)/g" \
+              .github/release-notes.md > notes-release.md
+          gh release create "$TAG" "$ASSET" \
+            --target "$GITHUB_SHA" \
+            --title "SuivieMAT $VERSION" \
+            --notes-file notes-release.md
 
       # L'APK est deja dans release/ : en artefact, il doublait ~40 Mo par run pendant
       # 7 jours. Il n'est plus publie que si le depot dans la branche a echoue, comme

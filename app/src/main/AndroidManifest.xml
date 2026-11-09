@@ -10,9 +10,18 @@
     <uses-permission android:name="android.permission.NFC" />
 
     <!--
-      Aucune permission INTERNET : l'application est integralement hors-ligne.
-      L'envoi de l'export CSV est delegue a une application tierce via Intent.
+      Mise a jour depuis les releases GitHub (decision 34), seul usage du reseau :
+      demander a GitHub la derniere version, puis telecharger son APK. Le scan, l'OCR,
+      les dossiers et la comparaison n'y touchent pas et fonctionnent hors-ligne ;
+      l'envoi de l'export CSV reste delegue a une application tierce via Intent.
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      Ouvrir l'installateur d'Android sur l'APK telecharge. Android demande quand meme
+      a l'utilisateur de l'autoriser pour cette application, puis de confirmer chaque
+      installation : rien ne s'installe en silence.
+    -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <uses-feature
         android:name="android.hardware.camera.any"
@@ -68,7 +77,10 @@
             </intent-filter>
         </activity>
 
-        <!-- Partage des fichiers .csv exportes vers le client mail. -->
+        <!--
+          Partage des fichiers .csv exportes vers le client mail, et de l'APK d'une mise
+          a jour vers l'installateur d'Android.
+        -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -9,9 +9,9 @@
 > propositions du § 11 ci-dessous. Une proposition validée y est reportée **par ajout de
 > ligne**, jamais en réécrivant une décision existante.
 >
-> Créé le : 2026-09-24 — dernière mise à jour : 2026-09-25, *identification par carte à
-> puce arrêtée au niveau 1 (lecture d'UID via le mode NFC existant) ; écran de test
-> retiré ; clé de signature reportée juste avant la distribution* (§ 0, § 10 ter)
+> Créé le : 2026-09-24 — dernière mise à jour : 2026-11-09, *l'APK déclare des
+> permissions réseau depuis l'origine (ML Kit), constat C8 ; mise à jour intégrée par les
+> releases GitHub, à arbitrer avant distribution* (§ 0, § 2, § 10)
 
 ---
 
@@ -34,6 +34,19 @@
       (depuis le 2026-09-25, `outils.md` § 6 bis).
 - [ ] `allowBackup="false"` (C4, D12), si validé.
 - [ ] Architectures de l'APK selon les téléphones réels (C7, U9).
+- [ ] **Permissions réseau de l'APK** (C8, constat du 2026-11-09). L'APK déclare
+      `INTERNET` et `ACCESS_NETWORK_STATE` depuis l'origine, par ML Kit ; l'argument
+      « aucune permission réseau » des § 2 et § 4.1 ne tient donc pas en l'état. À
+      trancher : les retirer du manifeste de la version distribuée (ce qui coupe la
+      télémétrie de ML Kit **et** la mise à jour intégrée), ou les assumer et le dire à
+      la DSI.
+- [ ] **Mise à jour intégrée** (décision 34 de `contexte.md`, 2026-11-09). Les releases
+      GitHub portent aujourd'hui des APK de test, signés par la clé de debug publique :
+      n'importe qui peut signer un APK avec elle. Avant distribution : soit publier dans
+      les releases l'APK signé par la clé de release (et faire choisir cette pièce jointe
+      à l'application), soit retirer la mise à jour intégrée de la version distribuée.
+      C'est aussi une réponse possible au canal de distribution de D13, à condition que
+      la DSI accepte un téléchargement depuis GitHub.
 
 ---
 
@@ -67,7 +80,14 @@ Scénario terrain :
 ## 2. Verdict de faisabilité
 
 **Faisable, sans serveur, sans compte, sans permission réseau** — donc dans le cadre de
-sécurité le plus strict qui soit — avec une **option 1 améliorée** (§ 4.3). La moitié de
+sécurité le plus strict qui soit — avec une **option 1 améliorée** (§ 4.3).
+
+> ⚠️ **Correction du 2026-11-09.** « Sans permission réseau » décrivait le manifeste
+> écrit de l'application, pas l'APK : celui-ci déclare `INTERNET` depuis l'origine, par
+> ML Kit (constat C8, § 10). Le verdict de faisabilité tient toujours — rien du flux
+> comptable ne passe par le réseau — mais l'argument doit être reformulé, ou rendu vrai
+> en retirant ces permissions de la version distribuée (§ 0).
+ La moitié de
 la plomberie existe déjà : moteur de scan quatre modes, codec CSV (BOM UTF-8, `;`, RFC
 4180), import par le Storage Access Framework, export par Intent mail, et la fonction
 Comparer qui est déjà un « théorique contre constaté ».
@@ -138,6 +158,8 @@ Les avantages listés sont réels, et le principal n'y figure pas : **l'applicat
 besoin d'aucune permission réseau**. Aujourd'hui, `AndroidManifest.xml` n'en déclare
 aucune — le téléphone ne peut **physiquement** rien envoyer de lui-même. C'est l'argument
 le plus fort face à une DSI stricte, et il disparaît avec l'option 2.
+*(Inexact pour l'APK tel qu'il est compilé, voir C8 au § 10 : à rendre vrai avant de
+l'opposer à la DSI.)*
 
 Les deux inconvénients cités se traitent :
 
@@ -390,6 +412,7 @@ Ces points existent **dès aujourd'hui** dans ScanList, indépendamment du proje
 | C5 | Suppression de lignes et de dossiers, renommage de dossier | `ScanItemDao`, `FolderDao` | Incompatible avec l'intangibilité **si** le journal couvrait les dossiers de scan | Journal limité à la nouvelle fonction Inventaire (D4) |
 | C6 | **Aucune configuration de signature** (`signingConfigs` absent) : chaque machine de compilation signe avec sa propre clé de debug | `app/build.gradle.kts` | Un APK compilé en local et un APK compilé par la CI ne peuvent pas se mettre à jour l'un l'autre ; il faut désinstaller, **ce qui efface le journal non exporté**. Sur des téléphones personnels installés à la main, c'est une perte de données assurée à la première mise à jour | Une clé de release unique, créée une fois, **avant la première installation chez un magasinier** — la première signature installée verrouille toutes les suivantes (D13) |
 | C7 | Release limitée à `arm64-v8a` | `app/build.gradle.kts` (décision 10) | Décidé pour le seul Galaxy S25 ; un téléphone personnel 32 bits refusera l'installation | Selon la liste des téléphones réels (U9) : ajouter `armeabi-v7a` si besoin |
+| C8 | **L'APK déclare `INTERNET` et `ACCESS_NETWORK_STATE`**, alors que le manifeste de l'application n'en portait aucune jusqu'à la 1.11 | Manifeste *fusionné* : dépendances `com.google.android.datatransport` de ML Kit. Vérifié le 2026-11-09 par `aapt2 dump badging` sur l'APK 1.11 du 2026-10-28 | ML Kit peut envoyer des statistiques d'utilisation à Google quand le réseau est là ; surtout, l'affirmation « aucune permission réseau » faite à la DSI serait **fausse**, et un simple examen de l'APK le montrerait. Depuis la 1.12, la mise à jour intégrée (décision 34) utilise aussi `INTERNET`, vers GitHub seulement | Pour la version distribuée : retirer les deux permissions au niveau du manifeste (`tools:node="remove"`), ou les déclarer telles quelles à la DSI. À arbitrer (§ 0) |
 
 > **C1 devient prioritaire** avec la réponse de l'utilisateur : « tant que c'est du texte
 > et pas du script, ça passe ». Une formule Excel **est** du texte — la passerelle la
@@ -589,3 +612,4 @@ Ce qui est vérifiable où :
 | 2026-09-24 | **Premières réponses de l'utilisateur.** Téléphones **personnels** (Q1) ; VBA déjà utilisé et fonctionnel (Q4) ; `.csv` d'une messagerie personnelle vers Outlook pro vérifié (Q3, Q9) ; identification par **carte à puce**, sans clé privée, comme couche de vérification. Conséquences : nouvelle section § 10 bis (téléphones personnels : l'application porte seule les garanties qu'un MDM aurait imposées) et § 10 ter (identification par carte, trois niveaux — le défi-réponse ne demande **pas** de détenir la clé privée) ; C1 et C4 deviennent prioritaires ; deux nouveaux constats, **C6 (aucune clé de signature : chaque mise à jour effacerait le journal)** et C7 (release arm64 seulement) ; décisions D13–D17, questions Q10–Q11 et U9–U10 ajoutées ; Q7 caduque. S0 passe en cours. **Aucune décision validée, aucun code modifié.** |
 | 2026-09-24 à 25 | **Écran « Test du badge » : construit, testé, puis retiré.** À la demande de l'utilisateur, un écran de diagnostic (décision 22) a exploré une identification aux niveaux 2 (certificat) et 3 (défi-réponse) sur le badge des magasiniers, sans jamais envoyer de code PIN. Les tests physiques ont montré que ce badge est une **carte CIMS** (ministère des Armées) : son authenticité ne peut pas être vérifiée par cette application, l'IGC qui la gère étant interne au ministère. **Décision du 2026-09-25 : identification arrêtée au niveau 1** (lecture d'UID, via le mode NFC déjà existant, sans code nouveau), **écran de diagnostic et toute sa logique retirés du code** (`domain/card/`, `ui/cardtest/`, `scanner/CardTestReader.kt` supprimés). Voir § 10 ter. |
 | 2026-09-25 | **D10 validée : SuivieMAT devient une application distincte de ScanList.** L'utilisateur confirme que ScanList est une application indépendante, gardée en l'état — les deux se seraient superposées sous l'ancien `applicationId` hérité du projet d'origine. `applicationId` → `com.suiviemat.app`, nom affiché → « SuivieMAT » (décision 23 de `contexte.md`). |
+| 2026-11-09 | **Constat C8 et mise à jour intégrée.** En ajoutant une mise à jour de l'application par les releases GitHub (décision 34 de `contexte.md`, demandée par l'utilisateur), l'examen de l'APK 1.11 a montré qu'il déclarait **déjà** `INTERNET` et `ACCESS_NETWORK_STATE`, apportées par ML Kit : « aucune permission réseau » (§ 2, § 4.1) n'était vrai que du manifeste écrit. Notes de correction ajoutées aux § 2 et § 4.1, constat C8 au § 10, deux points au § 0 (permissions réseau de la version distribuée ; mise à jour intégrée face à la clé de release). **Aucune décision du plan n'est modifiée** : deux arbitrages de plus attendent l'utilisateur avant la distribution. |

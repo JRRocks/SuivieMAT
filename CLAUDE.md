@@ -64,6 +64,13 @@ minutes ; le dépôt est **public depuis le 2026-10-27** et la CI compile de nou
 Depuis la 1.10 (2026-10-28), c'est l'APK **optimisé** (`assembleOptimise`, R8, non
 debuggable), sous le même nom `SuivieMAT-debug.apk`.
 
+**Depuis la 1.12 (2026-11-09), la même compilation publie une release GitHub**
+`v<versionName>` portant cet APK, et l'application installée la propose d'elle-même
+(mise à jour intégrée, décision 34). Une release n'est jamais remplacée : **monter
+`versionCode` et `versionName` à chaque version livrée**, sinon la compilation n'arrive
+pas sur les téléphones (le run l'écrit en avertissement). Seule la branche de travail
+publie (`BRANCHE_DES_RELEASES` dans `build-debug-apk.yml`). Détail : `outils.md` § 6 bis.
+
 **Règle de l'utilisateur (2026-10-28) : à la fin de chaque commit poussé, donner le lien
 vers la page GitHub de l'APK** — la page du fichier, pas le lien de téléchargement direct :
 <https://github.com/JRRocks/SuivieMAT/blob/claude/remove-scanlist-history-a5bqzh/release/SuivieMAT-debug.apk>
@@ -148,11 +155,17 @@ cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/
 ui/          Compose : un écran = un composable + un ViewModel Hilt
 domain/      logique pure, testable sans Android (CompareEngine, RegexRuleEngine,
              RegexSuggester, ScanValue, FolderSearch, FolderTimeline, CompareOverview,
-             NfcValue) — c'est là que vivent les tests
+             NfcValue, AppVersion, ReleaseParser, UpdateResolver) — c'est là que vivent
+             les tests
 data/        Room (entités = modèles métier), DataStore, CsvCodec, repositories
 scanner/     CameraX + ML Kit + NFC, aucune dépendance à l'UI
 export/      écriture du .csv en cache + Intent de partage
+update/      mise à jour par les releases GitHub : le seul code qui touche au réseau
 ```
+
+Hors de l'application, à la racine du dépôt : `ocrbench/` (banc de mesure des moteurs
+OCR) et `verif-maj/` (vérification de la mise à jour sur émulateur). Chacun a son
+`README.md` et son workflow ; ni l'un ni l'autre n'entre dans l'APK.
 
 Le détail complet (arbre des packages, schéma des tables, pipeline de scan) est dans
 `consignes/workflow.md`. Ce fichier-ci ne le duplique pas.
@@ -193,10 +206,26 @@ stricte : une valeur de référence non normalisée en base ne passerait jamais 
 **Seule la liste de référence change de couleur.** Elle naît **entièrement en rouge**
 (présence à valider) et chaque entrée passe au **vert** quand elle est lue. Une valeur lue
 qui ne figure pas dans la liste **n'est pas prise en compte** : rien n'est enregistré, aucun
-compteur ne bouge, aucune ligne n'apparaît. Elle est seulement signalée sur le moment (bip
-grave + bandeau gris fugace).
+compteur ne bouge, aucune ligne n'apparaît. Elle est seulement signalée sur le moment
+(vibration longue + bandeau gris fugace ; le bip grave a été retiré, décision 33).
 
 Le gris n'est donc **pas un état** : il n'habille que des bandeaux neutres et transitoires.
+
+### Un bip veut dire « pris en compte », et rien d'autre
+
+Depuis la décision 33, **seul un scan réussi s'entend** (valeur enregistrée, ou référence
+passée au vert). Un doublon, une entrée déjà validée ou une lecture hors liste ne font
+plus que vibrer, chacun avec sa signature (`ScanFeedback`). Ne pas remettre de son sur
+une lecture sans effet, et ne pas retirer ces vibrations sans demande : ce sont elles qui
+restent perceptibles sans regarder l'écran.
+
+### Le réseau ne sert qu'à la mise à jour
+
+L'application reste utilisable hors-ligne de bout en bout. `update/UpdateRepository` est
+le seul code qui ouvre une connexion, vers GitHub uniquement (décision 34) ; il échoue en
+silence sans réseau. Rien ne doit jamais s'afficher par-dessus la caméra : la fenêtre de
+mise à jour n'apparaît que sur les trois onglets. Rien ne s'installe sans un appui, et
+c'est Android qui installe.
 
 ### La vérification par consensus protège du bruit optique, pas la fonction Comparer
 
@@ -266,9 +295,11 @@ ajouté après la phase 8), formules regex OCR à la volée (étendues au filtre
 QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA — décision
 25), vérification par consensus contre les erreurs optiques, dossiers, export `.csv` par
 mail, fonction Comparer complète, finitions de la phase 9 (permission caméra bloquée,
-rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). **206 tests,
+rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). Depuis la 1.12
+(2026-11-09) : **son réservé aux scans réussis** (décision 33) et **mise à jour intégrée
+par les releases GitHub** (décision 34, phase 12 de `workflow.md`). **237 tests,
 0 échec, aucun avertissement de
-compilation** (vérifié le 2026-10-28). **Piège de navigation** : une route fixe ne doit
+compilation** (vérifié le 2026-11-09). **Piège de navigation** : une route fixe ne doit
 jamais correspondre au modèle d'une autre (`scan/new` ouvrait l'écran `scan/{mode}`,
 correctif 1.9) — `RoutesTest` le vérifie. Aucune coquille ne subsiste dans l'application.
 

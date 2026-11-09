@@ -40,6 +40,8 @@ import com.scanlist.app.ui.folders.FolderResumeModeScreen
 import com.scanlist.app.ui.scan.NewScanModeScreen
 import com.scanlist.app.ui.scan.ScanScreen
 import com.scanlist.app.ui.settings.EmailPrefsScreen
+import com.scanlist.app.ui.update.UpdateHost
+import com.scanlist.app.ui.update.UpdateViewModel
 
 /**
  * Graphe de navigation, sous la barre de navigation du bas.
@@ -53,6 +55,11 @@ fun ScanListNavHost(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentTab = TopLevelDestination.fromRoute(backStackEntry?.destination?.route)
+
+    // Porte par l'Activity et non par un ecran : la recherche de mise a jour part au
+    // lancement, et sa fenetre doit survivre aux changements d'onglet.
+    val updateViewModel: UpdateViewModel = hiltViewModel()
+    UpdateHost(viewModel = updateViewModel, promptAllowed = currentTab != null)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -68,7 +75,7 @@ fun ScanListNavHost(
                     },
                 ),
         ) {
-            ScanListGraph(navController)
+            ScanListGraph(navController, updateViewModel)
         }
 
         if (currentTab != null) {
@@ -95,7 +102,7 @@ fun ScanListNavHost(
  * correspondance ligne a ligne.
  */
 @Composable
-private fun ScanListGraph(navController: NavHostController) {
+private fun ScanListGraph(navController: NavHostController, updateViewModel: UpdateViewModel) {
     // Fourni par MainActivity : un seul hote de snackbar pour tout le graphe.
     val snackbarHostState = LocalSnackbarHostState.current
 
@@ -239,8 +246,12 @@ private fun ScanListGraph(navController: NavHostController) {
 
         // ------------------------------- Branche Nouveau scan (ecran d'ouverture)
         composable(Routes.NEW_SCAN_MODE) {
+            val checkingUpdate by updateViewModel.checking.collectAsStateWithLifecycle()
             NewScanModeScreen(
                 onModeSelected = { mode -> navController.navigate(Routes.scanNew(mode)) },
+                appVersion = updateViewModel.installedVersion,
+                checkingUpdate = checkingUpdate,
+                onCheckUpdate = updateViewModel::checkNow,
             )
         }
 

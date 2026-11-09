@@ -3,8 +3,8 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-10-26 — *Polices Source Sans 3 et Source Code Pro
-> embarquées (décision 27)* ; APK compilé en session cloud faute de minutes GitHub Actions
+> Dernière mise à jour : 2026-11-09 — *Releases GitHub et mise à jour intégrée (§ 5,
+> § 6 bis), permissions réseau de ML Kit constatées (§ 5)*
 
 ---
 
@@ -103,6 +103,7 @@
 | Test | `junit:junit` | Tests unitaires (regex, CSV, déduplication, comparaison) |
 | Test | `org.jetbrains.kotlinx:kotlinx-coroutines-test` | Tests de flux |
 | Test | `androidx.room:room-testing` | Migrations |
+| Test | `org.json:json` 20250517 | Implémentation de référence de `org.json`, **pour les tests unitaires seulement** : la classe fait partie d'Android, et `android.jar` n'en fournit que des coquilles vides sur la JVM. Sert à `ReleaseParserTest` (lecture de la release GitHub). Rien n'est ajouté à l'APK |
 
 **Polices embarquées** (depuis le 2026-10-26, décision 27) — ce ne sont pas des
 dépendances Gradle mais des fichiers du dépôt :
@@ -126,14 +127,32 @@ prises en charge).
 | `android.permission.CAMERA` | Scan QR / code-barres / OCR | ✅ Oui — demandée à l'exécution |
 | `android.permission.VIBRATE` | Retour haptique du scan à la chaîne | ✅ Oui — normale, pas de prompt |
 | `android.permission.NFC` | Scan NFC/RFID (`NfcAdapter.enableReaderMode`) | ✅ Oui — normale, pas de prompt |
+| `android.permission.INTERNET` | Mise à jour intégrée (décision 34) : interroger l'API GitHub, télécharger l'APK. **Seul usage du réseau par le code de l'application** (`update/UpdateRepository`) | Normale, pas de prompt — depuis la 1.12 dans le manifeste de l'application ; **déjà présente avant dans l'APK**, voir ci-dessous |
+| `android.permission.REQUEST_INSTALL_PACKAGES` | Ouvrir l'installateur d'Android sur l'APK téléchargé | Depuis la 1.12. Android demande à l'utilisateur de l'accorder (« installer des applications inconnues »), une fois, puis de confirmer chaque installation |
+| `android.permission.ACCESS_NETWORK_STATE` | Aucun usage par l'application : apportée par ML Kit | Voir ci-dessous |
 | Aucune permission stockage | Import CSV via `ACTION_OPEN_DOCUMENT`, export via `FileProvider` (Storage Access Framework) | — |
 
 > `<uses-feature android:name="android.hardware.nfc" android:required="false" />` :
 > un appareil sans puce NFC installe quand même l'application ; le mode NFC affiche
 > alors un message au lieu de planter (voir `NfcScanSurface`).
 
-> **Aucune permission réseau** n'est déclarée : l'application est intégralement hors-ligne.
-> L'envoi mail est délégué à une application tierce via Intent.
+> ⚠️ **L'APK a toujours déclaré des permissions réseau** — constat du 2026-11-09, qui
+> corrige ce que ce fichier affirmait jusque-là (« aucune permission réseau n'est
+> déclarée »). Le manifeste *écrit* de l'application n'en portait pas, mais le manifeste
+> *fusionné* de l'APK, si : `aapt2 dump badging` sur l'APK 1.11 du 2026-10-28 (donc avant
+> la mise à jour intégrée) liste `INTERNET` et `ACCESS_NETWORK_STATE`. Elles viennent de
+> **ML Kit**, par ses dépendances `com.google.android.datatransport`
+> (`transport-backend-cct`, `transport-runtime`) : c'est le canal par lequel ML Kit envoie
+> à Google des statistiques d'utilisation quand le réseau est là. Le scan, lui, n'a
+> besoin d'aucune connexion (modèles embarqués).
+>
+> **À retenir pour le dossier SuivieMAT** (`plan-suivimat.md`) : « l'application ne
+> déclare aucune permission réseau » ne peut pas être dit à la DSI en l'état. Pour que
+> ce soit vrai, il faudrait retirer ces deux permissions au niveau du manifeste
+> (`tools:node="remove"`), ce qui coupe aussi la télémétrie de ML Kit — et, depuis la
+> décision 34, la mise à jour intégrée. **Non fait : à arbitrer par l'utilisateur.**
+>
+> L'envoi mail reste délégué à une application tierce via Intent.
 
 ## 6. Dépôt et contrôle de version
 
@@ -200,6 +219,50 @@ dans l'historique git. **Depuis le 2026-10-28 (1.10), c'est l'APK `optimise`**
 les précédents sans perte de données ; le nom `SuivieMAT-debug.apk` est conservé pour
 que le lien de sa page GitHub ne change pas. Il se télécharge depuis la page du fichier sur GitHub, depuis le
 téléphone. Mode d'emploi pour l'utilisateur : `release/LISEZMOI.md`.
+
+**Release GitHub par version** (depuis le 2026-11-09, 1.12, décision 34) : la même
+compilation publie une release `v<versionName>` portant l'APK sous le nom
+`SuivieMAT-<version>-arm64-v8a.apk` (`gh release create`, jeton du run, étiquette posée
+sur le commit compilé). C'est elle que lit la mise à jour intégrée de l'application
+(`https://api.github.com/repos/JRRocks/SuivieMAT/releases/latest`).
+
+- **Une release n'est jamais remplacée.** Si `v<versionName>` existe déjà, l'étape
+  s'arrête sur un avertissement (`::warning::`) et la compilation n'est pas publiée :
+  deux APK différents sous le même numéro ne se distingueraient plus, et un téléphone
+  déjà à cette version ne verrait jamais le second. **Monter `versionCode` et
+  `versionName` à chaque version livrée.** `release/` reçoit l'APK dans tous les cas.
+- **Seule la branche de travail publie** (`BRANCHE_DES_RELEASES`, en tête du job) : une
+  release est proposée à tous les téléphones, une compilation lancée à la main ailleurs
+  ne doit pas y arriver. À changer avec la liste `branches:` si le travail se déplace.
+- La version est lue **dans l'APK** (`aapt2 dump badging`), pas dans le fichier de build.
+- Le texte de la release vient de `.github/release-notes.md` (accents permis, à la
+  différence d'un script).
+- Le nom porte l'architecture : l'application choisit l'APK de son appareil
+  (`UpdateResolver.pickAsset`), ou un APK sans architecture dans son nom (universel).
+- L'étape est tentée même si le dépôt dans `release/` a échoué (`!cancelled()`).
+
+**Deux workflows de mesure et de vérification**, ajoutés le 2026-11-09. Ils ne
+produisent aucun APK et n'écrivent rien dans la branche ; `build-debug-apk.yml` ignore
+leurs dossiers (`paths-ignore`), un changement qui ne touche qu'eux ne recompile donc pas
+l'APK :
+
+| Workflow | Dossier | Rôle |
+|---|---|---|
+| `ocr-bench.yml` — *Banc OCR sur emulateur* | `ocrbench/` | Compare les moteurs de lecture OCR, voir `ocrbench/README.md` |
+| `verif-mise-a-jour.yml` — *Verification de la mise a jour sur emulateur* | `verif-maj/` | Déroule la mise à jour intégrée de bout en bout |
+
+Tous deux tournent sur un **émulateur accéléré** : les machines `ubuntu-latest` de GitHub
+donnent accès à KVM (une règle udev à poser, voir les fichiers), ce que les sessions
+cloud n'ont pas. `reactivecircus/android-emulator-runner@v2`, image `google_apis` API 34
+x86_64. C'est le moyen de vérifier sur émulateur **sans poste Windows**.
+
+Trois pièges rencontrés en les écrivant :
+
+| Piège | Symptôme | Remède |
+|---|---|---|
+| Un workflow nouveau, absent de la branche par défaut, ne se lance pas à la main | — | Lui donner un déclencheur `push` filtré par `paths` : son premier push l'enregistre |
+| Pousser un workflow qui en modifie un autre | La compilation de l'APK part pour rien | Deux pushs : d'abord `paths-ignore` avec `[skip ci]`, puis les fichiers ignorés |
+| Dossier de sources ajouté à `sourceSets.androidTest.kotlin` depuis un script d'initialisation | `compileDebugAndroidTestKotlin NO-SOURCE`, puis `ClassNotFoundException` sur l'émulateur, sans erreur de compilation | L'ajouter à `java` : le compilateur Kotlin lit les dossiers `java` du module |
 
 **Clé de debug versionnée** (`app/debug.keystore`, depuis le 2026-09-25) : le poste
 Windows, la CI et les sessions cloud signent tous les APK de debug avec la même clé, ce
@@ -351,6 +414,7 @@ préférences d'envoi, scan OCR (formule rechargée, bibliothèque, Regex Auto),
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (session cloud), sons réservés aux scans réussis et mise à jour intégrée (décisions 33 et 34) | ✅ **237 tests, 0 échec** (31 nouveaux : `AppVersionTest`, `ReleaseParserTest`, `UpdateResolverTest`), sans avertissement ; `versionName` 1.12 ; APK optimisé contrôlé par `aapt2` (permissions, version) ; APK et première release confiés à la CI | 2026-11-09 |
 | `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), type de build `optimise` et lecture différée du réticule | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (voir § 7) ; `versionName` 1.10 ; la CI compile et dépose désormais l'APK optimisé | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), interface sans transition (décision 32) | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (onglets, tiroir, feuille de formule) ; `versionName` 1.11 | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug -Papk.phoneOnly` (session cloud), correctif route d'ouverture et graisse des polices | ✅ **206 tests, 0 échec** (2 nouveaux dans `RoutesTest`), sans avertissement ; `versionName` 1.9 ; APK confié à la CI au push | 2026-10-28 |
