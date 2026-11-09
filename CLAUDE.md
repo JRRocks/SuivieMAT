@@ -78,9 +78,9 @@ jamais d'édition directe sur le Drive. Son propre `CLAUDE.md` (à la racine de
 
 | Dossier Drive | Source locale |
 |---|---|
-| `2 - Jean/Claude Code/SuivieMAT/` | `C:\Users\Taiepii\Desktop\Claude Code\SuivieMat` (clone GitHub dans `repo\`) |
+| `2 - Jean/Claude Code/SuivieMAT/` | `C:\Users\<utilisateur>\Desktop\Claude Code\SuivieMat` (clone GitHub dans `repo\`) |
 
-> ⚠️ `C:\Users\Taiepii\Desktop\Claude Code\ScanList` est l'application **ScanList
+> ⚠️ `C:\Users\<utilisateur>\Desktop\Claude Code\ScanList` est l'application **ScanList
 > indépendante** (`JRRocks/ScanList`) : ne jamais en faire la source de ce miroir, le
 > `/MIR` écraserait SuivieMAT sur le Drive.
 
@@ -89,7 +89,7 @@ le poste Windows, Drive monté en `G:` (`Mon Drive` ou `My Drive` selon le PC :
 `Test-Path "G:\My Drive"`) :
 
 ```powershell
-robocopy "C:\Users\Taiepii\Desktop\Claude Code\SuivieMat" "G:\<Drive root>\2 - Jean\Claude Code\SuivieMAT" /MIR /XD .git .gradle .kotlin build .idea /XF local.properties *.apk *.log /R:1 /W:1
+robocopy "C:\Users\<utilisateur>\Desktop\Claude Code\SuivieMat" "G:\<Drive root>\2 - Jean\Claude Code\SuivieMAT" /MIR /XD .git .gradle .kotlin build .idea /XF local.properties *.apk *.log /R:1 /W:1
 Copy-Item "app\build\outputs\apk\debug\app-debug.apk" "G:\<Drive root>\2 - Jean\Claude Code\APK release\SuivieMAT.<versionName>.apk"
 ```
 
@@ -108,32 +108,32 @@ prochaine session sur le PC.
 Compiler l'APK de debug :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
 ```
 
 Lancer tous les tests unitaires :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest
 ```
 
 Lancer une seule classe de test (ex. `ScanConsensusTest`) :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest --tests "com.scanlist.app.ScanConsensusTest"
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew testDebugUnitTest --tests "com.scanlist.app.ScanConsensusTest"
 ```
 
 Installer sur un appareil branché :
 
 ```bash
-"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
+"$LOCALAPPDATA/Android/Sdk/platform-tools/adb.exe" install -r "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo/app/build/outputs/apk/debug/app-debug.apk"
 ```
 
 Compiler l'APK optimisé (R8, non debuggable, même clé : remplace le debug sans perte de
 données, ~4× plus rapide au démarrage — mesures dans `consignes/outils.md` § 7) :
 
 ```bash
-cd "C:/Users/Taiepii/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleOptimise
+cd "C:/Users/<utilisateur>/Desktop/Claude Code/SuivieMat/repo" && JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleOptimise
 ```
 
 > `java` n'est **pas** dans le PATH : sans `JAVA_HOME`, `gradlew` échoue immédiatement.
