@@ -16,9 +16,13 @@ on:
     branches:
       - claude/init-xyw7gc
       - claude/remove-scanlist-history-a5bqzh
-    # Le commit de l'APK lui-meme ne doit pas relancer une compilation.
+    # Le commit de l'APK lui-meme ne doit pas relancer une compilation. Le banc de
+    # mesure OCR non plus : rien de ce dossier n'entre dans l'APK, et il a son propre
+    # workflow (ocr-bench.yml).
     paths-ignore:
       - 'release/**'
+      - 'ocrbench/**'
+      - '.github/workflows/ocr-bench.yml'
 
 permissions:
   # Ecriture : necessaire au depot de l'APK dans release/.

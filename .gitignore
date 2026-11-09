@@ -9,3 +9,6 @@ build/
 .cxx
 local.properties
 /.kotlin
+
+# Banc OCR : sorties de cargo (images, modeles et bibliotheques vont dans ocrbench/build/)
+/ocrbench/rust/target/
