@@ -5,9 +5,15 @@
 allprojects {
     if (path == ':app') {
         pluginManager.withPlugin('com.android.application') {
-            android.defaultConfig {
-                versionCode = 1
-                versionName = '0.1'
+            // Par variante, et non dans defaultConfig : ce bloc s'execute avant le
+            // fichier de build du module, qui reecrirait aussitot son propre numero.
+            androidComponents {
+                onVariants(selector().all()) { variant ->
+                    variant.outputs.each { output ->
+                        output.versionCode.set(1)
+                        output.versionName.set('0.1')
+                    }
+                }
             }
         }
     }
