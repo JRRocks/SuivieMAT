@@ -22,6 +22,9 @@ l'écran par `uiautomator` :
 4. après confirmation, la version installée est celle de la release ;
 5. relancée, elle affiche son numéro au pied de l'onglet et répond « à jour ».
 
+Première vérification réussie le 2026-11-09 (release `v1.12`, émulateur Android 14) :
+le détail est au journal de `consignes/workflow.md` § 7.
+
 ## Lancer la vérification
 
 **Sur GitHub** : onglet *Actions* › *Verification de la mise a jour sur emulateur* ›

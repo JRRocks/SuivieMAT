@@ -219,6 +219,16 @@ plus que vibrer, chacun avec sa signature (`ScanFeedback`). Ne pas remettre de s
 une lecture sans effet, et ne pas retirer ces vibrations sans demande : ce sont elles qui
 restent perceptibles sans regarder l'écran.
 
+### Le langage n'est pas le levier de l'OCR
+
+La reconnaissance est déjà du code natif C++ (ML Kit) ; le Kotlin ne fait que trier le
+texte rendu, en 19 microsecondes par image sur des centaines de millisecondes. Mesuré le
+2026-11-09 (décision 35, `outils.md` § 2 bis) : un moteur OCR en Rust est 1,6 fois plus
+lent que ML Kit à précision égale, et réécrire le tri en Rust ferait gagner 0,005 % du
+temps d'une image. Ne pas rouvrir ce chantier sans une mesure nouvelle — sur le S25, par
+le banc `ocrbench/`. Ce qui pèse vraiment, c'est la résolution d'analyse, et le 720p
+actuel est le meilleur compromis mesuré.
+
 ### Le réseau ne sert qu'à la mise à jour
 
 L'application reste utilisable hors-ligne de bout en bout. `update/UpdateRepository` est
@@ -270,8 +280,15 @@ lorsqu'il y en a un. Plusieurs défauts réels n'ont été trouvés que comme ç
 débordement de `PreviewView`, la chasse fixe qui contaminait tous les champs de saisie, le
 snackbar en violet Material hors charte.
 
-`consignes/workflow.md` § 8 donne la méthode complète (découverte du display, injection de
-données en base par `run-as` + `sqlite3`). Trois pièges à connaître :
+**Sans poste Windows, un émulateur existe quand même** (depuis le 2026-11-09) : les
+machines de GitHub Actions donnent accès à KVM, ce qu'une session cloud n'a pas. Un
+workflow y démarre un émulateur Android 14, y installe l'APK et pilote l'écran par
+`adb` ; `uiautomator dump` rend les textes affichés, que la session relit dans le journal
+du run. Deux exemples à reprendre : `verif-maj/` (parcours d'écrans, voir `ui.py`) et
+`ocrbench/` (test instrumenté). Méthode et pièges : `consignes/outils.md` § 6 bis.
+
+`consignes/workflow.md` § 8 donne la méthode complète sur le poste (découverte du display,
+injection de données en base par `run-as` + `sqlite3`). Trois pièges à connaître :
 
 | Piège | Symptôme | Remède |
 |---|---|---|
@@ -297,7 +314,8 @@ QR/code-barres, avec un générateur de formules à partir d'un exemple, sans IA
 mail, fonction Comparer complète, finitions de la phase 9 (permission caméra bloquée,
 rotation suivie par l'analyse, OCR au repos hors capture, icône à thème). Depuis la 1.12
 (2026-11-09) : **son réservé aux scans réussis** (décision 33) et **mise à jour intégrée
-par les releases GitHub** (décision 34, phase 12 de `workflow.md`). **237 tests,
+par les releases GitHub** (décision 34, phase 12 de `workflow.md`) ; moteur OCR comparé
+à un moteur en Rust sur émulateur et **conservé** (décision 35, phase 13). **239 tests,
 0 échec, aucun avertissement de
 compilation** (vérifié le 2026-11-09). **Piège de navigation** : une route fixe ne doit
 jamais correspondre au modèle d'une autre (`scan/new` ouvrait l'écran `scan/{mode}`,

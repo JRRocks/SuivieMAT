@@ -2,6 +2,8 @@ package com.scanlist.app
 
 import com.scanlist.app.domain.update.AppVersion
 import com.scanlist.app.domain.update.ReleaseParser
+import com.scanlist.app.domain.update.UpdateOutcome
+import com.scanlist.app.domain.update.UpdateResolver
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -68,6 +70,36 @@ class ReleaseParserTest {
         assertEquals(prefix + "v1.12/SuivieMAT-1.12-arm64-v8a.apk", apk.downloadUrl)
         assertEquals(21331154L, apk.sizeBytes)
         assertEquals(digest, apk.sha256)
+    }
+
+    @Test
+    fun `la reponse reelle de GitHub pour la release 1_12 est comprise`() {
+        // Reponse de releases/latest relevee le 2026-11-09, sans retouche : la forme que
+        // GitHub renvoie vraiment, avec tous les champs que l'application ne lit pas.
+        val json = javaClass.getResource("/github-release-latest.json")!!.readText()
+
+        val info = ReleaseParser.parse(json, prefix)!!
+
+        assertEquals(AppVersion.parseOrNull("1.12"), info.version)
+        val apk = info.assets.single()
+        assertEquals("SuivieMAT-1.12-arm64-v8a.apk", apk.name)
+        assertEquals(prefix + "v1.12/SuivieMAT-1.12-arm64-v8a.apk", apk.downloadUrl)
+        assertEquals(21_356_506L, apk.sizeBytes)
+        assertEquals("e7c8289e8b4d487eed6ad6279b7c4c6837fa81e98ddac3920519306c7f7702dc", apk.sha256)
+    }
+
+    @Test
+    fun `un telephone en 1_11 se voit proposer la release reelle`() {
+        val json = javaClass.getResource("/github-release-latest.json")!!.readText()
+        val release = ReleaseParser.parse(json, prefix)
+        val phone = listOf("arm64-v8a", "armeabi-v7a", "armeabi")
+
+        val outcome = UpdateResolver.resolve(AppVersion.parseOrNull("1.11")!!, release, phone)
+
+        assertTrue(outcome is UpdateOutcome.Available)
+        assertEquals("SuivieMAT-1.12-arm64-v8a.apk", (outcome as UpdateOutcome.Available).asset.name)
+        // Et un telephone deja en 1.12 n'a rien a installer.
+        assertEquals(UpdateOutcome.UpToDate, UpdateResolver.resolve(AppVersion.parseOrNull("1.12")!!, release, phone))
     }
 
     @Test

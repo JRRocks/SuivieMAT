@@ -5,7 +5,7 @@
 > à chaque évolution majeure, et systématiquement avant/après un `/clear`.
 >
 > Dernière mise à jour : 2026-11-09 — *Son réservé aux scans réussis, mise à jour intégrée
-> par les releases GitHub (1.12)*
+> par les releases GitHub (1.12), moteur OCR comparé sur émulateur et conservé*
 
 ---
 
@@ -107,8 +107,8 @@ com.scanlist.app
                      contrôlé, intention d'installation — seul code réseau) ✅ 2026-11-09
 ```
 
-Hors de l'application, à la racine du dépôt : `ocrbench/` (banc de mesure OCR, voir son
-`README.md`) et `verif-maj/` (vérification de la mise à jour sur émulateur, § 3 quater).
+Hors de l'application, à la racine du dépôt : `ocrbench/` (banc de mesure OCR, § 3 ter)
+et `verif-maj/` (vérification de la mise à jour sur émulateur, § 3 quater).
 
 > `CameraPreview` vit dans `ui/scan` et non dans `scanner/` : c'est un composable Compose,
 > alors que `scanner/` ne contient que du code sans dépendance à l'UI.
@@ -282,6 +282,36 @@ ScanViewModel.onNfcTagRead(DetectedNfcTag)
   une exception de lecture ne produisent rien — `NfcTagDecoder.decode` renvoie alors
   `null` et le callback ignore silencieusement le tag.
 
+### 3 ter. Banc de mesure du moteur OCR (décision 35)
+
+Hors de l'application, dans `ocrbench/` : il mesure, il ne livre rien. Résultats et
+conclusion dans `outils.md` § 2 bis ; mode d'emploi dans `ocrbench/README.md`.
+
+```
+generate_samples.py ─► 32 étiquettes dessinées, valeur connue (net, moyen, difficile,
+                       limite), en 540p / 720p / 1080p
+prepare.sh ─────────► + modèles d'ocrs (empreinte vérifiée) + libocrbench.so (Rust, NDK)
+bench.init.gradle ──► branche le tout sur l'APK de test de :app, sans toucher à son
+                      fichier de build ; retire le mode debuggable pour la mesure
+                                   │
+                                   ▼   (émulateur ou téléphone, par `am instrument`)
+OcrBenchmark ─► ML Kit (C++) et ocrs (Rust) alternés sur chaque image
+            ─► traitement Kotlin de l'application (RegexRuleEngine, ScanConsensus,
+               ScanDebouncer : les vraies classes) contre son portage Rust par JNI,
+               après vérification que les deux rendent les mêmes valeurs
+            ─► ML Kit aux trois résolutions, alternées
+```
+
+Deux règles de mesure, apprises en le faisant tourner :
+
+- **Alterner, ne jamais mesurer l'un puis l'autre.** Un émulateur qui vient de démarrer
+  travaille pour lui-même pendant plusieurs minutes (charge moyenne de 16 relevée) : le
+  premier moteur mesuré en fait les frais. `run-on-device.sh` attend que la charge
+  retombe, puis les moteurs se succèdent sur chaque image.
+- **Mesurer le Kotlin tel qu'il est livré** : non debuggable, les deux paquets compilés
+  à l'avance (`cmd package compile -m speed`). En debuggable, il serait bridé et le Rust
+  paraîtrait gagner davantage.
+
 ### 3 quater. Mise à jour par les releases GitHub (décision 34)
 
 ```
@@ -420,13 +450,15 @@ en-tête optionnel. **Première colonne = valeur de référence**, deuxième col
 | 9 | **Finitions** | Permissions, torche, rotation, écran allumé, gestion mémoire, icône | ✅ Fait (2026-10-27) — non vérifié sur téléphone |
 | 10 | **Build & test terrain** | APK debug, installation sur Galaxy S25, test sur 10 batteries | ⬜ À faire |
 | 11 | **Refonte de l'interface** (décision 27) | Style uniforme en 7 étapes, 5 variantes par étape soumises à l'utilisateur sur le canevas de maquettes : 1 style global ✅ (C, « Bleu de travail ») · 2 menu principal ✅ (E, barre de navigation, décision 28) · 3 choix du mode ✅ (E, échantillons d'étiquette) · 4 écran de scan ✅ (B, caméra pleine et tiroir, décision 29) · 5 dossiers ✅ (B, liste par date et boutons) · 6 comparer ✅ (G, mélange de B et C : avancement dans la liste, décision 30) · 7 export et fenêtres de formules ✅ (A pour l'export, inchangé ; C pour les formules, décision 31) | ✅ Terminée (7/7) — non vérifiée sur téléphone |
-| 12 | **Mise à jour intégrée** (décision 34) | Release GitHub par version publiée par la CI ; recherche au lancement et à la demande, fenêtre « Mise à jour disponible », téléchargement contrôlé, installation par Android ; pied de l'onglet Nouveau scan avec la version. Voir § 3 quater | ✅ Fait (2026-11-09, 1.12) — vérification de bout en bout sur émulateur : voir § 7 ; non vérifié sur téléphone |
+| 12 | **Mise à jour intégrée** (décision 34) | Release GitHub par version publiée par la CI ; recherche au lancement et à la demande, fenêtre « Mise à jour disponible », téléchargement contrôlé, installation par Android ; pied de l'onglet Nouveau scan avec la version. Voir § 3 quater | ✅ Fait (2026-11-09, 1.12) — **vérifié de bout en bout sur émulateur** (Android 14, release réelle) ; non vérifié sur téléphone |
+| 13 | **Comparaison des moteurs OCR** (décision 35) | Banc `ocrbench/` : ML Kit (C++) contre `ocrs` (Rust), traitement Kotlin contre son portage Rust, ML Kit à trois résolutions ; exécuté sur émulateur par GitHub Actions. Voir § 3 ter et `outils.md` § 2 bis | ✅ Fait (2026-11-09) — moteur actuel conservé ; à refaire sur le S25 en phase 10 |
 
 ## 7. Journal des évolutions
 
 | Date | Évolution | Fichiers de consignes impactés |
 |---|---|---|
-| 2026-11-09 | **Mise à jour intégrée par les releases GitHub (décision 34, 1.12).** Demandé par l'utilisateur. **CI** : `build-debug-apk.yml` publie, après le dépôt dans `release/`, une release `v<versionName>` portant `SuivieMAT-<version>-arm64-v8a.apk` (version lue dans l'APK par `aapt2`, texte tiré de `.github/release-notes.md`) ; une version déjà publiée n'est pas remplacée (avertissement), et seule la branche de travail publie. **Application** : `domain/update` (pur) — `AppVersion` compare les versions numériquement (`1.10` > `1.9`), `ReleaseParser` lit la réponse de `releases/latest` et écarte tout APK hors de la page de releases du dépôt, `UpdateResolver` décide s'il y a lieu de proposer et quel APK prendre selon l'architecture, `UpdatePolicy` fixe la cadence (six heures) ; `update/UpdateRepository` interroge GitHub et télécharge par `HttpURLConnection` (aucune dépendance ajoutée à l'APK), contrôle la taille, l'empreinte SHA-256 annoncée, puis l'identifiant, le `versionCode` et la signature de l'APK reçu, et prépare l'intention d'installation (`FileProvider`, nouveau chemin `cache/updates/`) ; `ui/update` porte la fenêtre (`UpdateHost`, à la racine de la navigation, muette hors des trois onglets) et le pied de l'onglet Nouveau scan (`AppVersionFooter` : version installée, « Rechercher une mise à jour »). Fenêtres sans animation (décision 32). Manifeste : `INTERNET` et `REQUEST_INSTALL_PACKAGES`. **Constat** : l'APK 1.11 déclarait déjà `INTERNET` et `ACCESS_NETWORK_STATE`, apportées par ML Kit — les consignes disaient le contraire (`outils.md` § 5, `plan-suivimat.md` C8). **31 tests ajoutés** (`AppVersionTest`, `ReleaseParserTest`, `UpdateResolverTest`) ; `org.json:json` en dépendance de test seulement. Outillage de vérification sur émulateur : `verif-maj/`. `versionName` 1.12 (`versionCode` 13). **237 tests, 0 échec**, aucun avertissement, APK debug et optimisé compilés. | `contexte.md`, `outils.md`, `workflow.md`, `plan-suivimat.md`, `CLAUDE.md` |
+| 2026-11-09 | **Moteur OCR : comparé à un moteur en Rust sur émulateur, conservé (décision 35).** Demandé par l'utilisateur (« serait-il plus performant en Rust ? »). La reconnaissance est déjà native (ML Kit, C++) ; seul le tri du texte est en Kotlin. Nouveau dossier `ocrbench/`, hors de l'application : générateur de 32 étiquettes dessinées à valeur connue (Python, polices du dépôt, quatre niveaux de difficulté, trois résolutions), bibliothèque Rust (`postprocess.rs`, portage ligne à ligne de `RegexRuleEngine.extract`, `ScanConsensus` et `ScanDebouncer`, 8 tests ; `engine.rs`, moteur `ocrs` 0.14), pont JNI, test instrumenté `OcrBenchmark` branché sur `:app` par un script d'initialisation Gradle. Pas d'émulateur en session cloud (pas de KVM) : **le banc tourne sur un émulateur accéléré de GitHub Actions** (workflow `ocr-bench.yml`), premier usage d'un émulateur depuis une session cloud. Quatre exécutions : Pillow sans paquet pour Python 3.14 ; sources du banc absentes de l'APK de test (`kotlin.srcDir` ignoré depuis un script d'initialisation, corrigé par `java.srcDir`) ; premier passage complet, **trompeur** (ML Kit mesuré en premier sur un émulateur encore chargé paraissait plus lent) ; passage équitable, moteurs alternés sur chaque image après retour au calme. **Résultat** : ML Kit 355 ms par image contre 589 ms pour `ocrs` (plus lent sur les 32 images, médiane ×1,64), 25 contre 26 lectures justes, 0 contre 1 lecture fausse, 12 contre 18 Mo ; traitement Kotlin 18,9 µs contre 1,41 µs en Rust par JNI, soit 0,005 % du temps d'une image ; 720p meilleur compromis que 540p et 1080p. **Rien n'est changé dans l'application.** Trouvé en chemin : le seuil de détection d'origine d'`ocrs` (0,2) tombe sur le niveau du fond avec les modèles publiés et ne lit rien — confirmé avec ONNX Runtime — relevé à 0,5 en sa faveur. Limites : émulateur x86_64, étiquettes dessinées. | `contexte.md`, `outils.md`, `workflow.md`, `CLAUDE.md` |
+| 2026-11-09 | **Mise à jour intégrée par les releases GitHub (décision 34, 1.12).** Demandé par l'utilisateur. **CI** : `build-debug-apk.yml` publie, après le dépôt dans `release/`, une release `v<versionName>` portant `SuivieMAT-<version>-arm64-v8a.apk` (version lue dans l'APK par `aapt2`, texte tiré de `.github/release-notes.md`) ; une version déjà publiée n'est pas remplacée (avertissement), et seule la branche de travail publie. **Application** : `domain/update` (pur) — `AppVersion` compare les versions numériquement (`1.10` > `1.9`), `ReleaseParser` lit la réponse de `releases/latest` et écarte tout APK hors de la page de releases du dépôt, `UpdateResolver` décide s'il y a lieu de proposer et quel APK prendre selon l'architecture, `UpdatePolicy` fixe la cadence (six heures) ; `update/UpdateRepository` interroge GitHub et télécharge par `HttpURLConnection` (aucune dépendance ajoutée à l'APK), contrôle la taille, l'empreinte SHA-256 annoncée, puis l'identifiant, le `versionCode` et la signature de l'APK reçu, et prépare l'intention d'installation (`FileProvider`, nouveau chemin `cache/updates/`) ; `ui/update` porte la fenêtre (`UpdateHost`, à la racine de la navigation, muette hors des trois onglets) et le pied de l'onglet Nouveau scan (`AppVersionFooter` : version installée, « Rechercher une mise à jour »). Fenêtres sans animation (décision 32). Manifeste : `INTERNET` et `REQUEST_INSTALL_PACKAGES`. **Constat** : l'APK 1.11 déclarait déjà `INTERNET` et `ACCESS_NETWORK_STATE`, apportées par ML Kit — les consignes disaient le contraire (`outils.md` § 5, `plan-suivimat.md` C8). **31 tests ajoutés** (`AppVersionTest`, `ReleaseParserTest`, `UpdateResolverTest`) ; `org.json:json` en dépendance de test seulement. Outillage de vérification sur émulateur : `verif-maj/`. `versionName` 1.12 (`versionCode` 13). **237 tests, 0 échec**, aucun avertissement, APK debug et optimisé compilés. **Vérifié de bout en bout le jour même** : la CI a publié la release `v1.12` (exécution n° 18), puis le workflow `verif-mise-a-jour.yml` (exécution n° 2, émulateur Android 14) a installé une « version 0.1 » de l'application compilée en optimisé (R8) et déroulé le parcours en lisant l'écran — fenêtre « Mise à jour disponible » au lancement (« La version 1.12 est disponible (20 Mo). Tu utilises la 0.1. »), « Plus tard », pied de l'onglet, recherche à la demande, téléchargement (fenêtre relevée à 68 %), confirmation d'Android (« Do you want to update this app? »), version installée **1.12**, puis « SuivieMAT est à jour (version 1.12). ». La première exécution avait échoué sur l'outillage seul (le faux numéro de version n'était pas appliqué). La réponse réelle de GitHub est versionnée comme jeu d'essai (`app/src/test/resources/github-release-latest.json`, 2 tests de plus : **239 tests**). **Non vérifié** : le Galaxy S25 et l'habillage One UI de l'installateur, l'écran d'autorisation « installer des applications inconnues » (accordée d'avance sur l'émulateur), une coupure réseau en cours de téléchargement. | `contexte.md`, `outils.md`, `workflow.md`, `plan-suivimat.md`, `CLAUDE.md` |
 | 2026-11-09 | **Le son est réservé aux scans réussis (décision 33).** Demandé par l'utilisateur. `ScanFeedback.duplicate()` et `outOfList()` ne jouent plus de son : seul `success()` garde son bip (valeur enregistrée, référence passée au vert). Les trois vibrations sont conservées, avec leurs signatures distinctes, ainsi que les bandeaux — choix du développeur, signalé à l'utilisateur. Aucun test ne couvre `ScanFeedback` (classe Android, son et vibration) : à l'oreille sur le téléphone. | `contexte.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-11-09 | **Dépôt public : consignes nettoyées.** Demandé par l'utilisateur. L'adresse de l'identité git n'est plus citée (`outils.md`) et les chemins du poste s'écrivent `C:\Users\<utilisateur>\…` (`CLAUDE.md`, `outils.md`). Règle pour ce dépôt public : ni adresse e-mail, ni nom d'utilisateur du poste dans un fichier ou un message de commit ; les commits portent une identité `noreply`. Aucun changement de code, aucun nouvel APK. | `outils.md`, `workflow.md`, `CLAUDE.md` |
 | 2026-10-28 | **Interface instantanée (décision 32).** Demandé par l'utilisateur. `ScanListNavHost` : `EnterTransition.None` / `ExitTransition.None` (le fondu par défaut de 700 ms disparaît, retour compris). `ScanScreens` : bandeau affiché par un simple `if` au lieu d'`AnimatedVisibility` ; tiroir déplié / replié dans un contexte `MotionDurationScale` à 0 (`InstantMotion`). `FormulaSheetParts` : `sheetCloser` remplacé par `InstantModalSheet`, une `ModalBottomSheet` dont l'état naît `Expanded` et dont la fenêtre de dialogue reçoit `setWindowAnimations(0)` ; les quatre feuilles (formule, formules enregistrées, aide, Regex Auto) l'utilisent et se ferment par appel direct à `onDismiss`. `themes.xml` : `android:windowAnimationStyle` à `@null`. Vérifié sur l'AVD (display 2) par captures 100 à 200 ms après l'appui : onglets, écran de scan, tiroir et feuille de formule déjà à leur état final, sans mélange ni transparence (avant : feuille encore en fondu à 250 ms). Build et tests unitaires verts, aucun avertissement. Non vérifié sur le S25. | `contexte.md` |

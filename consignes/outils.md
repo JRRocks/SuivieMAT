@@ -3,8 +3,9 @@
 > **Fichier de mémoire longue durée.** Inventaire des technologies et librairies du projet.
 > À mettre à jour **à chaque ajout, suppression ou montée de version d'une dépendance**.
 >
-> Dernière mise à jour : 2026-11-09 — *Releases GitHub et mise à jour intégrée (§ 5,
-> § 6 bis), permissions réseau de ML Kit constatées (§ 5)*
+> Dernière mise à jour : 2026-11-09 — *Moteur OCR comparé à un moteur en Rust sur
+> émulateur (§ 2 bis), releases GitHub et mise à jour intégrée (§ 5, § 6 bis),
+> permissions réseau de ML Kit constatées (§ 5)*
 
 ---
 
@@ -48,6 +49,83 @@
 - **ML Kit *unbundled*** (via Google Play Services) → APK plus léger (~4 Mo gagnés) mais téléchargement du modèle au premier lancement : incompatible avec l'exigence hors-ligne.
 - **DataStore seul, sans Room** → pas de contrainte d'unicité ni de requêtes ; rejeté.
 - **Apache Commons CSV** → dépendance lourde pour un encodage trivial.
+- **Moteur OCR en Rust (`ocrs`) ou traitement réécrit en Rust** → mesurés le 2026-11-09,
+  plus lents ou sans gain perceptible : voir § 2 bis.
+
+## 2 bis. Moteur de lecture OCR : faut-il le réécrire en Rust ? (mesuré le 2026-11-09)
+
+Question de l'utilisateur : *le moteur de lecture OCR serait-il plus performant s'il était
+codé en Rust, ou dans un autre langage ?* **Réponse mesurée : non. Rien n'est changé dans
+l'application**, c'est la combinaison actuelle qui sort la plus efficiente.
+
+**Ce qu'il faut savoir d'abord** : la reconnaissance n'est pas écrite en Kotlin. C'est
+ML Kit, une bibliothèque native **C++** de Google (`libmlkit_google_ocr_pipeline.so`,
+11 Mo, modèles quantifiés de 1 Mo). Le Kotlin de l'application ne fait que lui passer
+l'image, puis trier le texte rendu (formule, consensus, anti-rebond). « Passer en Rust »
+recouvre donc deux choses distinctes, mesurées toutes les deux par le banc `ocrbench/`
+(workflow *Banc OCR sur emulateur*, exécution n° 4, émulateur Android 14 x86_64 à
+4 cœurs, application non debuggable et compilée à l'avance, 32 étiquettes dessinées).
+
+**1. Remplacer ML Kit par un moteur écrit en Rust** (`ocrs` 0.14, le moteur OCR
+entièrement en Rust le plus abouti), les deux alternés passe après passe sur chaque
+image en 720p :
+
+| Moteur | Langage | Temps par image (médiane · p90) | Lectures justes | Fausses | Sans lecture | Poids dans l'APK arm64 |
+|---|---|---|---|---|---|---|
+| **ML Kit** (actuel) | C++ | **355 ms** · 439 ms | 25 / 32 | **0** | 7 | 12,0 Mo |
+| ocrs | Rust | 589 ms · 676 ms | 26 / 32 | 1 | 5 | 18,3 Mo (bibliothèque 6,6 + modèles 11,7) |
+
+Image par image, ocrs met de **1,23 à 1,98 fois** le temps de ML Kit (médiane ×1,64) :
+il n'est plus rapide sur **aucune** des 32. La précision est la même à une étiquette
+près, mais ocrs rend une lecture fausse (`14290` pour `14190`) là où ML Kit ne lit rien
+— et une lecture fausse est pire qu'une absence de lecture. Il pèserait 6 Mo de plus, ne
+connaît pas les lettres accentuées, et son seuil de détection d'origine ne lit rien avec
+les modèles publiés (il a fallu le relever de 0,2 à 0,5, réglage fait en sa faveur).
+
+**2. Réécrire en Rust le traitement Kotlin de l'application** (`RegexRuleEngine.extract`,
+`ScanConsensus`, `ScanDebouncer`), porté ligne à ligne et appelé par JNI ; le banc
+vérifie d'abord que les deux versions rendent les mêmes valeurs sur les 192 images :
+
+| Variante | Temps par image | Part d'une lecture ML Kit (368 ms) |
+|---|---|---|
+| **Kotlin** (actuel) | 18,9 µs | 0,005 % |
+| Rust, un appel JNI par image | 1,41 µs | 0,0004 % |
+| Rust, calcul seul (borne basse) | 0,62 µs | 0,0002 % |
+
+Le Rust est bien 13 fois plus rapide — sur une étape qui pèse **cinq cent-millièmes** du
+temps d'une image. Gain réel : 17 microsecondes par image, soit une dizaine de
+millisecondes par minute de scan à dix images par seconde. En échange : une chaîne de compilation Rust et un NDK dans le projet,
+un pont JNI, et un second dialecte de regex (celui de Rust n'a ni référence arrière ni
+assertion avant / arrière, que les formules de l'utilisateur ont le droit d'employer).
+
+**3. Ce qui fait vraiment varier le temps : la taille de l'image**, pas le langage.
+ML Kit aux trois résolutions, alternées :
+
+| Résolution d'analyse | Temps par image (médiane) | Lectures justes | Fausses |
+|---|---|---|---|
+| 540p | 342 ms | 21 / 32 | 1 |
+| **720p** (actuelle, `STANDARD_ANALYSIS_RESOLUTION`) | 372 ms | **25 / 32** | **0** |
+| 1080p | 425 ms | 25 / 32 | 1 |
+
+Descendre à 540p ferait gagner 8 % et perdre quatre lectures ; monter à 1080p coûterait
+14 % sans rien lire de plus. **Le 720p actuel est le bon réglage.**
+
+**Limites de cette mesure, à ne pas oublier** :
+
+- **Un émulateur x86_64 n'est pas le Galaxy S25** (arm64). Les temps absolus ne se
+  transposent pas ; les écarts donnent un ordre de grandeur. Le banc se relance tel quel
+  sur le téléphone (`ocrbench/README.md`), c'est la mesure qui ferait foi.
+- **Les étiquettes sont dessinées**, pas photographiées.
+- **Mesurer deux moteurs l'un après l'autre est un piège** : au premier passage
+  (exécution n° 3), ML Kit, mesuré en premier sur un émulateur tout juste démarré,
+  sortait à 561 ms et paraissait plus lent qu'ocrs (492 ms). L'émulateur avait une charge
+  moyenne de 16 au démarrage. Le banc attend désormais qu'elle retombe et alterne les
+  moteurs sur chaque image : c'est cette version qui fait foi.
+- Aucun autre moteur n'a été mesuré. Tesseract (C++) est connu pour être plus lent et
+  moins robuste que ML Kit sur des photos ; il n'apporterait pas une autre conclusion.
+
+**Ne pas rouvrir ce chantier sans une mesure nouvelle** (sur le S25, ou avec un moteur
+qui n'existait pas le 2026-11-09).
 
 ## 3. Configuration du projet
 
@@ -248,7 +326,7 @@ l'APK :
 
 | Workflow | Dossier | Rôle |
 |---|---|---|
-| `ocr-bench.yml` — *Banc OCR sur emulateur* | `ocrbench/` | Compare les moteurs de lecture OCR, voir `ocrbench/README.md` |
+| `ocr-bench.yml` — *Banc OCR sur emulateur* | `ocrbench/` | Compare les moteurs de lecture OCR, voir § 2 bis |
 | `verif-mise-a-jour.yml` — *Verification de la mise a jour sur emulateur* | `verif-maj/` | Déroule la mise à jour intégrée de bout en bout |
 
 Tous deux tournent sur un **émulateur accéléré** : les machines `ubuntu-latest` de GitHub
@@ -358,8 +436,10 @@ beforeSettings { settings ->
 
 Premier passage : quelques minutes de téléchargement ; ensuite, `clean testDebugUnitTest
 assembleDebug` en moins de deux minutes. Le scratchpad disparaît avec la session : tout
-est à refaire dans une nouvelle. Pas d'émulateur pour autant : la vérification écran
-par écran reste à faire sur le poste Windows ou sur le téléphone.
+est à refaire dans une nouvelle. Pas d'émulateur **dans la session** pour autant (pas de
+`/dev/kvm`) : la vérification écran par écran se fait sur le poste Windows, sur le
+téléphone, ou — **depuis le 2026-11-09** — sur un émulateur accéléré de GitHub Actions,
+que la session pilote en poussant un workflow et en lisant son journal (§ 6 bis).
 
 ## 7. Commandes utiles
 
@@ -414,6 +494,10 @@ préférences d'envoi, scan OCR (formule rechargée, bibliothèque, Regex Auto),
 
 | Vérification | Résultat | Date |
 |---|---|---|
+| Mise à jour intégrée, de bout en bout sur émulateur (workflow `verif-mise-a-jour.yml`, exécution n° 2, Android 14 x86_64, APK optimisé R8) | ✅ release `v1.12` réelle proposée au lancement, « Plus tard », recherche à la demande, téléchargement, confirmation d'Android, version installée 1.12, « à jour » ensuite. Détail : `workflow.md` § 7 | 2026-11-09 |
+| CI GitHub, première release (exécution n° 18, commit `7fbdd88`) | ✅ 237 tests, APK optimisé déposé dans `release/`, **release `v1.12` publiée** avec `SuivieMAT-1.12-arm64-v8a.apk` (21,4 Mo) ; téléchargement relu depuis la session : taille et SHA-256 identiques à ceux annoncés par l'API | 2026-11-09 |
+| Banc OCR sur émulateur (workflow `ocr-bench.yml`, exécution n° 4) | ✅ ML Kit 355 ms contre 589 ms pour le moteur Rust, traitement Kotlin 18,9 µs par image ; moteur actuel conservé. Détail : § 2 bis | 2026-11-09 |
+| `testDebugUnitTest` (session cloud), réponse réelle de GitHub en jeu d'essai | ✅ **239 tests, 0 échec** (2 nouveaux dans `ReleaseParserTest`), sans avertissement | 2026-11-09 |
 | `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (session cloud), sons réservés aux scans réussis et mise à jour intégrée (décisions 33 et 34) | ✅ **237 tests, 0 échec** (31 nouveaux : `AppVersionTest`, `ReleaseParserTest`, `UpdateResolverTest`), sans avertissement ; `versionName` 1.12 ; APK optimisé contrôlé par `aapt2` (permissions, version) ; APK et première release confiés à la CI | 2026-11-09 |
 | `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), type de build `optimise` et lecture différée du réticule | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (voir § 7) ; `versionName` 1.10 ; la CI compile et dépose désormais l'APK optimisé | 2026-10-28 |
 | `testDebugUnitTest` + `assembleDebug` + `assembleOptimise` (poste Windows), interface sans transition (décision 32) | ✅ **206 tests, 0 échec**, sans avertissement ; optimisé vérifié sur émulateur (onglets, tiroir, feuille de formule) ; `versionName` 1.11 | 2026-10-28 |
