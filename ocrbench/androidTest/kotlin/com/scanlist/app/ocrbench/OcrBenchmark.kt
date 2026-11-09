@@ -30,7 +30,7 @@ import org.junit.runner.RunWith
  * dans un autre langage ? Le banc y repond par deux mesures, sur les memes images :
  *
  * 1. le moteur de reconnaissance : ML Kit (C++, celui de l'application) contre ocrs
- *    (entierement en Rust) ;
+ *    (entierement en Rust), alternes image par image ;
  * 2. le traitement que l'application applique ensuite a chaque texte reconnu (formule,
  *    consensus, anti-rebond) : le code Kotlin de l'application contre son portage en
  *    Rust, appele par JNI.
@@ -77,15 +77,16 @@ class OcrBenchmark {
         val labels = loadLabels()
         say("Etiquettes : ${labels.size} (${labels.groupBy { it.tier }.map { "${it.value.size} ${it.key}" }.joinToString(", ")})")
 
-        val mlKit = measureMlKit(labels, "720", runs = 5)
+        val (mlKit, rust) = measureEngines(labels)
         report(mlKit, labels)
+        if (rust != null) {
+            report(rust, labels)
+            faceToFace(mlKit, rust)
+        }
 
         measurePostProcessing(labels, mlKit)
 
-        report(measureMlKit(labels, "540", runs = 3), labels)
-        report(measureMlKit(labels, "1080", runs = 3), labels)
-
-        measureRustEngine(labels)?.let { report(it, labels) }
+        measureResolutions(labels).forEach { report(it, labels) }
 
         say(MARKER_END)
         assertTrue("ML Kit n'a rien lu : le banc ne mesure rien", mlKit.verdicts.any { it == Verdict.JUSTE })
@@ -93,79 +94,133 @@ class OcrBenchmark {
 
     // ------------------------------------------------------------------ Moteurs
 
-    private fun measureMlKit(labels: List<Label>, resolution: String, runs: Int): EngineResult {
+    /**
+     * Les deux moteurs sur les memes images en 720p, la resolution d'analyse de
+     * l'application, en les alternant passe apres passe : un emulateur n'est jamais
+     * tout a fait au repos, et mesurer l'un puis l'autre attribuerait a un moteur la
+     * charge de fond du moment. Alternes, ils la subissent a parts egales.
+     */
+    private fun measureEngines(labels: List<Label>): Pair<EngineResult, EngineResult?> {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        val engine = openRustEngine()
         try {
-            // Le premier appel charge le modele : il ne dit rien du regime etabli.
-            val first = loadFrame(labels.first(), resolution)
+            // Les premiers appels chargent les modeles : ils ne disent rien du regime etabli.
+            val first = loadFrame(labels.first(), "720")
             repeat(3) { Tasks.await(recognizer.process(first.toInputImage())) }
+            if (engine != 0L) repeat(2) { RustBridge.engineRead(engine, first.luma(), first.width, first.height) }
 
-            val millis = ArrayList<Double>()
-            val verdicts = ArrayList<Verdict>()
-            val texts = ArrayList<String>()
+            val mlKit = Samples()
+            val rust = Samples()
             for (label in labels) {
-                val frame = loadFrame(label, resolution)
-                var text = ""
-                val samples = DoubleArray(runs) {
+                val frame = loadFrame(label, "720")
+                // Extraite hors chronometre : sur un vrai flux, le plan Y existe deja.
+                val luma = frame.luma()
+                val mlKitMillis = DoubleArray(ENGINE_ROUNDS)
+                val rustMillis = DoubleArray(ENGINE_ROUNDS)
+                var mlKitText = ""
+                var rustText: String? = null
+                for (round in 0 until ENGINE_ROUNDS) {
                     // L'InputImage est reconstruite a chaque passe, comme pour chaque
                     // image de la camera.
-                    val start = System.nanoTime()
-                    text = Tasks.await(recognizer.process(frame.toInputImage())).text
-                    (System.nanoTime() - start) / 1e6
+                    mlKitMillis[round] = millis {
+                        mlKitText = Tasks.await(recognizer.process(frame.toInputImage())).text
+                    }
+                    if (engine != 0L) {
+                        rustMillis[round] = millis {
+                            rustText = RustBridge.engineRead(engine, luma, frame.width, frame.height)
+                        }
+                    }
                 }
-                millis += median(samples)
-                verdicts += verdictOf(text, label)
-                texts += text
+                mlKit.add(median(mlKitMillis), mlKitText, label)
+                rust.add(median(rustMillis), rustText.orEmpty(), label)
             }
-            return EngineResult("ML Kit (C++)", resolution, millis, verdicts, texts)
+            return mlKit.result("ML Kit (C++)", "720") to
+                if (engine != 0L) rust.result("ocrs (Rust)", "720") else null
         } finally {
             recognizer.close()
+            if (engine != 0L) RustBridge.engineDestroy(engine)
         }
     }
 
-    private fun measureRustEngine(labels: List<Label>): EngineResult? {
+    /** Renvoie 0 si le moteur Rust n'est pas disponible, apres avoir dit pourquoi. */
+    private fun openRustEngine(): Long {
         if (!RustBridge.available) {
             say("Moteur Rust : bibliotheque absente de cet APK, mesure sautee")
-            return null
+            return 0L
         }
         val detection = copyAsset("ocrbench/models/text-detection.onnx")
         val recognition = copyAsset("ocrbench/models/text-recognition.onnx")
         if (detection == null || recognition == null) {
             say("Moteur Rust : modeles absents de cet APK, mesure sautee")
-            return null
+            return 0L
         }
-        val loadStart = System.nanoTime()
-        val engine = RustBridge.engineCreate(detection.path, recognition.path)
+        var engine = 0L
+        val loadMillis = millis { engine = RustBridge.engineCreate(detection.path, recognition.path) }
         if (engine == 0L) {
             say("Moteur Rust : chargement impossible (${RustBridge.lastError()})")
-            return null
+        } else {
+            say("Moteur Rust : modeles charges en ${fmt(loadMillis)} ms")
         }
-        say("Moteur Rust : modeles charges en ${fmt((System.nanoTime() - loadStart) / 1e6)} ms")
-        try {
-            val first = loadFrame(labels.first(), "720")
-            repeat(2) { RustBridge.engineRead(engine, first.luma(), first.width, first.height) }
+        return engine
+    }
 
-            val millis = ArrayList<Double>()
-            val verdicts = ArrayList<Verdict>()
-            val texts = ArrayList<String>()
+    /**
+     * ML Kit aux trois resolutions, alternees elles aussi : ce que couterait ou
+     * rapporterait un changement de la resolution d'analyse.
+     */
+    private fun measureResolutions(labels: List<Label>): List<EngineResult> {
+        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        try {
+            val samples = RESOLUTIONS.associateWith { Samples() }
             for (label in labels) {
-                val frame = loadFrame(label, "720")
-                // Extraite hors chronometre : sur un vrai flux, le plan Y existe deja.
-                val luma = frame.luma()
-                var text: String? = null
-                val samples = DoubleArray(3) {
-                    val start = System.nanoTime()
-                    text = RustBridge.engineRead(engine, luma, frame.width, frame.height)
-                    (System.nanoTime() - start) / 1e6
+                val frames = RESOLUTIONS.associateWith { loadFrame(label, it) }
+                val timings = RESOLUTIONS.associateWith { DoubleArray(RESOLUTION_ROUNDS) }
+                val texts = HashMap<String, String>()
+                for (round in 0 until RESOLUTION_ROUNDS) {
+                    for (resolution in RESOLUTIONS) {
+                        val frame = frames.getValue(resolution)
+                        timings.getValue(resolution)[round] = millis {
+                            texts[resolution] = Tasks.await(recognizer.process(frame.toInputImage())).text
+                        }
+                    }
                 }
-                millis += median(samples)
-                verdicts += verdictOf(text.orEmpty(), label)
-                texts += text.orEmpty()
+                for (resolution in RESOLUTIONS) {
+                    samples.getValue(resolution)
+                        .add(median(timings.getValue(resolution)), texts[resolution].orEmpty(), label)
+                }
             }
-            return EngineResult("ocrs (Rust)", "720", millis, verdicts, texts)
+            return RESOLUTIONS.map { samples.getValue(it).result("ML Kit (C++), resolutions alternees", it) }
         } finally {
-            RustBridge.engineDestroy(engine)
+            recognizer.close()
         }
+    }
+
+    /** Accumule, etiquette par etiquette, le temps median et la lecture d'un moteur. */
+    private inner class Samples {
+        private val millis = ArrayList<Double>()
+        private val verdicts = ArrayList<Verdict>()
+        private val texts = ArrayList<String>()
+
+        fun add(medianMillis: Double, text: String, label: Label) {
+            millis += medianMillis
+            verdicts += verdictOf(text, label)
+            texts += text
+        }
+
+        fun result(name: String, resolution: String) = EngineResult(name, resolution, millis, verdicts, texts)
+    }
+
+    /** Les deux moteurs ont lu les memes images dans les memes conditions : image par image. */
+    private fun faceToFace(mlKit: EngineResult, rust: EngineResult) {
+        val ratios = mlKit.millis.indices.map { rust.millis[it] / mlKit.millis[it] }.sorted()
+        val rustFaster = ratios.count { it < 1.0 }
+        say("")
+        say("## Face a face, image par image")
+        say("Temps d'ocrs rapporte a celui de ML Kit : mediane x${fmt(percentile(ratios, 0.5))}, " +
+            "de x${fmt(ratios.first())} a x${fmt(ratios.last())} ; ocrs plus rapide sur $rustFaster images sur ${ratios.size}")
+        say("Lectures justes : ML Kit ${mlKit.verdicts.count { it == Verdict.JUSTE }}, ocrs ${rust.verdicts.count { it == Verdict.JUSTE }} " +
+            "sur ${ratios.size} ; fausses : ML Kit ${mlKit.verdicts.count { it == Verdict.FAUX }}, " +
+            "ocrs ${rust.verdicts.count { it == Verdict.FAUX }}")
     }
 
     // ---------------------------------------------------- Traitement par image
@@ -395,6 +450,12 @@ class OcrBenchmark {
         target
     }.getOrNull()
 
+    private inline fun millis(block: () -> Unit): Double {
+        val start = System.nanoTime()
+        block()
+        return (System.nanoTime() - start) / 1e6
+    }
+
     private inline fun timed(block: () -> Long): Long {
         val start = System.nanoTime()
         sink += block()
@@ -430,6 +491,11 @@ class OcrBenchmark {
 
         /** `ScanViewModel.CONSENSUS_THRESHOLD_OCR`, prive dans l'application. */
         const val OCR_CONSENSUS_THRESHOLD = 5
+
+        /** Passes chronometrees par image et par moteur ; la mediane est retenue. */
+        const val ENGINE_ROUNDS = 5
+        const val RESOLUTION_ROUNDS = 3
+        val RESOLUTIONS = listOf("540", "720", "1080")
 
         const val FRAMES_PER_LABEL = 6
         const val FRAME_INTERVAL_MS = 100L

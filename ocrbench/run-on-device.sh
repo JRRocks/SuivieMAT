@@ -18,6 +18,18 @@ adb install -r -t "$ROOT/app/build/outputs/apk/androidTest/debug/app-debug-andro
 adb shell cmd package compile -m speed -f "$APP" || echo "compilation a l'avance refusee pour $APP" >&2
 adb shell cmd package compile -m speed -f "$APP.test" || echo "compilation a l'avance refusee pour $APP.test" >&2
 
+# Un emulateur qui vient de demarrer travaille encore pour lui-meme (services Google,
+# optimisation des applications systeme) : mesurer a ce moment-la, c'est mesurer cette
+# charge. On attend qu'elle retombe, trois minutes au plus.
+for attempt in $(seq 1 36); do
+    load="$(adb shell cat /proc/loadavg | cut -d' ' -f1)"
+    echo "Charge de l'appareil (moyenne sur 1 min) : $load"
+    if awk -v load="$load" 'BEGIN { exit !(load < 1.0) }'; then
+        break
+    fi
+    sleep 5
+done
+
 adb logcat -c || true
 adb shell am instrument -w -e class com.scanlist.app.ocrbench.OcrBenchmark \
     "$APP.test/androidx.test.runner.AndroidJUnitRunner" | tee "$RESULTS/instrument.txt"
