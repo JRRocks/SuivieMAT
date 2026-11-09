@@ -1,0 +1,23 @@
+// Branche le banc de mesure OCR sur le module :app, sans rien ecrire dans son fichier de
+// build : passe a Gradle par --init-script, il n'existe pas pour une compilation
+// ordinaire. Mode d'emploi dans ocrbench/README.md.
+allprojects {
+    if (path == ':app') {
+        pluginManager.withPlugin('com.android.application') {
+            android {
+                // Le banc compare du Kotlin a du Rust compile en release : il doit
+                // mesurer le Kotlin tel qu'ART l'execute dans l'APK livre, pas bride par
+                // le mode debuggable (l'APK "optimise" est 4 fois plus rapide a froid).
+                buildTypes.debug.debuggable = false
+
+                // Les sources du banc, et ce que ocrbench/prepare.sh fabrique (images,
+                // modeles, bibliotheque Rust), n'entrent que dans l'APK de test.
+                sourceSets.androidTest {
+                    kotlin.srcDir rootProject.file('ocrbench/androidTest/kotlin')
+                    assets.srcDir rootProject.file('ocrbench/build/assets')
+                    jniLibs.srcDir rootProject.file('ocrbench/build/jniLibs')
+                }
+            }
+        }
+    }
+}

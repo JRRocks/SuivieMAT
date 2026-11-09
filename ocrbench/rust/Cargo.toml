@@ -1,0 +1,29 @@
+[package]
+name = "ocrbench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Banc de mesure OCR de SuivieMAT : post-traitement et moteur de lecture en Rust, compares au code Kotlin et a ML Kit."
+
+[lib]
+# cdylib : la bibliotheque chargee par le test instrumente (JNI).
+# rlib : pour les tests et l'exemple executes sur le poste.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+jni = "0.21"
+ocrs = "0.14"
+regex = "1"
+rten = "0.28"
+rten-imageproc = "0.28"
+rten-tensor = "0.28"
+
+[dev-dependencies]
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+# Pas de panic = "abort" : le pont JNI rattrape une panique du moteur pour que le banc
+# la rapporte au lieu de perdre toutes ses mesures avec le processus.
